@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="Global Multi-Index Momentum Radar & TradingView Bridge", version="1.0.0")
+app = FastAPI(title="Global Multi-Index Momentum Radar (TradingView Feed)", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,13 +25,108 @@ TYPESAFE_API_KEY = os.getenv("TYPESAFE_API_KEY", "")
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
 
 ASSETS = {
-    "S&P 500": {"symbol": "SPY", "flag": "🇺🇸", "desc": "US Large-Cap Benchmark"},
-    "Nasdaq 100": {"symbol": "QQQ", "flag": "💻", "desc": "US Tech & Growth Leaders"},
-    "Russell 2000": {"symbol": "IWM", "flag": "🚀", "desc": "US Small-Cap Risk-On"},
-    "Nikkei 225": {"symbol": "^N225", "flag": "🇯🇵", "desc": "Japan Benchmark Index"}
+    "S&P 500": {
+        "symbol": "SPY",
+        "tv_ticker": "AMEX:SPY",
+        "flag": "🇺🇸",
+        "desc": "US Large-Cap Benchmark",
+        "market": "america"
+    },
+    "Nasdaq 100": {
+        "symbol": "QQQ",
+        "tv_ticker": "NASDAQ:QQQ",
+        "flag": "💻",
+        "desc": "US Tech & Growth Leaders",
+        "market": "america"
+    },
+    "Russell 2000": {
+        "symbol": "IWM",
+        "tv_ticker": "AMEX:IWM",
+        "flag": "🚀",
+        "desc": "US Small-Cap Risk-On",
+        "market": "america"
+    },
+    "Nikkei 225": {
+        "symbol": "^N225",
+        "tv_ticker": "TVC:NI225",
+        "flag": "🇯🇵",
+        "desc": "Japan Benchmark Index",
+        "market": "global"
+    }
 }
 
-def fetch_asset_data(symbol: str, timeframe: str = "5m"):
+def fetch_tradingview_scan(timeframe: str = "5m") -> dict:
+    """Pulls live indicators directly from TradingView's official scanner APIs."""
+    suffix = "|5" if timeframe == "5m" else ("|60" if timeframe == "1h" else "")
+    cols = [
+        f"close{suffix}",
+        f"change{suffix}",
+        f"RSI{suffix}",
+        f"VWAP{suffix}",
+        f"Recommend.All{suffix}",
+        f"volume{suffix}"
+    ]
+    
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    tv_data = {}
+    
+    # 1. US Equities Scan (AMEX:SPY, NASDAQ:QQQ, AMEX:IWM)
+    try:
+        us_tickers = [meta["tv_ticker"] for meta in ASSETS.values() if meta["market"] == "america"]
+        url_us = "https://scanner.tradingview.com/america/scan"
+        payload_us = {"symbols": {"tickers": us_tickers}, "columns": cols}
+        res_us = requests.post(url_us, json=payload_us, headers=headers, timeout=6).json()
+        for item in res_us.get("data", []):
+            ticker = item["s"]
+            vals = item["d"]
+            tv_data[ticker] = {
+                "close": vals[0],
+                "change": vals[1],
+                "rsi": vals[2],
+                "vwap": vals[3],
+                "recommend": vals[4],
+                "volume": vals[5]
+            }
+    except Exception as e:
+        print(f"Error fetching US TradingView scan: {e}")
+        
+    # 2. Global Scan (TVC:NI225)
+    try:
+        gl_tickers = [meta["tv_ticker"] for meta in ASSETS.values() if meta["market"] == "global"]
+        url_gl = "https://scanner.tradingview.com/global/scan"
+        payload_gl = {"symbols": {"tickers": gl_tickers}, "columns": cols}
+        res_gl = requests.post(url_gl, json=payload_gl, headers=headers, timeout=6).json()
+        for item in res_gl.get("data", []):
+            ticker = item["s"]
+            vals = item["d"]
+            tv_data[ticker] = {
+                "close": vals[0],
+                "change": vals[1],
+                "rsi": vals[2],
+                "vwap": vals[3],
+                "recommend": vals[4],
+                "volume": vals[5]
+            }
+    except Exception as e:
+        print(f"Error fetching Global TradingView scan: {e}")
+        
+    return tv_data
+
+def get_tv_rating_text(score):
+    if score is None:
+        return "NEUTRAL", "#ffd166"
+    if score >= 0.5:
+        return "STRONG BUY", "#00ff88"
+    elif score >= 0.1:
+        return "BUY", "#22c55e"
+    elif score <= -0.5:
+        return "STRONG SELL", "#ff4d6d"
+    elif score <= -0.1:
+        return "SELL", "#ef4444"
+    else:
+        return "NEUTRAL", "#ffd166"
+
+def fetch_asset_candles(symbol: str, timeframe: str = "5m"):
     range_str = "5d" if timeframe == "5m" else ("1mo" if timeframe == "1h" else "3mo")
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval={timeframe}&range={range_str}"
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -62,7 +157,7 @@ def call_jev_api(state_str: str) -> dict:
         "questions": {
             "tactical_action": {
                 "type": "choice",
-                "instructions": "Determine tactical positioning for the next 15-30 minutes based on momentum and VWAP.",
+                "instructions": "Determine tactical positioning for the next 15-30 minutes based on TradingView momentum and VWAP metrics.",
                 "criteria": {
                     "BUY_LONG": "Clear bullish momentum above VWAP with upside acceleration",
                     "HOLD_CASH": "Consolidation, neutral chop, or tight range near VWAP",
@@ -100,44 +195,59 @@ def call_jev_api(state_str: str) -> dict:
         "raw_response": data
     }
 
-def analyze_asset(df, name="S&P 500", timeframe="5m"):
-    close = df["Close"].values
-    high = df["High"].values
-    low = df["Low"].values
+def analyze_asset(df, name="S&P 500", timeframe="5m", tv_metric=None):
+    close_vals = df["Close"].values
+    high_vals = df["High"].values
+    low_vals = df["Low"].values
     open_p = df["Open"].values
-    volume = df["Volume"].fillna(0).values
+    volume_vals = df["Volume"].fillna(0).values
     
-    if len(close) < 15:
+    if len(close_vals) < 15:
         return None
 
-    total_vol = volume.sum()
-    if total_vol > 0:
-        typical_price = (high + low + close) / 3.0
-        vwap = (typical_price * volume).sum() / (total_vol + 1e-9)
+    # Base calculations from candles
+    tr = np.maximum(high_vals[1:] - low_vals[1:], np.maximum(abs(high_vals[1:] - close_vals[:-1]), abs(low_vals[1:] - close_vals[:-1])))
+    atr_14 = float(np.mean(tr[-14:])) if len(tr) >= 14 else float(np.std(close_vals))
+    
+    ret_3 = (close_vals[-1] / close_vals[-4] - 1) * 100 if len(close_vals) > 4 else 0.0
+    ret_6 = (close_vals[-1] / close_vals[-7] - 1) * 100 if len(close_vals) > 7 else 0.0
+    
+    # Priority: Pull directly from TradingView if available
+    tv_ticker = ASSETS[name]["tv_ticker"]
+    if tv_metric and tv_metric.get("close") is not None:
+        price = float(tv_metric["close"])
+        session_change = float(tv_metric["change"]) if tv_metric["change"] is not None else (close_vals[-1] / open_p[0] - 1) * 100
+        rsi_14 = float(tv_metric["rsi"]) if tv_metric["rsi"] is not None else 50.0
+        vwap = float(tv_metric["vwap"]) if tv_metric["vwap"] is not None else float(np.mean(close_vals[-20:]))
+        tv_rating_score = tv_metric.get("recommend")
+        feed_source = "TradingView Live"
     else:
-        vwap = float(np.mean(close[-20:]))
-        
-    tr = np.maximum(high[1:] - low[1:], np.maximum(abs(high[1:] - close[:-1]), abs(low[1:] - close[:-1])))
-    atr_14 = float(np.mean(tr[-14:])) if len(tr) >= 14 else float(np.std(close))
-    vwap_z = (close[-1] - vwap) / (atr_14 + 1e-9)
-    
-    ret_3 = (close[-1] / close[-4] - 1) * 100 if len(close) > 4 else 0.0
-    ret_6 = (close[-1] / close[-7] - 1) * 100 if len(close) > 7 else 0.0
-    session_change = (close[-1] / open_p[0] - 1) * 100
-    
-    # 14-period RSI
-    delta = np.diff(close[-15:])
-    gain = np.where(delta > 0, delta, 0)
-    loss = np.where(delta < 0, -delta, 0)
-    rs = np.mean(gain) / (np.mean(loss) + 1e-9)
-    rsi_14 = 100 - (100 / (1 + rs))
-    
+        price = float(close_vals[-1])
+        session_change = (close_vals[-1] / open_p[0] - 1) * 100
+        delta = np.diff(close_vals[-15:])
+        gain = np.where(delta > 0, delta, 0)
+        loss = np.where(delta < 0, -delta, 0)
+        rs = np.mean(gain) / (np.mean(loss) + 1e-9)
+        rsi_14 = float(100 - (100 / (1 + rs)))
+        total_vol = volume_vals.sum()
+        if total_vol > 0:
+            typical_price = (high_vals + low_vals + close_vals) / 3.0
+            vwap = float((typical_price * volume_vals).sum() / (total_vol + 1e-9))
+        else:
+            vwap = float(np.mean(close_vals[-20:]))
+        tv_rating_score = None
+        feed_source = "Chart Feed"
+
+    vwap_z = (price - vwap) / (atr_14 + 1e-9)
+    tv_rating_label, tv_rating_color = get_tv_rating_text(tv_rating_score)
+
     state_str = (
-        f"Asset: {name} ({timeframe} bar). "
-        f"Close Price: ${close[-1]:,.2f}. "
-        f"Session VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
-        f"Micro-Momentum: 3-bar={ret_3:+.2f}%, 6-bar={ret_6:+.2f}%. "
-        f"14-RSI: {rsi_14:.1f}. Session Return: {session_change:+.2f}%."
+        f"Asset: {name} (TradingView Symbol: {tv_ticker}, {timeframe} bar). "
+        f"TradingView Live Close: ${price:,.2f}. "
+        f"TradingView Session VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
+        f"TradingView 14-RSI: {rsi_14:.1f}. "
+        f"TradingView Technical Rating: {tv_rating_label} ({tv_rating_score if tv_rating_score is not None else 0:+.2f}). "
+        f"Micro-Momentum: 3-bar={ret_3:+.2f}%, 6-bar={ret_6:+.2f}%. Session Return: {session_change:+.2f}%."
     )
     
     try:
@@ -148,6 +258,8 @@ def analyze_asset(df, name="S&P 500", timeframe="5m"):
         is_live_jev = True
     except Exception:
         raw_score = 0.35 * ret_3 + 0.35 * ret_6 + 0.30 * (vwap_z * 0.4)
+        if tv_rating_score is not None:
+            raw_score += 0.20 * tv_rating_score
         prob_up = float(1.0 / (1.0 + np.exp(- (0.19 + 0.35 * raw_score))))
         jev_choice = "BUY_LONG" if (prob_up > 0.54 and vwap_z > 0.15) else ("SELL_SHORT" if (prob_up < 0.46 and vwap_z < -0.15) else "HOLD_CASH")
         confidence = 0.70
@@ -166,6 +278,7 @@ def analyze_asset(df, name="S&P 500", timeframe="5m"):
         badge_class = "card-neutral"
         color = "#ffd166"
 
+    # Candle series for Plotly chart
     last_df = df.iloc[-45:]
     candles = []
     for _, row in last_df.iterrows():
@@ -181,21 +294,26 @@ def analyze_asset(df, name="S&P 500", timeframe="5m"):
     return {
         "name": name,
         "symbol": ASSETS[name]["symbol"],
+        "tv_ticker": tv_ticker,
         "flag": ASSETS[name]["flag"],
         "desc": ASSETS[name]["desc"],
+        "feed_source": feed_source,
         "action": action,
         "badge_class": badge_class,
         "color": color,
         "prob_up": round(prob_up, 4),
         "confidence": round(confidence, 4),
         "is_live_jev": is_live_jev,
-        "price": round(float(close[-1]), 2),
-        "session_change": round(float(session_change), 2),
-        "vwap": round(float(vwap), 2),
-        "vwap_z": round(float(vwap_z), 2),
-        "rsi": round(float(rsi_14), 1),
-        "ret_3": round(float(ret_3), 2),
-        "ret_6": round(float(ret_6), 2),
+        "price": round(price, 2),
+        "session_change": round(session_change, 2),
+        "vwap": round(vwap, 2),
+        "vwap_z": round(vwap_z, 2),
+        "rsi": round(rsi_14, 1),
+        "ret_3": round(ret_3, 2),
+        "ret_6": round(ret_6, 2),
+        "tv_rating": tv_rating_label,
+        "tv_rating_score": round(tv_rating_score, 2) if tv_rating_score is not None else None,
+        "tv_rating_color": tv_rating_color,
         "state_str": state_str,
         "candles": candles
     }
@@ -212,7 +330,7 @@ def generate_insights(results):
         small_spread = rut["ret_6"] - sp["ret_6"]
         
         if tech_spread > 0.15:
-            insights.append({"type": "bull", "text": "Tech Outperformance (QQQ > SPY): Tech leadership is driving index momentum."})
+            insights.append({"type": "bull", "text": "Tech Outperformance (QQQ > SPY): TradingView tech leadership driving momentum."})
         elif tech_spread < -0.15:
             insights.append({"type": "warn", "text": "Tech Drag (QQQ < SPY): Tech sector lagging broader market."})
             
@@ -221,8 +339,8 @@ def generate_insights(results):
         elif small_spread < -0.20:
             insights.append({"type": "warn", "text": "Defensive Posture (IWM < SPY): Small caps underperforming; watch for false large-cap breakouts."})
             
-        if nik["prob_up"] > 0.55:
-            insights.append({"type": "info", "text": "Nikkei Momentum: Asian session trading with upside momentum bias."})
+        if nik["prob_up"] > 0.55 or nik.get("tv_rating") in ["BUY", "STRONG BUY"]:
+            insights.append({"type": "info", "text": f"Nikkei 225 TradingView Signal: Asian session {nik.get('tv_rating', 'BULLISH')} momentum bias."})
             
     return insights
 
@@ -241,11 +359,15 @@ def get_radar(timeframe: str = "5m"):
     if timeframe not in ["5m", "1h", "1d"]:
         timeframe = "5m"
 
+    # 1. Fetch TradingView Scan
+    tv_data = fetch_tradingview_scan(timeframe)
+
     results = {}
     for name, meta in ASSETS.items():
         try:
-            df = fetch_asset_data(meta["symbol"], timeframe)
-            sig = analyze_asset(df, name=name, timeframe=timeframe)
+            df = fetch_asset_candles(meta["symbol"], timeframe)
+            tv_metric = tv_data.get(meta["tv_ticker"])
+            sig = analyze_asset(df, name=name, timeframe=timeframe, tv_metric=tv_metric)
             if sig:
                 results[name] = sig
         except Exception as e:
@@ -254,12 +376,14 @@ def get_radar(timeframe: str = "5m"):
     insights = generate_insights(results)
     return {
         "status": "success",
+        "feed": "TradingView Official Live Feeds",
         "timeframe": timeframe,
         "results": results,
         "insights": insights
     }
 
 @app.post("/api/webhook")
+@app.post("/webhook/tradingview")
 async def tradingview_webhook(request: Request):
     try:
         body = await request.json()

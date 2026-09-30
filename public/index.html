@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Global Multi-Index Momentum Radar | TypeSafe Jev</title>
-  <meta name="description" content="Real-time multi-index short-term momentum signals for S&P 500, Nasdaq 100, Russell 2000, and Nikkei 225 powered by TypeSafe Jev System One.">
+  <title>Global Multi-Index Momentum Radar | TradingView & TypeSafe Jev</title>
+  <meta name="description" content="Real-time multi-index short-term momentum signals pulled directly from TradingView and evaluated by TypeSafe Jev System One.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <style>
     :root {
       --bg-dark: #0a0e17;
-      --bg-card: rgba(18, 24, 38, 0.75);
-      --bg-card-hover: rgba(26, 34, 52, 0.9);
+      --bg-card: rgba(18, 24, 38, 0.8);
+      --bg-card-hover: rgba(26, 34, 52, 0.95);
       --border-subtle: rgba(255, 255, 255, 0.08);
       --border-glow: rgba(0, 255, 136, 0.3);
       --text-main: #f0f4fc;
@@ -24,7 +24,9 @@
       --red-bg: rgba(255, 77, 109, 0.12);
       --amber-neutral: #ffd166;
       --amber-bg: rgba(255, 209, 102, 0.12);
-      --accent-blue: #3a86ff;
+      --tv-blue: #2962ff;
+      --tv-blue-bg: rgba(41, 98, 255, 0.15);
+      --tv-blue-border: rgba(41, 98, 255, 0.4);
     }
 
     * {
@@ -34,7 +36,7 @@
     }
 
     body {
-      background: radial-gradient(circle at 50% 0%, #151f33 0%, var(--bg-dark) 70%);
+      background: radial-gradient(circle at 50% 0%, #111a2e 0%, var(--bg-dark) 75%);
       color: var(--text-main);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
@@ -43,7 +45,7 @@
     }
 
     .container {
-      max-width: 1380px;
+      max-width: 1400px;
       margin: 0 auto;
     }
 
@@ -54,7 +56,7 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 16px;
-      padding-bottom: 24px;
+      padding-bottom: 22px;
       border-bottom: 1px solid var(--border-subtle);
       margin-bottom: 24px;
     }
@@ -63,7 +65,7 @@
       font-size: 26px;
       font-weight: 800;
       letter-spacing: -0.5px;
-      background: linear-gradient(90deg, #ffffff, #8e9bb0);
+      background: linear-gradient(90deg, #ffffff, #93c5fd);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       display: flex;
@@ -76,6 +78,28 @@
       color: var(--text-muted);
       margin-top: 4px;
       font-weight: 400;
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tv-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--tv-blue-bg);
+      border: 1px solid var(--tv-blue-border);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #60a5fa;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.3px;
     }
 
     .system-status {
@@ -176,7 +200,7 @@
     }
 
     .auto-toggle input {
-      accent-color: var(--accent-blue);
+      accent-color: var(--tv-blue);
       cursor: pointer;
       width: 16px;
       height: 16px;
@@ -223,7 +247,7 @@
 
     .cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
       gap: 18px;
       margin-bottom: 28px;
     }
@@ -237,7 +261,6 @@
       transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       cursor: pointer;
       position: relative;
-      overflow: hidden;
     }
 
     .radar-card:hover {
@@ -280,12 +303,16 @@
 
     .card-symbol {
       font-size: 11px;
-      color: var(--text-muted);
+      color: #60a5fa;
+      background: rgba(59, 130, 246, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
       font-family: 'JetBrains Mono', monospace;
+      text-decoration: none;
     }
 
     .card-price {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 800;
       font-family: 'JetBrains Mono', monospace;
       letter-spacing: -0.5px;
@@ -309,7 +336,7 @@
       font-size: 16px;
       font-weight: 800;
       letter-spacing: 0.5px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .badge-buy {
@@ -328,6 +355,20 @@
       background: var(--amber-bg);
       color: var(--amber-neutral);
       border: 1px solid rgba(255, 209, 102, 0.3);
+    }
+
+    .tv-rating-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
     }
 
     .prob-bar-container {
@@ -358,12 +399,15 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
-    .card-engine-tag {
+    .card-footer-info {
+      display: flex;
+      justify-content: space-between;
       font-size: 10px;
       color: var(--text-muted);
-      text-align: right;
       margin-top: 10px;
-      opacity: 0.7;
+      opacity: 0.8;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 6px;
     }
 
     /* Insights Box */
@@ -474,9 +518,25 @@
     }
 
     .asset-pill.active {
-      background: rgba(0, 255, 136, 0.15);
-      border-color: var(--green-bull);
+      background: rgba(41, 98, 255, 0.2);
+      border-color: var(--tv-blue);
       color: #fff;
+    }
+
+    .tv-link-btn {
+      color: #60a5fa;
+      font-size: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.2s ease;
+    }
+
+    .tv-link-btn:hover {
+      color: #93c5fd;
+      text-decoration: underline;
     }
 
     #candlestick-chart {
@@ -492,16 +552,6 @@
       padding: 20px 0;
       border-top: 1px solid var(--border-subtle);
     }
-
-    .loading-overlay {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      min-height: 200px;
-      font-size: 14px;
-      color: var(--text-muted);
-      gap: 10px;
-    }
   </style>
 </head>
 <body>
@@ -511,11 +561,16 @@
     <header>
       <div>
         <div class="brand-title">🌐 Global Multi-Index Momentum Radar</div>
-        <div class="brand-subtitle">Nikkei 225 • S&P 500 • Nasdaq 100 • Russell 2000 — Powered by TypeSafe Jev System One</div>
+        <div class="brand-subtitle">TradingView Live Feeds • Evaluated by TypeSafe Jev System One Models</div>
       </div>
-      <div class="system-status">
-        <div class="pulse-dot"></div>
-        <span id="model-status-text">JEV MODEL: ONLINE (jev-latest)</span>
+      <div class="header-badges">
+        <div class="tv-live-badge">
+          <span>📊</span> TRADINGVIEW LIVE SCANNER
+        </div>
+        <div class="system-status">
+          <div class="pulse-dot"></div>
+          <span id="model-status-text">JEV MODEL: ONLINE</span>
+        </div>
       </div>
     </header>
 
@@ -531,40 +586,41 @@
       <div class="refresh-actions">
         <label class="auto-toggle">
           <input type="checkbox" id="auto-refresh-toggle" onchange="toggleAutoRefresh(this.checked)">
-          Auto-refresh (every 45s)
+          Auto-refresh (every 30s)
         </label>
         <button class="btn-refresh" id="refresh-btn" onclick="fetchRadarData()">
-          <span id="refresh-icon">🔄</span> Refresh Radar
+          <span id="refresh-icon">🔄</span> Refresh Feeds
         </button>
       </div>
     </div>
 
     <!-- Cards Section -->
-    <div class="section-title">⚡ Live Decision Overview (TypeSafe Jev)</div>
+    <div class="section-title">⚡ TradingView Numbers & TypeSafe Jev Decisions</div>
     <div class="cards-grid" id="cards-container">
       <div class="radar-card" style="text-align: center; color: var(--text-muted); padding: 40px;">
-        Loading live market data and Jev inferences...
+        Connecting to TradingView scanner & TypeSafe Jev...
       </div>
     </div>
 
     <!-- Cross-Market Relative Strength Matrix -->
-    <div class="section-title">📊 Cross-Market Relative Strength Matrix</div>
+    <div class="section-title">📊 Cross-Market TradingView & Jev Strength Matrix</div>
     <div class="table-container">
       <table>
         <thead>
           <tr>
             <th>Index</th>
-            <th>Signal</th>
+            <th>TV Ticker</th>
+            <th>TV Price</th>
+            <th>TV Return</th>
+            <th>TV Tech Rating</th>
+            <th>Jev Decision</th>
             <th>Continuation Prob</th>
-            <th>Jev Confidence</th>
-            <th>3-Bar Momentum</th>
-            <th>6-Bar Momentum</th>
-            <th>VWAP Distance</th>
-            <th>14-RSI</th>
+            <th>TV VWAP Distance</th>
+            <th>TV 14-RSI</th>
           </tr>
         </thead>
         <tbody id="matrix-tbody">
-          <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Fetching matrix metrics...</td></tr>
+          <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Fetching TradingView feeds...</td></tr>
         </tbody>
       </table>
     </div>
@@ -585,6 +641,9 @@
           <button class="asset-pill" onclick="selectChartAsset('Russell 2000')">🚀 Russell 2000</button>
           <button class="asset-pill" onclick="selectChartAsset('Nikkei 225')">🇯🇵 Nikkei 225</button>
         </div>
+        <a id="tv-direct-link" href="https://www.tradingview.com/chart/?symbol=AMEX:SPY" target="_blank" class="tv-link-btn">
+          Open on TradingView ↗
+        </a>
       </div>
       <div id="candlestick-chart"></div>
     </div>
@@ -592,7 +651,7 @@
     <!-- Footer -->
     <footer>
       <div id="last-updated-text">Last Updated: --</div>
-      <div style="margin-top: 6px; font-size: 11px;">Built with TypeSafe Jev System One & Yahoo Finance API • Serverless Vercel Architecture</div>
+      <div style="margin-top: 6px; font-size: 11px;">Official TradingView Real-Time Feeds • TypeSafe Jev System One Decision Engine • Vercel Serverless</div>
     </footer>
   </div>
 
@@ -637,7 +696,10 @@
         pill.classList.toggle('active', pill.innerText.includes(assetName));
       });
       if (latestData && latestData.results[assetName]) {
-        renderChart(latestData.results[assetName]);
+        const item = latestData.results[assetName];
+        document.getElementById('tv-direct-link').href = `https://www.tradingview.com/chart/?symbol=${item.tv_ticker}`;
+        document.getElementById('tv-direct-link').innerText = `Open ${item.tv_ticker} on TradingView ↗`;
+        renderChart(item);
       }
     }
 
@@ -657,7 +719,9 @@
         const actionClass = sig.action.includes('BUY') ? 'badge-buy' : (sig.action.includes('SELL') ? 'badge-sell' : 'badge-neutral');
         const probPct = (sig.prob_up * 100).toFixed(1);
         const probColor = sig.action.includes('BUY') ? '#00ff88' : (sig.action.includes('SELL') ? '#ff4d6d' : '#ffd166');
-        const engineLabel = sig.is_live_jev ? '⚡ TypeSafe Jev' : '⚡ Quant Fallback';
+        const tvRatingText = sig.tv_rating || 'NEUTRAL';
+        const tvRatingColor = sig.tv_rating_color || '#ffd166';
+        const tvScoreStr = sig.tv_rating_score !== null && sig.tv_rating_score !== undefined ? (sig.tv_rating_score > 0 ? `+${sig.tv_rating_score}` : sig.tv_rating_score) : '--';
 
         const card = document.createElement('div');
         card.className = `radar-card ${sig.badge_class} ${name === selectedAsset ? 'selected' : ''}`;
@@ -665,16 +729,22 @@
         card.innerHTML = `
           <div class="card-top">
             <div class="card-asset-name">${sig.flag} ${name}</div>
-            <div class="card-symbol">${sig.symbol}</div>
+            <a class="card-symbol" href="https://www.tradingview.com/chart/?symbol=${sig.tv_ticker}" target="_blank" onclick="event.stopPropagation()">${sig.tv_ticker}</a>
           </div>
           <div class="card-price">$${sig.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
           <div class="card-session" style="color: ${isUp ? '#00ff88' : '#ff4d6d'};">
-            ${isUp ? '▲ +' : '▼ '}${sig.session_change.toFixed(2)}% (Session)
+            ${isUp ? '▲ +' : '▼ '}${sig.session_change.toFixed(2)}% (TradingView)
           </div>
+          
+          <div class="tv-rating-row">
+            <span style="color: #8e9bb0;">TV RATING</span>
+            <span style="color: ${tvRatingColor};">${tvRatingText} (${tvScoreStr})</span>
+          </div>
+
           <div class="card-action-badge ${actionClass}">${sig.action}</div>
           
           <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600;">
-            <span>Continuation Prob</span>
+            <span>Jev Continuation Prob</span>
             <span class="mono" style="color: ${probColor};">${probPct}%</span>
           </div>
           <div class="prob-bar-container">
@@ -682,28 +752,33 @@
           </div>
 
           <div class="card-metrics-row">
-            <span>Confidence</span>
-            <span class="val">${(sig.confidence * 100).toFixed(0)}%</span>
+            <span>TradingView RSI (14)</span>
+            <span class="val">${sig.rsi}</span>
           </div>
           <div class="card-metrics-row">
-            <span>VWAP Distance</span>
-            <span class="val">${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)} ATR</span>
+            <span>TradingView VWAP</span>
+            <span class="val">$${sig.vwap.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)}σ)</span>
           </div>
-          <div class="card-engine-tag">${engineLabel}</div>
+
+          <div class="card-footer-info">
+            <span>📡 ${sig.feed_source}</span>
+            <span>⚡ TypeSafe Jev System One</span>
+          </div>
         `;
         cardsContainer.appendChild(card);
 
         // Render Table Row
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><strong>${sig.flag} ${name}</strong> <span class="mono" style="color:var(--text-muted); font-size:11px;">(${sig.symbol})</span></td>
+          <td><strong>${sig.flag} ${name}</strong></td>
+          <td><a href="https://www.tradingview.com/chart/?symbol=${sig.tv_ticker}" target="_blank" style="color:#60a5fa; text-decoration:none; font-family:'JetBrains Mono'; font-weight:600;">${sig.tv_ticker}</a></td>
+          <td class="mono font-weight-bold">$${sig.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          <td class="mono" style="color: ${isUp ? '#00ff88' : '#ff4d6d'}; font-weight:600;">${isUp ? '+' : ''}${sig.session_change.toFixed(2)}%</td>
+          <td><span style="color: ${tvRatingColor}; font-weight:700; font-family:'JetBrains Mono'; font-size:11px;">${tvRatingText}</span></td>
           <td><span style="color: ${sig.color}; font-weight: 700;">${sig.action}</span></td>
-          <td class="mono" style="color: ${probColor};">${probPct}%</td>
-          <td class="mono">${(sig.confidence * 100).toFixed(0)}%</td>
-          <td class="mono" style="color: ${sig.ret_3 >= 0 ? '#00ff88' : '#ff4d6d'};">${sig.ret_3 >= 0 ? '+' : ''}${sig.ret_3.toFixed(2)}%</td>
-          <td class="mono" style="color: ${sig.ret_6 >= 0 ? '#00ff88' : '#ff4d6d'};">${sig.ret_6 >= 0 ? '+' : ''}${sig.ret_6.toFixed(2)}%</td>
+          <td class="mono" style="color: ${probColor}; font-weight:700;">${probPct}%</td>
           <td class="mono">${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)} ATR</td>
-          <td class="mono">${sig.rsi.toFixed(1)}</td>
+          <td class="mono">${sig.rsi}</td>
         `;
         matrixTbody.appendChild(tr);
       }
@@ -739,7 +814,7 @@
         low: lows,
         close: closes,
         type: 'candlestick',
-        name: assetData.symbol,
+        name: assetData.tv_ticker,
         increasing: { line: { color: '#00ff88', width: 1.5 }, fillcolor: '#00ff88' },
         decreasing: { line: { color: '#ff4d6d', width: 1.5 }, fillcolor: '#ff4d6d' }
       };
@@ -748,13 +823,13 @@
         x: dates,
         y: vwapLine,
         mode: 'lines',
-        name: `Session VWAP ($${assetData.vwap})`,
+        name: `TradingView VWAP ($${assetData.vwap})`,
         line: { color: '#ffd166', width: 2, dash: 'dash' }
       };
 
       const layout = {
         title: {
-          text: `${assetData.flag} ${assetData.name} (${assetData.symbol}) — ${currentTimeframe} Horizon`,
+          text: `${assetData.flag} ${assetData.name} (${assetData.tv_ticker}) — TradingView Real-Time Feed (${currentTimeframe})`,
           font: { color: '#f0f4fc', size: 15, family: 'Inter' }
         },
         paper_bgcolor: 'rgba(0,0,0,0)',
@@ -779,7 +854,7 @@
 
     function toggleAutoRefresh(enable) {
       if (enable) {
-        autoRefreshInterval = setInterval(fetchRadarData, 45000);
+        autoRefreshInterval = setInterval(fetchRadarData, 30000);
       } else {
         clearInterval(autoRefreshInterval);
       }
