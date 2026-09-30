@@ -77,7 +77,8 @@ ASSETS = {
     "S&P 500": {"symbol": "SPY", "flag": "🇺🇸", "desc": "US Large-Cap Benchmark"},
     "Nasdaq 100": {"symbol": "QQQ", "flag": "💻", "desc": "US Tech & Growth Leaders"},
     "Russell 2000": {"symbol": "IWM", "flag": "🚀", "desc": "US Small-Cap Risk-On"},
-    "Nikkei 225": {"symbol": "^N225", "flag": "🇯🇵", "desc": "Japan Benchmark Index"}
+    "Nikkei 225": {"symbol": "^N225", "flag": "🇯🇵", "desc": "Japan Benchmark Index"},
+    "10Y T-Note (TY10)": {"symbol": "ZN=F", "flag": "🏛️", "desc": "US 10-Year Treasury Note Futures"}
 }
 
 # ---------------------------------------------------------

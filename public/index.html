@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Global Multi-Index Momentum Radar | TradingView & TypeSafe Jev</title>
-  <meta name="description" content="Real-time multi-index short-term momentum signals pulled directly from TradingView and evaluated by TypeSafe Jev System One.">
+  <title>Global Multi-Index & Rates Momentum Radar | 100% TradingView Live</title>
+  <meta name="description" content="Real-time multi-index & Treasury futures short-term momentum signals pulled 100% from TradingView and evaluated by TypeSafe Jev System One.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
   <style>
     :root {
       --bg-dark: #0a0e17;
-      --bg-card: rgba(18, 24, 38, 0.8);
+      --bg-card: rgba(18, 24, 38, 0.85);
       --bg-card-hover: rgba(26, 34, 52, 0.95);
       --border-subtle: rgba(255, 255, 255, 0.08);
       --border-glow: rgba(0, 255, 136, 0.3);
@@ -45,7 +45,7 @@
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 1440px;
       margin: 0 auto;
     }
 
@@ -247,8 +247,8 @@
 
     .cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
       margin-bottom: 28px;
     }
 
@@ -256,7 +256,7 @@
       background: var(--bg-card);
       backdrop-filter: blur(12px);
       border-radius: 14px;
-      padding: 20px;
+      padding: 18px;
       border: 1px solid var(--border-subtle);
       transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       cursor: pointer;
@@ -270,7 +270,7 @@
 
     .radar-card.selected {
       border-color: #3b82f6 !important;
-      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.35);
     }
 
     .card-buy {
@@ -289,11 +289,11 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .card-asset-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: #e2e8f0;
       display: flex;
@@ -304,15 +304,16 @@
     .card-symbol {
       font-size: 11px;
       color: #60a5fa;
-      background: rgba(59, 130, 246, 0.1);
+      background: rgba(59, 130, 246, 0.12);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: 'JetBrains Mono', monospace;
       text-decoration: none;
+      font-weight: 600;
     }
 
     .card-price {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 800;
       font-family: 'JetBrains Mono', monospace;
       letter-spacing: -0.5px;
@@ -321,7 +322,7 @@
     .card-session {
       font-size: 12px;
       font-weight: 600;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       display: flex;
       align-items: center;
       gap: 4px;
@@ -331,12 +332,12 @@
       display: inline-block;
       width: 100%;
       text-align: center;
-      padding: 10px;
+      padding: 9px;
       border-radius: 8px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       letter-spacing: 0.5px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .badge-buy {
@@ -363,20 +364,20 @@
       align-items: center;
       font-size: 11px;
       font-weight: 700;
-      background: rgba(0, 0, 0, 0.25);
+      background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.05);
-      padding: 6px 10px;
+      padding: 5px 8px;
       border-radius: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-family: 'JetBrains Mono', monospace;
     }
 
     .prob-bar-container {
       background: rgba(255, 255, 255, 0.06);
       border-radius: 6px;
-      height: 8px;
+      height: 7px;
       overflow: hidden;
-      margin: 6px 0 12px 0;
+      margin: 5px 0 10px 0;
     }
 
     .prob-bar-fill {
@@ -388,7 +389,7 @@
     .card-metrics-row {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
       margin-bottom: 4px;
     }
@@ -404,7 +405,7 @@
       justify-content: space-between;
       font-size: 10px;
       color: var(--text-muted);
-      margin-top: 10px;
+      margin-top: 8px;
       opacity: 0.8;
       border-top: 1px solid rgba(255, 255, 255, 0.04);
       padding-top: 6px;
@@ -454,7 +455,7 @@
 
     th {
       background: rgba(255, 255, 255, 0.03);
-      padding: 14px 18px;
+      padding: 12px 16px;
       font-weight: 700;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -464,7 +465,7 @@
     }
 
     td {
-      padding: 14px 18px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--border-subtle);
       color: var(--text-main);
     }
@@ -503,6 +504,7 @@
     .chart-asset-pills {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .asset-pill {
@@ -539,9 +541,12 @@
       text-decoration: underline;
     }
 
-    #candlestick-chart {
+    #tv-widget-box {
       width: 100%;
-      height: 480px;
+      height: 520px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
     }
 
     /* Footer */
@@ -560,12 +565,12 @@
     <!-- Header -->
     <header>
       <div>
-        <div class="brand-title">🌐 Global Multi-Index Momentum Radar</div>
-        <div class="brand-subtitle">TradingView Live Feeds • Evaluated by TypeSafe Jev System One Models</div>
+        <div class="brand-title">🌐 Global Multi-Index & Rates Momentum Radar</div>
+        <div class="brand-subtitle">100% TradingView Live Data Feeds • Evaluated by TypeSafe Jev System One</div>
       </div>
       <div class="header-badges">
         <div class="tv-live-badge">
-          <span>📊</span> TRADINGVIEW LIVE SCANNER
+          <span>📊</span> TRADINGVIEW LIVE SCANNER & CHARTS
         </div>
         <div class="system-status">
           <div class="pulse-dot"></div>
@@ -595,9 +600,9 @@
     </div>
 
     <!-- Cards Section -->
-    <div class="section-title">⚡ TradingView Numbers & TypeSafe Jev Decisions</div>
+    <div class="section-title">⚡ TradingView Numbers & TypeSafe Jev Tactical Decisions</div>
     <div class="cards-grid" id="cards-container">
-      <div class="radar-card" style="text-align: center; color: var(--text-muted); padding: 40px;">
+      <div class="radar-card" style="text-align: center; color: var(--text-muted); padding: 40px; grid-column: 1 / -1;">
         Connecting to TradingView scanner & TypeSafe Jev...
       </div>
     </div>
@@ -608,7 +613,7 @@
       <table>
         <thead>
           <tr>
-            <th>Index</th>
+            <th>Index / Asset</th>
             <th>TV Ticker</th>
             <th>TV Price</th>
             <th>TV Return</th>
@@ -631,27 +636,30 @@
       <div id="insights-content"></div>
     </div>
 
-    <!-- Deep-Dive Candlestick Chart -->
+    <!-- Deep-Dive TradingView Real-Time Chart -->
     <div class="chart-panel">
       <div class="chart-header">
-        <div class="section-title" style="margin-bottom: 0;">📈 Deep-Dive Candlestick & Session VWAP</div>
+        <div class="section-title" style="margin-bottom: 0;">📈 Official TradingView Real-Time Chart & VWAP</div>
         <div class="chart-asset-pills" id="chart-asset-pills">
           <button class="asset-pill active" onclick="selectChartAsset('S&P 500')">🇺🇸 S&P 500</button>
           <button class="asset-pill" onclick="selectChartAsset('Nasdaq 100')">💻 Nasdaq 100</button>
           <button class="asset-pill" onclick="selectChartAsset('Russell 2000')">🚀 Russell 2000</button>
           <button class="asset-pill" onclick="selectChartAsset('Nikkei 225')">🇯🇵 Nikkei 225</button>
+          <button class="asset-pill" onclick="selectChartAsset('10Y T-Note (TY10)')">🏛️ 10Y T-Note (TY10)</button>
         </div>
         <a id="tv-direct-link" href="https://www.tradingview.com/chart/?symbol=AMEX:SPY" target="_blank" class="tv-link-btn">
           Open on TradingView ↗
         </a>
       </div>
-      <div id="candlestick-chart"></div>
+      <div id="tv-widget-box">
+        <div id="tradingview_advanced_widget" style="width: 100%; height: 100%;"></div>
+      </div>
     </div>
 
     <!-- Footer -->
     <footer>
       <div id="last-updated-text">Last Updated: --</div>
-      <div style="margin-top: 6px; font-size: 11px;">Official TradingView Real-Time Feeds • TypeSafe Jev System One Decision Engine • Vercel Serverless</div>
+      <div style="margin-top: 6px; font-size: 11px;">100% Official TradingView Real-Time Feeds • TypeSafe Jev System One Decision Engine • Vercel Serverless</div>
     </footer>
   </div>
 
@@ -660,6 +668,44 @@
     let selectedAsset = 'S&P 500';
     let latestData = null;
     let autoRefreshInterval = null;
+
+    const TV_TICKER_MAP = {
+      'S&P 500': 'AMEX:SPY',
+      'Nasdaq 100': 'NASDAQ:QQQ',
+      'Russell 2000': 'AMEX:IWM',
+      'Nikkei 225': 'TVC:NI225',
+      '10Y T-Note (TY10)': 'CBOT:ZN1!'
+    };
+
+    function renderTradingViewWidget(tvSymbol, tf) {
+      const container = document.getElementById('tradingview_advanced_widget');
+      if (!container) return;
+      container.innerHTML = '';
+
+      let tvInterval = '5';
+      if (tf === '1h') tvInterval = '60';
+      else if (tf === '1d') tvInterval = 'D';
+
+      if (typeof TradingView !== 'undefined' && TradingView.widget) {
+        new TradingView.widget({
+          "autosize": true,
+          "symbol": tvSymbol,
+          "interval": tvInterval,
+          "timezone": "Etc/UTC",
+          "theme": "dark",
+          "style": "1",
+          "locale": "en",
+          "toolbar_bg": "#0a0e17",
+          "enable_publishing": false,
+          "allow_symbol_change": true,
+          "container_id": "tradingview_advanced_widget",
+          "studies": [
+            "VWAP@tv-basicstudies",
+            "RSI@tv-basicstudies"
+          ]
+        });
+      }
+    }
 
     async function fetchRadarData() {
       const refreshBtn = document.getElementById('refresh-btn');
@@ -688,6 +734,8 @@
         btn.classList.toggle('active', btn.getAttribute('data-tf') === tf);
       });
       fetchRadarData();
+      const currentTvTicker = TV_TICKER_MAP[selectedAsset] || 'AMEX:SPY';
+      renderTradingViewWidget(currentTvTicker, currentTimeframe);
     }
 
     function selectChartAsset(assetName) {
@@ -695,12 +743,12 @@
       document.querySelectorAll('.asset-pill').forEach(pill => {
         pill.classList.toggle('active', pill.innerText.includes(assetName));
       });
-      if (latestData && latestData.results[assetName]) {
-        const item = latestData.results[assetName];
-        document.getElementById('tv-direct-link').href = `https://www.tradingview.com/chart/?symbol=${item.tv_ticker}`;
-        document.getElementById('tv-direct-link').innerText = `Open ${item.tv_ticker} on TradingView ↗`;
-        renderChart(item);
-      }
+      
+      const tvTicker = TV_TICKER_MAP[assetName] || 'AMEX:SPY';
+      document.getElementById('tv-direct-link').href = `https://www.tradingview.com/chart/?symbol=${tvTicker}`;
+      document.getElementById('tv-direct-link').innerText = `Open ${tvTicker} on TradingView ↗`;
+      
+      renderTradingViewWidget(tvTicker, currentTimeframe);
     }
 
     function renderDashboard(data) {
@@ -714,7 +762,6 @@
       matrixTbody.innerHTML = '';
 
       for (const [name, sig] of Object.entries(results)) {
-        // Render Card
         const isUp = sig.session_change >= 0;
         const actionClass = sig.action.includes('BUY') ? 'badge-buy' : (sig.action.includes('SELL') ? 'badge-sell' : 'badge-neutral');
         const probPct = (sig.prob_up * 100).toFixed(1);
@@ -722,6 +769,10 @@
         const tvRatingText = sig.tv_rating || 'NEUTRAL';
         const tvRatingColor = sig.tv_rating_color || '#ffd166';
         const tvScoreStr = sig.tv_rating_score !== null && sig.tv_rating_score !== undefined ? (sig.tv_rating_score > 0 ? `+${sig.tv_rating_score}` : sig.tv_rating_score) : '--';
+
+        const decimals = sig.symbol === 'ZN=F' ? 3 : 2;
+        const priceFormatted = sig.price.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+        const vwapFormatted = sig.vwap.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
 
         const card = document.createElement('div');
         card.className = `radar-card ${sig.badge_class} ${name === selectedAsset ? 'selected' : ''}`;
@@ -731,13 +782,13 @@
             <div class="card-asset-name">${sig.flag} ${name}</div>
             <a class="card-symbol" href="https://www.tradingview.com/chart/?symbol=${sig.tv_ticker}" target="_blank" onclick="event.stopPropagation()">${sig.tv_ticker}</a>
           </div>
-          <div class="card-price">$${sig.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          <div class="card-price">$${priceFormatted}</div>
           <div class="card-session" style="color: ${isUp ? '#00ff88' : '#ff4d6d'};">
             ${isUp ? '▲ +' : '▼ '}${sig.session_change.toFixed(2)}% (TradingView)
           </div>
           
           <div class="tv-rating-row">
-            <span style="color: #8e9bb0;">TV RATING</span>
+            <span style="color: #8e9bb0;">TV TECH RATING</span>
             <span style="color: ${tvRatingColor};">${tvRatingText} (${tvScoreStr})</span>
           </div>
 
@@ -757,12 +808,12 @@
           </div>
           <div class="card-metrics-row">
             <span>TradingView VWAP</span>
-            <span class="val">$${sig.vwap.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)}σ)</span>
+            <span class="val">$${vwapFormatted} (${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)}σ)</span>
           </div>
 
           <div class="card-footer-info">
-            <span>📡 ${sig.feed_source}</span>
-            <span>⚡ TypeSafe Jev System One</span>
+            <span>📡 100% TradingView Feed</span>
+            <span>⚡ Jev System One</span>
           </div>
         `;
         cardsContainer.appendChild(card);
@@ -772,7 +823,7 @@
         tr.innerHTML = `
           <td><strong>${sig.flag} ${name}</strong></td>
           <td><a href="https://www.tradingview.com/chart/?symbol=${sig.tv_ticker}" target="_blank" style="color:#60a5fa; text-decoration:none; font-family:'JetBrains Mono'; font-weight:600;">${sig.tv_ticker}</a></td>
-          <td class="mono font-weight-bold">$${sig.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          <td class="mono font-weight-bold">$${priceFormatted}</td>
           <td class="mono" style="color: ${isUp ? '#00ff88' : '#ff4d6d'}; font-weight:600;">${isUp ? '+' : ''}${sig.session_change.toFixed(2)}%</td>
           <td><span style="color: ${tvRatingColor}; font-weight:700; font-family:'JetBrains Mono'; font-size:11px;">${tvRatingText}</span></td>
           <td><span style="color: ${sig.color}; font-weight: 700;">${sig.action}</span></td>
@@ -790,66 +841,6 @@
       } else {
         insightsPanel.style.display = 'none';
       }
-
-      // Render chart for selected asset
-      if (results[selectedAsset]) {
-        renderChart(results[selectedAsset]);
-      }
-    }
-
-    function renderChart(assetData) {
-      if (!assetData || !assetData.candles || assetData.candles.length === 0) return;
-
-      const dates = assetData.candles.map(c => new Date(c.t * 1000));
-      const opens = assetData.candles.map(c => c.o);
-      const highs = assetData.candles.map(c => c.h);
-      const lows = assetData.candles.map(c => c.l);
-      const closes = assetData.candles.map(c => c.c);
-      const vwapLine = new Array(dates.length).fill(assetData.vwap);
-
-      const candlestickTrace = {
-        x: dates,
-        open: opens,
-        high: highs,
-        low: lows,
-        close: closes,
-        type: 'candlestick',
-        name: assetData.tv_ticker,
-        increasing: { line: { color: '#00ff88', width: 1.5 }, fillcolor: '#00ff88' },
-        decreasing: { line: { color: '#ff4d6d', width: 1.5 }, fillcolor: '#ff4d6d' }
-      };
-
-      const vwapTrace = {
-        x: dates,
-        y: vwapLine,
-        mode: 'lines',
-        name: `TradingView VWAP ($${assetData.vwap})`,
-        line: { color: '#ffd166', width: 2, dash: 'dash' }
-      };
-
-      const layout = {
-        title: {
-          text: `${assetData.flag} ${assetData.name} (${assetData.tv_ticker}) — TradingView Real-Time Feed (${currentTimeframe})`,
-          font: { color: '#f0f4fc', size: 15, family: 'Inter' }
-        },
-        paper_bgcolor: 'rgba(0,0,0,0)',
-        plot_bgcolor: 'rgba(0,0,0,0)',
-        margin: { l: 40, r: 40, t: 40, b: 30 },
-        showlegend: true,
-        legend: { font: { color: '#8e9bb0' }, orientation: 'h', y: 1.1 },
-        xaxis: {
-          gridcolor: 'rgba(255, 255, 255, 0.05)',
-          rangeslider: { visible: false },
-          color: '#8e9bb0'
-        },
-        yaxis: {
-          gridcolor: 'rgba(255, 255, 255, 0.05)',
-          color: '#8e9bb0',
-          side: 'right'
-        }
-      };
-
-      Plotly.newPlot('candlestick-chart', [candlestickTrace, vwapTrace], layout, { responsive: true, displayModeBar: false });
     }
 
     function toggleAutoRefresh(enable) {
@@ -862,6 +853,10 @@
 
     // Initial load
     fetchRadarData();
+    // Initialize TradingView Widget
+    setTimeout(() => {
+      renderTradingViewWidget('AMEX:SPY', '5m');
+    }, 500);
   </script>
 </body>
 </html>

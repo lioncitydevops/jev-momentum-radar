@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="Global Multi-Index Momentum Radar (TradingView Feed)", version="1.1.0")
+app = FastAPI(title="Global Multi-Index & Rates Momentum Radar (TradingView Feed)", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +52,13 @@ ASSETS = {
         "flag": "🇯🇵",
         "desc": "Japan Benchmark Index",
         "market": "global"
+    },
+    "10Y T-Note (TY10)": {
+        "symbol": "ZN=F",
+        "tv_ticker": "CBOT:ZN1!",
+        "flag": "🏛️",
+        "desc": "US 10-Year Treasury Note Futures",
+        "market": "futures"
     }
 }
 
@@ -66,6 +73,7 @@ def fetch_tradingview_scan(timeframe: str = "5m") -> dict:
         f"Recommend.All{suffix}",
         f"volume{suffix}"
     ]
+    base_cols = ["close", "change", "RSI", "VWAP", "Recommend.All", "volume"]
     
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     tv_data = {}
@@ -109,6 +117,32 @@ def fetch_tradingview_scan(timeframe: str = "5m") -> dict:
             }
     except Exception as e:
         print(f"Error fetching Global TradingView scan: {e}")
+
+    # 3. Futures Scan (CBOT:ZN1! - 10Y Treasury Note)
+    try:
+        url_fut = "https://scanner.tradingview.com/futures/scan"
+        # Try timeframe columns first, fallback to base columns
+        payload_fut = {"symbols": {"tickers": ["CBOT:ZN1!"]}, "columns": cols + base_cols}
+        res_fut = requests.post(url_fut, json=payload_fut, headers=headers, timeout=6).json()
+        for item in res_fut.get("data", []):
+            vals = item["d"]
+            # Check if interval values exist, else fallback to daily
+            c = vals[0] if vals[0] is not None else vals[6]
+            chg = vals[1] if vals[1] is not None else vals[7]
+            rsi = vals[2] if vals[2] is not None else vals[8]
+            vw = vals[3] if vals[3] is not None else vals[9]
+            rec = vals[4] if vals[4] is not None else vals[10]
+            vol = vals[5] if vals[5] is not None else vals[11]
+            tv_data["CBOT:ZN1!"] = {
+                "close": c,
+                "change": chg,
+                "rsi": rsi,
+                "vwap": vw,
+                "recommend": rec,
+                "volume": vol
+            }
+    except Exception as e:
+        print(f"Error fetching Futures TradingView scan: {e}")
         
     return tv_data
 
@@ -205,14 +239,12 @@ def analyze_asset(df, name="S&P 500", timeframe="5m", tv_metric=None):
     if len(close_vals) < 15:
         return None
 
-    # Base calculations from candles
     tr = np.maximum(high_vals[1:] - low_vals[1:], np.maximum(abs(high_vals[1:] - close_vals[:-1]), abs(low_vals[1:] - close_vals[:-1])))
     atr_14 = float(np.mean(tr[-14:])) if len(tr) >= 14 else float(np.std(close_vals))
     
     ret_3 = (close_vals[-1] / close_vals[-4] - 1) * 100 if len(close_vals) > 4 else 0.0
     ret_6 = (close_vals[-1] / close_vals[-7] - 1) * 100 if len(close_vals) > 7 else 0.0
     
-    # Priority: Pull directly from TradingView if available
     tv_ticker = ASSETS[name]["tv_ticker"]
     if tv_metric and tv_metric.get("close") is not None:
         price = float(tv_metric["close"])
@@ -243,8 +275,8 @@ def analyze_asset(df, name="S&P 500", timeframe="5m", tv_metric=None):
 
     state_str = (
         f"Asset: {name} (TradingView Symbol: {tv_ticker}, {timeframe} bar). "
-        f"TradingView Live Close: ${price:,.2f}. "
-        f"TradingView Session VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
+        f"TradingView Live Close: ${price:,.3f}. "
+        f"TradingView Session VWAP: ${vwap:,.3f} (Distance: {vwap_z:+.2f} ATRs). "
         f"TradingView 14-RSI: {rsi_14:.1f}. "
         f"TradingView Technical Rating: {tv_rating_label} ({tv_rating_score if tv_rating_score is not None else 0:+.2f}). "
         f"Micro-Momentum: 3-bar={ret_3:+.2f}%, 6-bar={ret_6:+.2f}%. Session Return: {session_change:+.2f}%."
@@ -281,13 +313,14 @@ def analyze_asset(df, name="S&P 500", timeframe="5m", tv_metric=None):
     # Candle series for Plotly chart
     last_df = df.iloc[-45:]
     candles = []
+    decimals = 3 if "ZN=F" in ASSETS[name]["symbol"] else 2
     for _, row in last_df.iterrows():
         candles.append({
             "t": int(row["Timestamp"]),
-            "o": round(float(row["Open"]), 2),
-            "h": round(float(row["High"]), 2),
-            "l": round(float(row["Low"]), 2),
-            "c": round(float(row["Close"]), 2),
+            "o": round(float(row["Open"]), decimals),
+            "h": round(float(row["High"]), decimals),
+            "l": round(float(row["Low"]), decimals),
+            "c": round(float(row["Close"]), decimals),
             "v": int(row["Volume"]) if not np.isnan(row["Volume"]) else 0
         })
 
@@ -304,9 +337,9 @@ def analyze_asset(df, name="S&P 500", timeframe="5m", tv_metric=None):
         "prob_up": round(prob_up, 4),
         "confidence": round(confidence, 4),
         "is_live_jev": is_live_jev,
-        "price": round(price, 2),
+        "price": round(price, decimals),
         "session_change": round(session_change, 2),
-        "vwap": round(vwap, 2),
+        "vwap": round(vwap, decimals),
         "vwap_z": round(vwap_z, 2),
         "rsi": round(rsi_14, 1),
         "ret_3": round(ret_3, 2),
@@ -320,7 +353,7 @@ def analyze_asset(df, name="S&P 500", timeframe="5m", tv_metric=None):
 
 def generate_insights(results):
     insights = []
-    if len(results) >= 4 and "S&P 500" in results and "Nasdaq 100" in results and "Russell 2000" in results and "Nikkei 225" in results:
+    if "S&P 500" in results and "Nasdaq 100" in results and "Russell 2000" in results and "Nikkei 225" in results:
         sp = results["S&P 500"]
         ndx = results["Nasdaq 100"]
         rut = results["Russell 2000"]
@@ -330,18 +363,29 @@ def generate_insights(results):
         small_spread = rut["ret_6"] - sp["ret_6"]
         
         if tech_spread > 0.15:
-            insights.append({"type": "bull", "text": "Tech Outperformance (QQQ > SPY): TradingView tech leadership driving momentum."})
+            insights.append({"type": "bull", "text": "Tech Outperformance (QQQ > SPY): Tech leadership driving equity index momentum."})
         elif tech_spread < -0.15:
-            insights.append({"type": "warn", "text": "Tech Drag (QQQ < SPY): Tech sector lagging broader market."})
+            insights.append({"type": "warn", "text": "Tech Drag (QQQ < SPY): Duration & tech sector lagging broader market."})
             
         if small_spread > 0.20:
-            insights.append({"type": "bull", "text": "Broad Risk-On (IWM > SPY): Small caps showing high-beta participation."})
+            insights.append({"type": "bull", "text": "Broad Risk-On (IWM > SPY): Small caps showing high-beta risk participation."})
         elif small_spread < -0.20:
-            insights.append({"type": "warn", "text": "Defensive Posture (IWM < SPY): Small caps underperforming; watch for false large-cap breakouts."})
+            insights.append({"type": "warn", "text": "Defensive Breadth (IWM < SPY): Small caps underperforming; watch for large-cap momentum traps."})
             
         if nik["prob_up"] > 0.55 or nik.get("tv_rating") in ["BUY", "STRONG BUY"]:
             insights.append({"type": "info", "text": f"Nikkei 225 TradingView Signal: Asian session {nik.get('tv_rating', 'BULLISH')} momentum bias."})
-            
+
+    # Rates & Macro Insights with 10Y Treasury Note Futures
+    if "10Y T-Note (TY10)" in results and "S&P 500" in results:
+        ty = results["10Y T-Note (TY10)"]
+        sp = results["S&P 500"]
+        if ty["ret_6"] > 0.10 and sp["ret_6"] < -0.10:
+            insights.append({"type": "info", "text": "🏛️ Flight-to-Safety Regime: 10Y Treasury Futures rallying while equities retreat (classic risk-off hedging bid)."})
+        elif ty["ret_6"] < -0.10 and sp["ret_6"] > 0.10:
+            insights.append({"type": "bull", "text": "⚡ Growth Reflation: 10Y Treasury Futures softening as equities accelerate higher (risk-on expansion)."})
+        elif ty.get("tv_rating") in ["SELL", "STRONG SELL"]:
+            insights.append({"type": "warn", "text": "⚠️ Rate Pressure (TY10 Selling): Yields pushing higher; monitor duration headwinds for Nasdaq (QQQ)."})
+
     return insights
 
 @app.get("/")
@@ -351,7 +395,7 @@ def serve_home():
         html_path = Path("public/index.html")
     if html_path.exists():
         return FileResponse(html_path)
-    return HTMLResponse("<h1>Global Multi-Index Momentum Radar is Running</h1>")
+    return HTMLResponse("<h1>Global Multi-Index & Rates Momentum Radar is Running</h1>")
 
 @app.get("/api/radar")
 @app.get("/radar")
@@ -359,7 +403,6 @@ def get_radar(timeframe: str = "5m"):
     if timeframe not in ["5m", "1h", "1d"]:
         timeframe = "5m"
 
-    # 1. Fetch TradingView Scan
     tv_data = fetch_tradingview_scan(timeframe)
 
     results = {}
