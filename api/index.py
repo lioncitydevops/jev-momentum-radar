@@ -1,13 +1,25 @@
 import os
 import json
-import urllib.parse
-from http.server import BaseHTTPRequestHandler
+from pathlib import Path
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import pandas as pd
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+
+app = FastAPI(title="Global Multi-Index Momentum Radar & TradingView Bridge", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 TYPESAFE_API_KEY = os.getenv("TYPESAFE_API_KEY", "")
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
@@ -154,7 +166,6 @@ def analyze_asset(df, name="S&P 500", timeframe="5m"):
         badge_class = "card-neutral"
         color = "#ffd166"
 
-    # Last 45 candles for charting
     last_df = df.iloc[-45:]
     candles = []
     for _, row in last_df.iterrows():
@@ -215,51 +226,44 @@ def generate_insights(results):
             
     return insights
 
-class handler(BaseHTTPRequestHandler):
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
+@app.get("/")
+def serve_home():
+    html_path = Path(__file__).parent.parent / "public" / "index.html"
+    if not html_path.exists():
+        html_path = Path("public/index.html")
+    if html_path.exists():
+        return FileResponse(html_path)
+    return HTMLResponse("<h1>Global Multi-Index Momentum Radar is Running</h1>")
 
-    def do_GET(self):
-        parsed_url = urllib.parse.urlparse(self.path)
-        query = urllib.parse.parse_qs(parsed_url.query)
-        tf_code = query.get("timeframe", ["5m"])[0]
-        if tf_code not in ["5m", "1h", "1d"]:
-            tf_code = "5m"
+@app.get("/api/radar")
+@app.get("/radar")
+def get_radar(timeframe: str = "5m"):
+    if timeframe not in ["5m", "1h", "1d"]:
+        timeframe = "5m"
 
-        results = {}
-        for name, meta in ASSETS.items():
-            try:
-                df = fetch_asset_data(meta["symbol"], tf_code)
-                sig = analyze_asset(df, name=name, timeframe=tf_code)
-                if sig:
-                    results[name] = sig
-            except Exception as e:
-                print(f"Error fetching {name}: {e}")
-
-        insights = generate_insights(results)
-        response_data = {
-            "status": "success",
-            "timeframe": tf_code,
-            "results": results,
-            "insights": insights
-        }
-
-        body = json.dumps(response_data).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(body)
-
-if __name__ == "__main__":
-    # Test script locally
-    import sys
-    print("Testing radar fetch locally...")
+    results = {}
     for name, meta in ASSETS.items():
-        df = fetch_asset_data(meta["symbol"], "5m")
-        sig = analyze_asset(df, name=name, timeframe="5m")
-        print(f"{name}: Price=${sig['price']}, Action={sig['action']}, Prob={sig['prob_up']}, JevLive={sig['is_live_jev']}")
+        try:
+            df = fetch_asset_data(meta["symbol"], timeframe)
+            sig = analyze_asset(df, name=name, timeframe=timeframe)
+            if sig:
+                results[name] = sig
+        except Exception as e:
+            print(f"Error fetching {name}: {e}")
+
+    insights = generate_insights(results)
+    return {
+        "status": "success",
+        "timeframe": timeframe,
+        "results": results,
+        "insights": insights
+    }
+
+@app.post("/api/webhook")
+async def tradingview_webhook(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+        
+    return {"status": "received", "data": body}
