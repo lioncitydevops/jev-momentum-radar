@@ -1,0 +1,82 @@
+//@version=5
+indicator("TypeSafe JEV - S&P 500 Intraday Momentum State", overlay=true)
+
+// =========================================================================
+// 1. Inputs & Parameters
+// =========================================================================
+atr_length = input.int(14, title="ATR Length")
+rvol_length = input.int(20, title="RVOL Lookback")
+rsi_length = input.int(14, title="RSI Length")
+
+// =========================================================================
+// 2. Mathematical Calculations
+// =========================================================================
+// Anchored Session VWAP
+session_vwap = ta.vwap(hlc3)
+curr_atr = ta.atr(atr_length)
+
+// VWAP Distance normalized by ATR
+vwap_dist_atr = (close - session_vwap) / (curr_atr + 1e-9)
+
+// Multi-horizon micro-momentum (% return over 3, 6, 12 bars)
+// On 5m chart: 3 bars = 15m, 6 bars = 30m, 12 bars = 60m
+ret_3b  = (close - close[3]) / close[3] * 100.0
+ret_6b  = (close - close[6]) / close[6] * 100.0
+ret_12b = (close - close[12]) / close[12] * 100.0
+
+// Relative Volume (RVOL)
+avg_vol = ta.sma(volume, rvol_length)
+rvol = volume / (avg_vol + 1e-9)
+
+// 14-period RSI
+rsi_val = ta.rsi(close, rsi_length)
+
+// Time of Day Classification (US Eastern Time)
+// Session: 09:30 - 16:00 ET
+t_hour = hour(time, "America/New_York")
+t_min  = minute(time, "America/New_York")
+t_total_min = t_hour * 60 + t_min
+
+string time_regime = "NORMAL_HOURS"
+if (t_total_min >= 570 and t_total_min < 630) // 09:30 - 10:30
+    time_regime := "OPENING_DRIVE"
+else if (t_total_min >= 690 and t_total_min < 870) // 11:30 - 14:30
+    time_regime := "MIDDAY_LULL"
+else if (t_total_min >= 900 and t_total_min <= 960) // 15:00 - 16:00
+    time_regime := "POWER_HOUR"
+
+// =========================================================================
+// 3. Visuals on Chart
+// =========================================================================
+plot(session_vwap, color=color.yellow, linewidth=2, title="Session VWAP")
+plot(session_vwap + 1.5 * curr_atr, color=color.new(color.green, 40), linewidth=1, title="VWAP +1.5 ATR")
+plot(session_vwap - 1.5 * curr_atr, color=color.new(color.red, 40), linewidth=1, title="VWAP -1.5 ATR")
+
+// Bar Color Coding based on Momentum & VWAP
+color bar_col = color.gray
+if (close > session_vwap and ret_3b > 0 and ret_6b > 0)
+    bar_col := color.lime
+else if (close < session_vwap and ret_3b < 0 and ret_6b < 0)
+    bar_col := color.maroon
+barcolor(bar_col)
+
+// =========================================================================
+// 4. Alert Construction for TypeSafe JEV Webhook
+// =========================================================================
+if barstate.isconfirmed
+    // Construct valid JSON string for TradingView Webhook
+    alert_msg = "{" +
+      "\"symbol\":\"" + syminfo.ticker + "\"," +
+      "\"timeframe\":\"" + timeframe.period + "\"," +
+      "\"close\":" + str.tostring(close, "#.##") + "," +
+      "\"vwap\":" + str.tostring(session_vwap, "#.##") + "," +
+      "\"vwap_z\":" + str.tostring(vwap_dist_atr, "#.##") + "," +
+      "\"ret_15m\":" + str.tostring(ret_3b, "#.##") + "," +
+      "\"ret_30m\":" + str.tostring(ret_6b, "#.##") + "," +
+      "\"ret_60m\":" + str.tostring(ret_12b, "#.##") + "," +
+      "\"rvol\":" + str.tostring(rvol, "#.##") + "," +
+      "\"rsi\":" + str.tostring(rsi_val, "#.#") + "," +
+      "\"time_regime\":\"" + time_regime + "\"" +
+      "}"
+
+    alert(alert_msg, alert.freq_once_per_bar_close)

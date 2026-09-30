@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Multi-Index Momentum Radar | TypeSafe Jev</title>
+  <meta name="description" content="Real-time multi-index short-term momentum signals for S&P 500, Nasdaq 100, Russell 2000, and Nikkei 225 powered by TypeSafe Jev System One.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --bg-card: rgba(18, 24, 38, 0.75);
+      --bg-card-hover: rgba(26, 34, 52, 0.9);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(0, 255, 136, 0.3);
+      --text-main: #f0f4fc;
+      --text-muted: #8e9bb0;
+      --green-bull: #00ff88;
+      --green-bg: rgba(0, 255, 136, 0.12);
+      --red-bear: #ff4d6d;
+      --red-bg: rgba(255, 77, 109, 0.12);
+      --amber-neutral: #ffd166;
+      --amber-bg: rgba(255, 209, 102, 0.12);
+      --accent-blue: #3a86ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #151f33 0%, var(--bg-dark) 70%);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1380px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+    }
+
+    .brand-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #ffffff, #8e9bb0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 400;
+    }
+
+    .system-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green-bull);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green-bull);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--green-bull);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+
+    /* Controls Bar */
+    .controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px 20px;
+      margin-bottom: 28px;
+    }
+
+    .tf-selector {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .tf-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      margin-right: 6px;
+    }
+
+    .tf-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tf-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      color: #fff;
+    }
+
+    .tf-btn.active {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.4);
+    }
+
+    .refresh-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .auto-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .auto-toggle input {
+      accent-color: var(--accent-blue);
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+
+    .btn-refresh {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-refresh:hover {
+      background: linear-gradient(135deg, #273549, #172338);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .spin {
+      animation: rotate 1s linear infinite;
+    }
+
+    @keyframes rotate {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Cards Grid */
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #cbd5e1;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .radar-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border-radius: 14px;
+      padding: 20px;
+      border: 1px solid var(--border-subtle);
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .radar-card:hover {
+      transform: translateY(-3px);
+      background: var(--bg-card-hover);
+    }
+
+    .radar-card.selected {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .card-buy {
+      border-top: 3px solid var(--green-bull);
+    }
+
+    .card-sell {
+      border-top: 3px solid var(--red-bear);
+    }
+
+    .card-neutral {
+      border-top: 3px solid var(--amber-neutral);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+
+    .card-asset-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-symbol {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .card-price {
+      font-size: 24px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.5px;
+    }
+
+    .card-session {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-action-badge {
+      display: inline-block;
+      width: 100%;
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+    }
+
+    .badge-buy {
+      background: var(--green-bg);
+      color: var(--green-bull);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+    }
+
+    .badge-sell {
+      background: var(--red-bg);
+      color: var(--red-bear);
+      border: 1px solid rgba(255, 77, 109, 0.3);
+    }
+
+    .badge-neutral {
+      background: var(--amber-bg);
+      color: var(--amber-neutral);
+      border: 1px solid rgba(255, 209, 102, 0.3);
+    }
+
+    .prob-bar-container {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      height: 8px;
+      overflow: hidden;
+      margin: 6px 0 12px 0;
+    }
+
+    .prob-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-metrics-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .card-metrics-row span.val {
+      font-weight: 600;
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .card-engine-tag {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: right;
+      margin-top: 10px;
+      opacity: 0.7;
+    }
+
+    /* Insights Box */
+    .insights-panel {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin-bottom: 28px;
+    }
+
+    .insights-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .insight-bullet {
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #e2e8f0;
+    }
+
+    /* Matrix Table */
+    .table-container {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow-x: auto;
+      margin-bottom: 28px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 14px 18px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 11px;
+    }
+
+    td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Chart Section */
+    .chart-panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .chart-asset-pills {
+      display: flex;
+      gap: 8px;
+    }
+
+    .asset-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .asset-pill.active {
+      background: rgba(0, 255, 136, 0.15);
+      border-color: var(--green-bull);
+      color: #fff;
+    }
+
+    #candlestick-chart {
+      width: 100%;
+      height: 480px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 20px 0;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .loading-overlay {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      font-size: 14px;
+      color: var(--text-muted);
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div>
+        <div class="brand-title">🌐 Global Multi-Index Momentum Radar</div>
+        <div class="brand-subtitle">Nikkei 225 • S&P 500 • Nasdaq 100 • Russell 2000 — Powered by TypeSafe Jev System One</div>
+      </div>
+      <div class="system-status">
+        <div class="pulse-dot"></div>
+        <span id="model-status-text">JEV MODEL: ONLINE (jev-latest)</span>
+      </div>
+    </header>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="tf-selector">
+        <span class="tf-label">Horizon:</span>
+        <button class="tf-btn active" data-tf="5m" onclick="switchTimeframe('5m')">5m Scalp</button>
+        <button class="tf-btn" data-tf="1h" onclick="switchTimeframe('1h')">1h Tactical</button>
+        <button class="tf-btn" data-tf="1d" onclick="switchTimeframe('1d')">1d Daily</button>
+      </div>
+
+      <div class="refresh-actions">
+        <label class="auto-toggle">
+          <input type="checkbox" id="auto-refresh-toggle" onchange="toggleAutoRefresh(this.checked)">
+          Auto-refresh (every 45s)
+        </label>
+        <button class="btn-refresh" id="refresh-btn" onclick="fetchRadarData()">
+          <span id="refresh-icon">🔄</span> Refresh Radar
+        </button>
+      </div>
+    </div>
+
+    <!-- Cards Section -->
+    <div class="section-title">⚡ Live Decision Overview (TypeSafe Jev)</div>
+    <div class="cards-grid" id="cards-container">
+      <div class="radar-card" style="text-align: center; color: var(--text-muted); padding: 40px;">
+        Loading live market data and Jev inferences...
+      </div>
+    </div>
+
+    <!-- Cross-Market Relative Strength Matrix -->
+    <div class="section-title">📊 Cross-Market Relative Strength Matrix</div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Index</th>
+            <th>Signal</th>
+            <th>Continuation Prob</th>
+            <th>Jev Confidence</th>
+            <th>3-Bar Momentum</th>
+            <th>6-Bar Momentum</th>
+            <th>VWAP Distance</th>
+            <th>14-RSI</th>
+          </tr>
+        </thead>
+        <tbody id="matrix-tbody">
+          <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Fetching matrix metrics...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Cross-Asset Intelligence Panel -->
+    <div class="insights-panel" id="insights-panel" style="display: none;">
+      <div class="insights-title">💡 Cross-Asset Macro & Micro Intelligence</div>
+      <div id="insights-content"></div>
+    </div>
+
+    <!-- Deep-Dive Candlestick Chart -->
+    <div class="chart-panel">
+      <div class="chart-header">
+        <div class="section-title" style="margin-bottom: 0;">📈 Deep-Dive Candlestick & Session VWAP</div>
+        <div class="chart-asset-pills" id="chart-asset-pills">
+          <button class="asset-pill active" onclick="selectChartAsset('S&P 500')">🇺🇸 S&P 500</button>
+          <button class="asset-pill" onclick="selectChartAsset('Nasdaq 100')">💻 Nasdaq 100</button>
+          <button class="asset-pill" onclick="selectChartAsset('Russell 2000')">🚀 Russell 2000</button>
+          <button class="asset-pill" onclick="selectChartAsset('Nikkei 225')">🇯🇵 Nikkei 225</button>
+        </div>
+      </div>
+      <div id="candlestick-chart"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div id="last-updated-text">Last Updated: --</div>
+      <div style="margin-top: 6px; font-size: 11px;">Built with TypeSafe Jev System One & Yahoo Finance API • Serverless Vercel Architecture</div>
+    </footer>
+  </div>
+
+  <script>
+    let currentTimeframe = '5m';
+    let selectedAsset = 'S&P 500';
+    let latestData = null;
+    let autoRefreshInterval = null;
+
+    async function fetchRadarData() {
+      const refreshBtn = document.getElementById('refresh-btn');
+      const refreshIcon = document.getElementById('refresh-icon');
+      refreshIcon.classList.add('spin');
+      refreshBtn.disabled = true;
+
+      try {
+        const response = await fetch(`/api/radar?timeframe=${currentTimeframe}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        latestData = data;
+        renderDashboard(data);
+        document.getElementById('last-updated-text').innerText = `Last Updated: ${new Date().toLocaleTimeString()} (UTC ${new Date().toISOString().substring(11,19)})`;
+      } catch (err) {
+        console.error("Fetch radar error:", err);
+      } finally {
+        refreshIcon.classList.remove('spin');
+        refreshBtn.disabled = false;
+      }
+    }
+
+    function switchTimeframe(tf) {
+      currentTimeframe = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tf') === tf);
+      });
+      fetchRadarData();
+    }
+
+    function selectChartAsset(assetName) {
+      selectedAsset = assetName;
+      document.querySelectorAll('.asset-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.innerText.includes(assetName));
+      });
+      if (latestData && latestData.results[assetName]) {
+        renderChart(latestData.results[assetName]);
+      }
+    }
+
+    function renderDashboard(data) {
+      const results = data.results || {};
+      const cardsContainer = document.getElementById('cards-container');
+      const matrixTbody = document.getElementById('matrix-tbody');
+      const insightsPanel = document.getElementById('insights-panel');
+      const insightsContent = document.getElementById('insights-content');
+
+      cardsContainer.innerHTML = '';
+      matrixTbody.innerHTML = '';
+
+      for (const [name, sig] of Object.entries(results)) {
+        // Render Card
+        const isUp = sig.session_change >= 0;
+        const actionClass = sig.action.includes('BUY') ? 'badge-buy' : (sig.action.includes('SELL') ? 'badge-sell' : 'badge-neutral');
+        const probPct = (sig.prob_up * 100).toFixed(1);
+        const probColor = sig.action.includes('BUY') ? '#00ff88' : (sig.action.includes('SELL') ? '#ff4d6d' : '#ffd166');
+        const engineLabel = sig.is_live_jev ? '⚡ TypeSafe Jev' : '⚡ Quant Fallback';
+
+        const card = document.createElement('div');
+        card.className = `radar-card ${sig.badge_class} ${name === selectedAsset ? 'selected' : ''}`;
+        card.onclick = () => selectChartAsset(name);
+        card.innerHTML = `
+          <div class="card-top">
+            <div class="card-asset-name">${sig.flag} ${name}</div>
+            <div class="card-symbol">${sig.symbol}</div>
+          </div>
+          <div class="card-price">$${sig.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+          <div class="card-session" style="color: ${isUp ? '#00ff88' : '#ff4d6d'};">
+            ${isUp ? '▲ +' : '▼ '}${sig.session_change.toFixed(2)}% (Session)
+          </div>
+          <div class="card-action-badge ${actionClass}">${sig.action}</div>
+          
+          <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600;">
+            <span>Continuation Prob</span>
+            <span class="mono" style="color: ${probColor};">${probPct}%</span>
+          </div>
+          <div class="prob-bar-container">
+            <div class="prob-bar-fill" style="width: ${probPct}%; background: ${probColor};"></div>
+          </div>
+
+          <div class="card-metrics-row">
+            <span>Confidence</span>
+            <span class="val">${(sig.confidence * 100).toFixed(0)}%</span>
+          </div>
+          <div class="card-metrics-row">
+            <span>VWAP Distance</span>
+            <span class="val">${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)} ATR</span>
+          </div>
+          <div class="card-engine-tag">${engineLabel}</div>
+        `;
+        cardsContainer.appendChild(card);
+
+        // Render Table Row
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${sig.flag} ${name}</strong> <span class="mono" style="color:var(--text-muted); font-size:11px;">(${sig.symbol})</span></td>
+          <td><span style="color: ${sig.color}; font-weight: 700;">${sig.action}</span></td>
+          <td class="mono" style="color: ${probColor};">${probPct}%</td>
+          <td class="mono">${(sig.confidence * 100).toFixed(0)}%</td>
+          <td class="mono" style="color: ${sig.ret_3 >= 0 ? '#00ff88' : '#ff4d6d'};">${sig.ret_3 >= 0 ? '+' : ''}${sig.ret_3.toFixed(2)}%</td>
+          <td class="mono" style="color: ${sig.ret_6 >= 0 ? '#00ff88' : '#ff4d6d'};">${sig.ret_6 >= 0 ? '+' : ''}${sig.ret_6.toFixed(2)}%</td>
+          <td class="mono">${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)} ATR</td>
+          <td class="mono">${sig.rsi.toFixed(1)}</td>
+        `;
+        matrixTbody.appendChild(tr);
+      }
+
+      // Insights
+      if (data.insights && data.insights.length > 0) {
+        insightsPanel.style.display = 'block';
+        insightsContent.innerHTML = data.insights.map(i => `<div class="insight-bullet">▸ ${i.text}</div>`).join('');
+      } else {
+        insightsPanel.style.display = 'none';
+      }
+
+      // Render chart for selected asset
+      if (results[selectedAsset]) {
+        renderChart(results[selectedAsset]);
+      }
+    }
+
+    function renderChart(assetData) {
+      if (!assetData || !assetData.candles || assetData.candles.length === 0) return;
+
+      const dates = assetData.candles.map(c => new Date(c.t * 1000));
+      const opens = assetData.candles.map(c => c.o);
+      const highs = assetData.candles.map(c => c.h);
+      const lows = assetData.candles.map(c => c.l);
+      const closes = assetData.candles.map(c => c.c);
+      const vwapLine = new Array(dates.length).fill(assetData.vwap);
+
+      const candlestickTrace = {
+        x: dates,
+        open: opens,
+        high: highs,
+        low: lows,
+        close: closes,
+        type: 'candlestick',
+        name: assetData.symbol,
+        increasing: { line: { color: '#00ff88', width: 1.5 }, fillcolor: '#00ff88' },
+        decreasing: { line: { color: '#ff4d6d', width: 1.5 }, fillcolor: '#ff4d6d' }
+      };
+
+      const vwapTrace = {
+        x: dates,
+        y: vwapLine,
+        mode: 'lines',
+        name: `Session VWAP ($${assetData.vwap})`,
+        line: { color: '#ffd166', width: 2, dash: 'dash' }
+      };
+
+      const layout = {
+        title: {
+          text: `${assetData.flag} ${assetData.name} (${assetData.symbol}) — ${currentTimeframe} Horizon`,
+          font: { color: '#f0f4fc', size: 15, family: 'Inter' }
+        },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { l: 40, r: 40, t: 40, b: 30 },
+        showlegend: true,
+        legend: { font: { color: '#8e9bb0' }, orientation: 'h', y: 1.1 },
+        xaxis: {
+          gridcolor: 'rgba(255, 255, 255, 0.05)',
+          rangeslider: { visible: false },
+          color: '#8e9bb0'
+        },
+        yaxis: {
+          gridcolor: 'rgba(255, 255, 255, 0.05)',
+          color: '#8e9bb0',
+          side: 'right'
+        }
+      };
+
+      Plotly.newPlot('candlestick-chart', [candlestickTrace, vwapTrace], layout, { responsive: true, displayModeBar: false });
+    }
+
+    function toggleAutoRefresh(enable) {
+      if (enable) {
+        autoRefreshInterval = setInterval(fetchRadarData, 45000);
+      } else {
+        clearInterval(autoRefreshInterval);
+      }
+    }
+
+    // Initial load
+    fetchRadarData();
+  </script>
+</body>
+</html>
