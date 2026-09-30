@@ -74,11 +74,11 @@ st.markdown("""
 # Asset Definitions
 # ---------------------------------------------------------
 ASSETS = {
-    "S&P 500": {"symbol": "SPY", "flag": "🇺🇸", "desc": "US Large-Cap Benchmark"},
-    "Nasdaq 100": {"symbol": "QQQ", "flag": "💻", "desc": "US Tech & Growth Leaders"},
-    "Russell 2000": {"symbol": "IWM", "flag": "🚀", "desc": "US Small-Cap Risk-On"},
-    "Nikkei 225": {"symbol": "^N225", "flag": "🇯🇵", "desc": "Japan Benchmark Index"},
-    "10Y T-Note (TY10)": {"symbol": "ZN=F", "flag": "🏛️", "desc": "US 10-Year Treasury Note Futures"}
+    "S&P 500 (ES)": {"symbol": "ES=F", "flag": "🇺🇸", "desc": "E-mini S&P 500 Futures (CME)"},
+    "Nasdaq 100 (NQ)": {"symbol": "NQ=F", "flag": "💻", "desc": "E-mini Nasdaq 100 Futures (CME)"},
+    "Russell 2000 (RTY)": {"symbol": "RTY=F", "flag": "🚀", "desc": "E-mini Russell 2000 Futures (CME)"},
+    "Nikkei 225 (NKD)": {"symbol": "NKD=F", "flag": "🇯🇵", "desc": "Nikkei 225 Index Futures (OSE/CME)"},
+    "10Y T-Note (TY10)": {"symbol": "ZN=F", "flag": "🏛️", "desc": "10-Year Treasury Note Futures (CBOT)"}
 }
 
 # ---------------------------------------------------------

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Global Multi-Index & Rates Momentum Radar | 100% TradingView Live</title>
-  <meta name="description" content="Real-time multi-index & Treasury futures short-term momentum signals pulled 100% from TradingView and evaluated by TypeSafe Jev System One.">
+  <title>Global Multi-Futures Momentum Radar | 100% TradingView Futures</title>
+  <meta name="description" content="24-hour real-time E-mini S&P 500, Nasdaq 100, Russell 2000, Nikkei 225, and 10Y Treasury futures momentum signals powered by TradingView & TypeSafe Jev.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -565,12 +565,12 @@
     <!-- Header -->
     <header>
       <div>
-        <div class="brand-title">🌐 Global Multi-Index & Rates Momentum Radar</div>
-        <div class="brand-subtitle">100% TradingView Live Data Feeds • Evaluated by TypeSafe Jev System One</div>
+        <div class="brand-title">🌐 Global Multi-Futures Momentum Radar</div>
+        <div class="brand-subtitle">100% TradingView Futures Live Feeds (ES, NQ, RTY, NKD, ZN) • TypeSafe Jev System One</div>
       </div>
       <div class="header-badges">
         <div class="tv-live-badge">
-          <span>📊</span> TRADINGVIEW LIVE SCANNER & CHARTS
+          <span>📊</span> 24H TRADINGVIEW FUTURES FEED
         </div>
         <div class="system-status">
           <div class="pulse-dot"></div>
@@ -594,60 +594,60 @@
           Auto-refresh (every 30s)
         </label>
         <button class="btn-refresh" id="refresh-btn" onclick="fetchRadarData()">
-          <span id="refresh-icon">🔄</span> Refresh Feeds
+          <span id="refresh-icon">🔄</span> Refresh Futures
         </button>
       </div>
     </div>
 
     <!-- Cards Section -->
-    <div class="section-title">⚡ TradingView Numbers & TypeSafe Jev Tactical Decisions</div>
+    <div class="section-title">⚡ 100% TradingView Futures Numbers & TypeSafe Jev Tactical Decisions</div>
     <div class="cards-grid" id="cards-container">
       <div class="radar-card" style="text-align: center; color: var(--text-muted); padding: 40px; grid-column: 1 / -1;">
-        Connecting to TradingView scanner & TypeSafe Jev...
+        Connecting to TradingView Futures Scanner & TypeSafe Jev...
       </div>
     </div>
 
     <!-- Cross-Market Relative Strength Matrix -->
-    <div class="section-title">📊 Cross-Market TradingView & Jev Strength Matrix</div>
+    <div class="section-title">📊 Cross-Market TradingView Futures & Jev Strength Matrix</div>
     <div class="table-container">
       <table>
         <thead>
           <tr>
-            <th>Index / Asset</th>
-            <th>TV Ticker</th>
-            <th>TV Price</th>
-            <th>TV Return</th>
+            <th>Futures Contract</th>
+            <th>TV Symbol</th>
+            <th>Live Futures Price</th>
+            <th>Futures Return</th>
             <th>TV Tech Rating</th>
             <th>Jev Decision</th>
             <th>Continuation Prob</th>
-            <th>TV VWAP Distance</th>
-            <th>TV 14-RSI</th>
+            <th>Futures VWAP Distance</th>
+            <th>Futures 14-RSI</th>
           </tr>
         </thead>
         <tbody id="matrix-tbody">
-          <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Fetching TradingView feeds...</td></tr>
+          <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Fetching TradingView futures feeds...</td></tr>
         </tbody>
       </table>
     </div>
 
     <!-- Cross-Asset Intelligence Panel -->
     <div class="insights-panel" id="insights-panel" style="display: none;">
-      <div class="insights-title">💡 Cross-Asset Macro & Micro Intelligence</div>
+      <div class="insights-title">💡 Cross-Asset Macro & Futures Spread Intelligence</div>
       <div id="insights-content"></div>
     </div>
 
     <!-- Deep-Dive TradingView Real-Time Chart -->
     <div class="chart-panel">
       <div class="chart-header">
-        <div class="section-title" style="margin-bottom: 0;">📈 Official TradingView Real-Time Chart & VWAP</div>
+        <div class="section-title" style="margin-bottom: 0;">📈 Official TradingView Futures Real-Time Chart</div>
         <div class="chart-asset-pills" id="chart-asset-pills">
-          <button class="asset-pill active" onclick="selectChartAsset('S&P 500')">🇺🇸 S&P 500</button>
-          <button class="asset-pill" onclick="selectChartAsset('Nasdaq 100')">💻 Nasdaq 100</button>
-          <button class="asset-pill" onclick="selectChartAsset('Russell 2000')">🚀 Russell 2000</button>
-          <button class="asset-pill" onclick="selectChartAsset('Nikkei 225')">🇯🇵 Nikkei 225</button>
-          <button class="asset-pill" onclick="selectChartAsset('10Y T-Note (TY10)')">🏛️ 10Y T-Note (TY10)</button>
+          <button class="asset-pill active" onclick="selectChartAsset('S&P 500 (ES)')">🇺🇸 S&P 500 (ES1!)</button>
+          <button class="asset-pill" onclick="selectChartAsset('Nasdaq 100 (NQ)')">💻 Nasdaq 100 (NQ1!)</button>
+          <button class="asset-pill" onclick="selectChartAsset('Russell 2000 (RTY)')">🚀 Russell 2000 (RTY1!)</button>
+          <button class="asset-pill" onclick="selectChartAsset('Nikkei 225 (NKD)')">🇯🇵 Nikkei 225 (NK2251!)</button>
+          <button class="asset-pill" onclick="selectChartAsset('10Y T-Note (TY10)')">🏛️ 10Y T-Note (ZN1!)</button>
         </div>
-        <a id="tv-direct-link" href="https://www.tradingview.com/chart/?symbol=AMEX:SPY" target="_blank" class="tv-link-btn">
+        <a id="tv-direct-link" href="https://www.tradingview.com/chart/?symbol=CME_MINI:ES1!" target="_blank" class="tv-link-btn">
           Open on TradingView ↗
         </a>
       </div>
@@ -659,21 +659,21 @@
     <!-- Footer -->
     <footer>
       <div id="last-updated-text">Last Updated: --</div>
-      <div style="margin-top: 6px; font-size: 11px;">100% Official TradingView Real-Time Feeds • TypeSafe Jev System One Decision Engine • Vercel Serverless</div>
+      <div style="margin-top: 6px; font-size: 11px;">100% TradingView Official Futures Feeds (ES1!, NQ1!, RTY1!, NK2251!, ZN1!) • TypeSafe Jev System One • Vercel Serverless</div>
     </footer>
   </div>
 
   <script>
     let currentTimeframe = '5m';
-    let selectedAsset = 'S&P 500';
+    let selectedAsset = 'S&P 500 (ES)';
     let latestData = null;
     let autoRefreshInterval = null;
 
     const TV_TICKER_MAP = {
-      'S&P 500': 'AMEX:SPY',
-      'Nasdaq 100': 'NASDAQ:QQQ',
-      'Russell 2000': 'AMEX:IWM',
-      'Nikkei 225': 'TVC:NI225',
+      'S&P 500 (ES)': 'CME_MINI:ES1!',
+      'Nasdaq 100 (NQ)': 'CME_MINI:NQ1!',
+      'Russell 2000 (RTY)': 'CME_MINI:RTY1!',
+      'Nikkei 225 (NKD)': 'OSE:NK2251!',
       '10Y T-Note (TY10)': 'CBOT:ZN1!'
     };
 
@@ -734,17 +734,17 @@
         btn.classList.toggle('active', btn.getAttribute('data-tf') === tf);
       });
       fetchRadarData();
-      const currentTvTicker = TV_TICKER_MAP[selectedAsset] || 'AMEX:SPY';
+      const currentTvTicker = TV_TICKER_MAP[selectedAsset] || 'CME_MINI:ES1!';
       renderTradingViewWidget(currentTvTicker, currentTimeframe);
     }
 
     function selectChartAsset(assetName) {
       selectedAsset = assetName;
       document.querySelectorAll('.asset-pill').forEach(pill => {
-        pill.classList.toggle('active', pill.innerText.includes(assetName));
+        pill.classList.toggle('active', pill.innerText.includes(assetName.split(' ')[0]));
       });
       
-      const tvTicker = TV_TICKER_MAP[assetName] || 'AMEX:SPY';
+      const tvTicker = TV_TICKER_MAP[assetName] || 'CME_MINI:ES1!';
       document.getElementById('tv-direct-link').href = `https://www.tradingview.com/chart/?symbol=${tvTicker}`;
       document.getElementById('tv-direct-link').innerText = `Open ${tvTicker} on TradingView ↗`;
       
@@ -784,11 +784,11 @@
           </div>
           <div class="card-price">$${priceFormatted}</div>
           <div class="card-session" style="color: ${isUp ? '#00ff88' : '#ff4d6d'};">
-            ${isUp ? '▲ +' : '▼ '}${sig.session_change.toFixed(2)}% (TradingView)
+            ${isUp ? '▲ +' : '▼ '}${sig.session_change.toFixed(2)}% (TV Futures)
           </div>
           
           <div class="tv-rating-row">
-            <span style="color: #8e9bb0;">TV TECH RATING</span>
+            <span style="color: #8e9bb0;">TV FUTURES RATING</span>
             <span style="color: ${tvRatingColor};">${tvRatingText} (${tvScoreStr})</span>
           </div>
 
@@ -803,16 +803,16 @@
           </div>
 
           <div class="card-metrics-row">
-            <span>TradingView RSI (14)</span>
+            <span>TradingView Futures RSI (14)</span>
             <span class="val">${sig.rsi}</span>
           </div>
           <div class="card-metrics-row">
-            <span>TradingView VWAP</span>
+            <span>TradingView Futures VWAP</span>
             <span class="val">$${vwapFormatted} (${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)}σ)</span>
           </div>
 
           <div class="card-footer-info">
-            <span>📡 100% TradingView Feed</span>
+            <span>📡 100% TradingView Futures</span>
             <span>⚡ Jev System One</span>
           </div>
         `;
@@ -853,9 +853,9 @@
 
     // Initial load
     fetchRadarData();
-    // Initialize TradingView Widget
+    // Initialize TradingView Widget with S&P 500 E-mini futures
     setTimeout(() => {
-      renderTradingViewWidget('AMEX:SPY', '5m');
+      renderTradingViewWidget('CME_MINI:ES1!', '5m');
     }, 500);
   </script>
 </body>
