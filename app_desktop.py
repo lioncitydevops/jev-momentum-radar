@@ -1,6 +1,6 @@
 """
-Native Windows Desktop App for Global Multi-Index Momentum Signal
-Nikkei 225, S&P 500, Nasdaq 100, Russell 2000
+Native Windows Desktop App for Global Multi-CFD Momentum Signal
+Nikkei 225, S&P 500, Nasdaq 100, Russell 2000, 10Y Treasury (100% CFD)
 """
 
 import threading
@@ -11,10 +11,11 @@ import pandas as pd
 import requests
 
 ASSETS = {
-    "S&P 500 (SPY)": "SPY",
-    "Nasdaq 100 (QQQ)": "QQQ",
-    "Russell 2000 (IWM)": "IWM",
-    "Nikkei 225 (^N225)": "^N225"
+    "S&P 500 (SPX)": "^GSPC",
+    "Nasdaq 100 (NDX)": "^NDX",
+    "Russell 2000 (RUT)": "^RUT",
+    "Nikkei 225 (NI225)": "^N225",
+    "10Y Treasury (TNX)": "^TNX"
 }
 
 def fetch_data_and_signal(symbol: str, timeframe="5m"):
@@ -63,17 +64,17 @@ def fetch_data_and_signal(symbol: str, timeframe="5m"):
         action = "BUY / LONG"
         color = "#00e676"
         bg_card = "#0b2e1b"
-        desc = "Bullish Momentum: Price confirmed above Session VWAP."
+        desc = "Bullish Momentum: CFD price confirmed above Session VWAP."
     elif prob_up < 0.46 and vwap_z < -0.15:
         action = "SELL / SHORT"
         color = "#ff5252"
         bg_card = "#380d12"
-        desc = "Bearish Momentum: Price confirmed below Session VWAP."
+        desc = "Bearish Momentum: CFD price confirmed below Session VWAP."
     else:
         action = "HOLD CASH"
         color = "#ffd740"
         bg_card = "#2e240b"
-        desc = "Neutral / Chop: Price fluctuating near VWAP."
+        desc = "Neutral / Chop: CFD price fluctuating near VWAP."
         
     return {
         "action": action,
@@ -92,7 +93,7 @@ def fetch_data_and_signal(symbol: str, timeframe="5m"):
 class MultiIndexApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Global Multi-Index Momentum Radar")
+        self.title("Global Multi-CFD Momentum Radar")
         self.geometry("500x600")
         self.configure(bg="#121214")
         self.resizable(False, False)
@@ -101,9 +102,9 @@ class MultiIndexApp(tk.Tk):
         self.refresh_signal()
 
     def build_ui(self):
-        lbl_title = tk.Label(self, text="Global Momentum Radar", font=("Helvetica", 16, "bold"), fg="#ffffff", bg="#121214")
+        lbl_title = tk.Label(self, text="Global Multi-CFD Momentum Radar", font=("Helvetica", 15, "bold"), fg="#ffffff", bg="#121214")
         lbl_title.pack(pady=(16, 2))
-        lbl_sub = tk.Label(self, text="Nikkei 225 • S&P 500 • Nasdaq 100 • Russell 2000", font=("Helvetica", 9), fg="#8e8e93", bg="#121214")
+        lbl_sub = tk.Label(self, text="Nikkei 225 • S&P 500 • Nasdaq 100 • Russell 2000 • 10Y Treasury", font=("Helvetica", 8), fg="#8e8e93", bg="#121214")
         lbl_sub.pack(pady=(0, 12))
 
         # Controls Row
@@ -111,7 +112,7 @@ class MultiIndexApp(tk.Tk):
         frame_top.pack(fill="x", padx=24, pady=4)
         
         tk.Label(frame_top, text="Asset:", font=("Helvetica", 10), fg="#cccccc", bg="#121214").pack(side="left")
-        self.asset_var = tk.StringVar(value="S&P 500 (SPY)")
+        self.asset_var = tk.StringVar(value="S&P 500 (SPX)")
         cb_asset = ttk.Combobox(frame_top, textvariable=self.asset_var, values=list(ASSETS.keys()), state="readonly", width=18)
         cb_asset.pack(side="left", padx=6)
         cb_asset.bind("<<ComboboxSelected>>", lambda e: self.refresh_signal())

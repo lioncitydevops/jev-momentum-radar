@@ -7,11 +7,33 @@ import json
 import math
 import numpy as np
 import pandas as pd
+import os
 import requests
+from dotenv import load_dotenv
 
-def fetch_intraday_data(symbol: str = "SPY", interval: str = "5m", range_str: str = "5d") -> pd.DataFrame:
-    """Fetches intraday bars (5m or 1h) for SPY."""
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval={interval}&range={range_str}"
+load_dotenv()
+
+def fetch_intraday_data(symbol: str = "SPX500_USD", interval: str = "1m", range_str: str = "2d") -> pd.DataFrame:
+    """
+    Fetches intraday bars (1m, 5m, or 1h) for S&P 500.
+    Prioritizes OANDA real-time 24/5 CFD feed (SPX500_USD) if OANDA_API_KEY is configured.
+    Falls back to Yahoo Finance (SPY).
+    """
+    oanda_key = os.getenv("OANDA_API_KEY", "").strip()
+    if oanda_key:
+        try:
+            from oanda_feed import fetch_oanda_candles
+            print(f"[DATA FEED] Fetching live 24/5 zero-delay 1-minute bars from OANDA ({symbol})...")
+            df = fetch_oanda_candles(instrument=symbol, timeframe=interval, count=120, api_key=oanda_key)
+            df.index = df.index.tz_convert("America/New_York")
+            return df
+        except Exception as e:
+            print(f"[DATA FEED WARNING] OANDA fetch failed ({e}). Falling back to Yahoo Finance...")
+
+    # Fallback to Yahoo Finance
+    print("[DATA FEED] Fetching bars from Yahoo Finance (15m delay)...")
+    yahoo_symbol = "SPY" if symbol in ["SPX500_USD", "SPX"] else symbol
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}?interval={interval}&range={range_str}"
     headers = {"User-Agent": "Mozilla/5.0"}
     resp = requests.get(url, headers=headers, timeout=10)
     resp.raise_for_status()
@@ -28,16 +50,15 @@ def fetch_intraday_data(symbol: str = "SPY", interval: str = "5m", range_str: st
         "Volume": quote["volume"],
     }, index=pd.to_datetime(timestamps, unit="s", utc=True))
     
-    # Convert index to US/Eastern timezone
     df.index = df.index.tz_convert("America/New_York")
     df = df.dropna()
     return df
 
-def compute_intraday_momentum_state(df: pd.DataFrame) -> dict:
+def compute_intraday_momentum_state(df: pd.DataFrame, interval: str = "1m") -> dict:
     """
     Computes microstructure and intraday momentum features:
     - Anchored Session VWAP and VWAP Z-score
-    - Intraday Multi-Bar Momentum (3-bar = 15m, 6-bar = 30m, 12-bar = 60m)
+    - Multi-Bar Momentum (3-bar, 5-bar, 15-bar for 1m; or 15m, 30m, 60m for 5m)
     - Relative Volume (RVOL) vs recent average
     - Time-of-Day Regime (Opening Drive, Midday Lull, Power Hour)
     """
@@ -49,7 +70,7 @@ def compute_intraday_momentum_state(df: pd.DataFrame) -> dict:
     session_df = data.loc[today_mask]
     
     if len(session_df) == 0:
-        session_df = data.iloc[-78:] # fallback to last 78 bars (~1 session)
+        session_df = data.iloc[-60:] # fallback to last 60 bars
         
     # Anchored Session VWAP
     cum_vol = session_df["Volume"].cumsum()
@@ -57,7 +78,7 @@ def compute_intraday_momentum_state(df: pd.DataFrame) -> dict:
     session_vwap = cum_vol_price / (cum_vol + 1e-9)
     current_vwap = session_vwap.iloc[-1]
     
-    # Intraday ATR / Standard deviation of 5m bars
+    # Intraday ATR
     close = data["Close"].values
     high = data["High"].values
     low = data["Low"].values
@@ -68,11 +89,18 @@ def compute_intraday_momentum_state(df: pd.DataFrame) -> dict:
     vwap_dist = (close[-1] - current_vwap)
     vwap_z = float(np.round(vwap_dist / (atr_14 + 1e-9), 2))
     
-    # Micro-momentum (Returns over last 15m, 30m, 60m)
-    # At 5m bars: 3 bars = 15m, 6 bars = 30m, 12 bars = 60m
-    ret_15m = float(np.round((close[-1] / close[-4] - 1) * 100, 3)) if len(close) > 4 else 0.0
-    ret_30m = float(np.round((close[-1] / close[-7] - 1) * 100, 3)) if len(close) > 7 else 0.0
-    ret_60m = float(np.round((close[-1] / close[-13] - 1) * 100, 3)) if len(close) > 13 else 0.0
+    # Micro-momentum
+    if interval == "1m":
+        ret_1 = float(np.round((close[-1] / close[-4] - 1) * 100, 3)) if len(close) > 4 else 0.0 # 3-min
+        ret_2 = float(np.round((close[-1] / close[-6] - 1) * 100, 3)) if len(close) > 6 else 0.0 # 5-min
+        ret_3 = float(np.round((close[-1] / close[-16] - 1) * 100, 3)) if len(close) > 16 else 0.0 # 15-min
+        m_label = f"3-min={ret_1:+.2f}%, 5-min={ret_2:+.2f}%, 15-min={ret_3:+.2f}%"
+    else:
+        ret_1 = float(np.round((close[-1] / close[-4] - 1) * 100, 3)) if len(close) > 4 else 0.0 # 15-min
+        ret_2 = float(np.round((close[-1] / close[-7] - 1) * 100, 3)) if len(close) > 7 else 0.0 # 30-min
+        ret_3 = float(np.round((close[-1] / close[-13] - 1) * 100, 3)) if len(close) > 13 else 0.0 # 60-min
+        m_label = f"15-min={ret_1:+.2f}%, 30-min={ret_2:+.2f}%, 60-min={ret_3:+.2f}%"
+
     session_open = session_df["Open"].iloc[0]
     session_ret = float(np.round((close[-1] / session_open - 1) * 100, 3))
     
@@ -83,7 +111,6 @@ def compute_intraday_momentum_state(df: pd.DataFrame) -> dict:
     
     # Time of Day Classification (US Eastern)
     current_time = data.index[-1].time()
-    time_str = current_time.strftime("%H:%M")
     
     if current_time < pd.to_datetime("10:30").time():
         regime = "OPENING_DRIVE (High momentum volatility & price discovery)"
@@ -95,14 +122,15 @@ def compute_intraday_momentum_state(df: pd.DataFrame) -> dict:
         regime = "POWER_HOUR (Aggressive market-on-close rebalancing & momentum surge)"
         
     state_prompt = (
-        f"Asset: S&P 500 (SPY 5-Minute Intraday Bar)\n"
+        f"Asset: S&P 500 CFD ({interval.upper()} Intraday Bar - OANDA Live Feed)\n"
+        f"Forecasting Target: Next 10 Minutes Movement (10 bars forward)\n"
         f"Bar Timestamp (ET): {data.index[-1].strftime('%Y-%m-%d %H:%M:%S')}\n"
-        f"Latest 5m Close: ${close[-1]:.2f}\n"
+        f"Latest {interval} Close: ${close[-1]:.2f}\n"
         f"Intraday Session VWAP: ${current_vwap:.2f} (Distance: {vwap_z:+.2f} ATRs)\n"
-        f"Micro-Momentum: 15-min={ret_15m:+.2f}%, 30-min={ret_30m:+.2f}%, 60-min={ret_60m:+.2f}%\n"
+        f"Micro-Momentum: {m_label}\n"
         f"Full Session Return: {session_ret:+.2f}%\n"
         f"Relative Volume (RVOL): {rvol:.2f}x (Current bar volume vs 20-bar average)\n"
-        f"5-Minute ATR: ${atr_14:.2f}\n"
+        f"{interval.upper()} ATR: ${atr_14:.2f}\n"
         f"Intraday Time Regime: {regime}"
     )
     
@@ -112,21 +140,21 @@ def compute_intraday_momentum_state(df: pd.DataFrame) -> dict:
             "close": close[-1],
             "vwap": current_vwap,
             "vwap_z": vwap_z,
-            "ret_15m": ret_15m,
-            "ret_30m": ret_30m,
-            "ret_60m": ret_60m,
+            "ret_fast": ret_1,
+            "ret_mid": ret_2,
+            "ret_slow": ret_3,
             "rvol": rvol,
             "time_regime": regime
         }
     }
 
 if __name__ == "__main__":
-    print("=== Fetching Real 5-Minute S&P 500 Intraday Data ===")
-    df = fetch_intraday_data("SPY", interval="5m", range_str="5d")
-    result = compute_intraday_momentum_state(df)
+    print("=== Fetching Real 1-Minute S&P 500 Intraday Data ===")
+    df = fetch_intraday_data("SPX500_USD", interval="1m", range_str="2d")
+    result = compute_intraday_momentum_state(df, interval="1m")
     
     print("\n" + "=" * 65)
-    print("5-MINUTE INTRADAY STATE FOR JEV SYSTEM ONE:")
+    print("1-MINUTE HIGH-FREQUENCY INTRADAY STATE FOR JEV SYSTEM ONE:")
     print("=" * 65)
     print(result["state_str"])
     print("=" * 65)

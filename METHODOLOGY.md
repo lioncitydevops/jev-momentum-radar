@@ -1,24 +1,24 @@
-# 📐 Quantitative Methodology Note: Short-Term Multi-Futures Momentum Radar
+# 📐 Quantitative Methodology Note: Short-Term Multi-CFD Momentum Radar
 
 **Engine**: TypeSafe Jev System One (`jev-latest`)  
-**Data Infrastructure**: TradingView Official Real-Time Futures Scanner & Streaming Feeds  
-**Asset Universe**: 24-Hour Continuous Benchmark Futures (`ES1!`, `NQ1!`, `RTY1!`, `NK2251!`, `ZN1!`)  
+**Data Infrastructure**: TradingView Official Real-Time CFD Scanner & Streaming Feeds  
+**Asset Universe**: 24-Hour Continuous Benchmark Index/CFD Instruments (`SP:SPX`, `TVC:IXIC`, `TVC:RUT`, `TVC:NI225`, `TVC:US10Y`)  
 **Deployment**: Serverless FastAPI Python 3.12 Engine on Vercel  
 
 ---
 
 ## 1. Executive Overview & System Architecture
 
-The **Global Multi-Futures Momentum Radar** is a dual-layer quantitative decision architecture. It combines **continuous mathematical feature extraction** across multi-horizon market microstructure with **TypeSafe Jev System One** models to produce probabilistic tactical judgments (`BUY / LONG`, `SELL / SHORT`, `HOLD CASH`) with Bayesian-calibrated continuation probabilities.
+The **Global Multi-CFD Momentum Radar** is a dual-layer quantitative decision architecture. It combines **continuous mathematical feature extraction** across multi-horizon market microstructure with **TypeSafe Jev System One** models to produce probabilistic tactical judgments (`BUY / LONG`, `SELL / SHORT`, `HOLD CASH`) with Bayesian-calibrated continuation probabilities.
 
 ```mermaid
 flowchart TD
     subgraph MarketFeeds ["1. Real-Time Market Data Ingestion"]
-        ES["E-mini S&P 500 (CME: ES1!)"]
-        NQ["E-mini Nasdaq 100 (CME: NQ1!)"]
-        RTY["E-mini Russell 2000 (CME: RTY1!)"]
-        NKD["Nikkei 225 Futures (OSE: NK2251!)"]
-        ZN["10Y Treasury Note (CBOT: ZN1!)"]
+        SPX["S&P 500 Index / CFD (SP:SPX)"]
+        NDX["Nasdaq 100 Index / CFD (TVC:IXIC)"]
+        RUT["Russell 2000 Index / CFD (TVC:RUT)"]
+        NI225["Nikkei 225 Index / CFD (TVC:NI225)"]
+        TNX["10Y Treasury Yield CFD (TVC:US10Y)"]
     end
 
     subgraph FeatureEngineering ["2. Mathematical Feature Engineering"]
@@ -57,7 +57,7 @@ flowchart TD
 Raw tick and candle data are converted into scale-invariant, normalized state representations to eliminate price-level bias and heteroskedasticity.
 
 ### 2.1 Anchored Session VWAP & Volatility Distance ($Z_{VWAP}$)
-Intraday fair value is anchored to the opening tick of the continuous session using Volume-Weighted Average Price:
+Intraday fair value is anchored to the opening tick of the session using Volume-Weighted Average Price:
 
 $$\text{VWAP}_t = \frac{\sum_{i=1}^{t} P_{\text{typical}, i} \cdot V_i}{\sum_{i=1}^{t} V_i}$$
 
@@ -119,19 +119,19 @@ Instead of rigid linear rules or brittle black-box weights, the synthesized feat
 
 ### 3.1 State Representation Prompt
 ```text
-Futures Asset: S&P 500 (ES) (TradingView Symbol: CME_MINI:ES1!, 5m horizon).
-TradingView Futures Price: $7,749.00.
-TradingView Futures VWAP: $7,746.25 (Distance: +0.73 ATRs).
-TradingView 14-RSI: 53.2.
-TradingView Technical Rating: STRONG BUY (+0.54).
-Micro-Momentum: 3-bar=+0.22%, 6-bar=+0.18%. Session Return: +0.22%.
+CFD Asset: S&P 500 (SPX) (TradingView Symbol: SP:SPX, 5m horizon).
+TradingView CFD Price: $7,716.94.
+TradingView CFD VWAP: $7,714.25 (Distance: +0.65 ATRs).
+TradingView 14-RSI: 53.9.
+TradingView Technical Rating: STRONG BUY (+0.60).
+Micro-Momentum: 3-bar=+0.22%, 6-bar=+0.18%. Session Return: +0.60%.
 ```
 
 ### 3.2 Decision Questions & Primitives
 Jev evaluates two formal System One primitives:
 
 1. **Primitive: `choice` (`tactical_action`)**
-   * *Instructions*: "Determine tactical positioning for the next 15-30 minutes based on TradingView futures momentum, VWAP deviation, and technical ratings."
+   * *Instructions*: "Determine tactical positioning for the next 15-30 minutes based on TradingView CFD momentum, VWAP deviation, and technical ratings."
    * *Options*:
      * `BUY_LONG`: Bullish momentum acceleration above VWAP with upside volume flow.
      * `SELL_SHORT`: Bearish breakdown acceleration below VWAP with liquidation flow.
@@ -147,22 +147,22 @@ Jev evaluates two formal System One primitives:
 
 The radar integrates cross-market asset spreads across equities and sovereign debt:
 
-$$\text{Tech Spread} = \text{ret}_{6}(\text{NQ1!}) - \text{ret}_{6}(\text{ES1!})$$
+$$\text{Tech Spread} = \text{ret}_{6}(\text{NDX}) - \text{ret}_{6}(\text{SPX})$$
 
-$$\text{Beta Spread} = \text{ret}_{6}(\text{RTY1!}) - \text{ret}_{6}(\text{ES1!})$$
+$$\text{Beta Spread} = \text{ret}_{6}(\text{RUT}) - \text{ret}_{6}(\text{SPX})$$
 
-$$\text{Bond-Equity Correlation} = \text{Sign}\left(\text{ret}_{6}(\text{ZN1!}) \cdot \text{ret}_{6}(\text{ES1!})\right)$$
+$$\text{Bond-Equity Correlation} = \text{Sign}\left(\text{ret}_{6}(\text{TNX}) \cdot \text{ret}_{6}(\text{SPX})\right)$$
 
 ### Tactical Macro Regimes Identified:
 1. **Flight-to-Safety Regime**:
-   * Condition: $\text{ZN1! (10Y T-Note)} \uparrow$ while $\text{ES1! (S&P 500)} \downarrow$
-   * Interpretation: Capital rotating out of risk assets into safe-haven duration.
+   * Condition: $\text{TNX (10Y Yield)} \uparrow$ while $\text{SPX (S&P 500)} \downarrow$
+   * Interpretation: Capital rotating out of risk assets due to rising discount rate pressure.
 2. **Growth Reflation Regime**:
-   * Condition: $\text{ES1!} \uparrow$, $\text{NQ1!} \uparrow$, and $\text{ZN1!} \downarrow$
-   * Interpretation: Risk-on economic expansion; equity multiple tolerance high despite firming yields.
+   * Condition: $\text{SPX} \uparrow$, $\text{NDX} \uparrow$, and $\text{TNX} \downarrow$
+   * Interpretation: Risk-on economic expansion; equity multiple tolerance high with easing yields.
 3. **Rate Pressure / Duration Drag**:
-   * Condition: $\text{ZN1! Technical Rating} \le -0.25$ (Yields surging)
-   * Interpretation: Duration risk; headwind for high-multiple Nasdaq futures (`NQ1!`).
+   * Condition: $\text{TNX Technical Rating} \ge +0.25$ (Yields surging)
+   * Interpretation: Duration risk; headwind for high-multiple Nasdaq CFD (`NDX`).
 
 ---
 
@@ -182,9 +182,9 @@ $$\text{RawScore} = 0.35 \cdot Z_{\text{mom}, 3} + 0.35 \cdot Z_{\text{mom}, 6} 
 ## 6. Real-Time Data Pipeline Summary
 
 ```
-TradingView Futures Scanner (https://scanner.tradingview.com/futures/scan)
+TradingView CFD & Global Scanner (https://scanner.tradingview.com/global/scan)
   │
-  ├──> Real-Time Prices, VWAP, 14-RSI, Rating, Volume
+  ├──> Real-Time CFD Prices, VWAP, 14-RSI, Rating, Volume
   │
 FastAPI Backend (api/index.py on Vercel)
   │

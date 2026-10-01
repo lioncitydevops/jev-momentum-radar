@@ -60,7 +60,7 @@ def calculate_momentum_state(df: pd.DataFrame) -> dict:
     close_loc = float(np.round((close[-1] - low[-1]) / (day_range + 1e-9), 3))
     
     state_description = (
-        f"Asset: S&P 500 Index (SPX)\n"
+        f"Asset: S&P 500 Index CFD (SPX)\n"
         f"Current Price: {close[-1]:.2f}\n"
         f"Multi-Horizon Momentum Z-Scores: 1d={z_scores['z_ret_1d']}s, 3d={z_scores['z_ret_3d']}s, "
         f"5d={z_scores['z_ret_5d']}s, 10d={z_scores['z_ret_10d']}s\n"

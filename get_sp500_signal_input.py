@@ -7,10 +7,23 @@ ready to paste directly into https://console.typesafe.ai/home
 import json
 import math
 import numpy as np
+import os
 import pandas as pd
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def fetch_chart(symbol: str, range_str: str = "1mo") -> pd.DataFrame:
+    oanda_key = os.getenv("OANDA_API_KEY", "").strip()
+    if oanda_key and symbol in ["SPY", "SPX", "SPX500_USD"]:
+        try:
+            from oanda_feed import fetch_oanda_candles
+            print("[DATA FEED] Using live 24/5 OANDA CFD feed (SPX500_USD)...")
+            return fetch_oanda_candles("SPX500_USD", timeframe="1d", count=30, api_key=oanda_key)
+        except Exception as e:
+            print(f"[DATA FEED WARNING] OANDA fetch failed ({e}). Falling back to Yahoo...")
+
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range={range_str}"
     headers = {"User-Agent": "Mozilla/5.0"}
     resp = requests.get(url, headers=headers, timeout=10)
@@ -31,7 +44,7 @@ def fetch_chart(symbol: str, range_str: str = "1mo") -> pd.DataFrame:
     return df
 
 def generate_live_prompt():
-    print("Fetching live market data for SPY (S&P 500 ETF) and VIX...")
+    print("Fetching live market data for S&P 500 (OANDA/SPY) and VIX...")
     spy_df = fetch_chart("SPY", "1mo")
     vix_df = fetch_chart("%5EVIX", "5d")
     
@@ -72,7 +85,7 @@ def generate_live_prompt():
     close_loc = (close[-1] - low[-1]) / (day_range + 1e-9)
     
     state_text = (
-        f"Asset: S&P 500 (SPY ETF)\n"
+        f"Asset: S&P 500 Index CFD (SPX)\n"
         f"Latest Close Price: ${close[-1]:.2f}\n"
         f"1-Day Normalized Momentum: {z_scores[1]:+.2f} standard deviations\n"
         f"3-Day Normalized Momentum: {z_scores[3]:+.2f} standard deviations\n"

@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="Global Multi-Futures Momentum Radar (100% TradingView)", version="1.3.0")
+app = FastAPI(title="Global Multi-CFD Momentum Radar (100% TradingView)", version="1.4.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,74 +24,97 @@ app.add_middleware(
 TYPESAFE_API_KEY = os.getenv("TYPESAFE_API_KEY", "")
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
 
-# 100% Global Futures Specifications
+# 100% Global CFD Specifications
 ASSETS = {
-    "S&P 500 (ES)": {
-        "symbol": "ES=F",
-        "tv_ticker": "CME_MINI:ES1!",
+    "S&P 500 (SPX)": {
+        "symbol": "^GSPC",
+        "oanda": "SPX500_USD",
+        "tv_ticker": "SP:SPX",
         "flag": "🇺🇸",
-        "desc": "E-mini S&P 500 Futures (CME)",
-        "market": "futures"
+        "desc": "S&P 500 Index / CFD",
+        "market": "cfd"
     },
-    "Nasdaq 100 (NQ)": {
-        "symbol": "NQ=F",
-        "tv_ticker": "CME_MINI:NQ1!",
+    "Nasdaq 100 (NDX)": {
+        "symbol": "^NDX",
+        "oanda": "NAS100_USD",
+        "tv_ticker": "TVC:IXIC",
         "flag": "💻",
-        "desc": "E-mini Nasdaq 100 Futures (CME)",
-        "market": "futures"
+        "desc": "Nasdaq 100 Index / CFD",
+        "market": "cfd"
     },
-    "Russell 2000 (RTY)": {
-        "symbol": "RTY=F",
-        "tv_ticker": "CME_MINI:RTY1!",
+    "Russell 2000 (RUT)": {
+        "symbol": "^RUT",
+        "oanda": "US2000_USD",
+        "tv_ticker": "TVC:RUT",
         "flag": "🚀",
-        "desc": "E-mini Russell 2000 Futures (CME)",
-        "market": "futures"
+        "desc": "Russell 2000 Index / CFD",
+        "market": "cfd"
     },
-    "Nikkei 225 (NKD)": {
-        "symbol": "NKD=F",
-        "tv_ticker": "OSE:NK2251!",
+    "Nikkei 225 (NI225)": {
+        "symbol": "^N225",
+        "oanda": "JP225_USD",
+        "tv_ticker": "TVC:NI225",
         "flag": "🇯🇵",
-        "desc": "Nikkei 225 Index Futures (OSE/CME)",
-        "market": "futures"
+        "desc": "Nikkei 225 Index / CFD",
+        "market": "cfd"
     },
-    "10Y T-Note (TY10)": {
-        "symbol": "ZN=F",
-        "tv_ticker": "CBOT:ZN1!",
+    "10Y Treasury (TNX)": {
+        "symbol": "^TNX",
+        "oanda": "USB10Y_USD",
+        "tv_ticker": "TVC:US10Y",
         "flag": "🏛️",
-        "desc": "10-Year U.S. Treasury Note Futures (CBOT)",
-        "market": "futures"
+        "desc": "10-Year U.S. Treasury Yield Index / CFD",
+        "market": "cfd"
+    },
+    "WTI Crude (WTI)": {
+        "symbol": "CL=F",
+        "oanda": "WTICO_USD",
+        "tv_ticker": "TVC:USOIL",
+        "flag": "🛢️",
+        "desc": "WTI Light Sweet Crude Oil CFD",
+        "market": "cfd"
+    },
+    "Brent Crude (BRENT)": {
+        "symbol": "BZ=F",
+        "oanda": "BCO_USD",
+        "tv_ticker": "TVC:UKOIL",
+        "flag": "🌊",
+        "desc": "Brent Crude Oil CFD",
+        "market": "cfd"
     }
 }
 
 def fetch_tradingview_scan(timeframe: str = "5m") -> dict:
-    """Pulls live indicators directly from TradingView's official Futures Scanner API."""
+    """Pulls live indicators directly from TradingView's official CFD & Global Scanner API."""
     cols = ["close", "change", "RSI", "VWAP", "Recommend.All", "volume", "ATR", "open", "high", "low"]
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     tv_data = {}
     
-    try:
-        url_fut = "https://scanner.tradingview.com/futures/scan"
-        tickers = [meta["tv_ticker"] for meta in ASSETS.values()]
-        payload = {"symbols": {"tickers": tickers}, "columns": cols}
-        res_fut = requests.post(url_fut, json=payload, headers=headers, timeout=8).json()
-        for item in res_fut.get("data", []):
-            ticker = item["s"]
-            vals = item["d"]
-            tv_data[ticker] = {
-                "close": vals[0],
-                "change": vals[1],
-                "rsi": vals[2],
-                "vwap": vals[3],
-                "recommend": vals[4],
-                "volume": vals[5],
-                "atr": vals[6],
-                "open": vals[7],
-                "high": vals[8],
-                "low": vals[9]
-            }
-    except Exception as e:
-        print(f"Error fetching TradingView futures scan: {e}")
-        
+    tickers = [meta["tv_ticker"] for meta in ASSETS.values()]
+    payload = {"symbols": {"tickers": tickers}, "columns": cols}
+    
+    for scan_endpoint in ["global", "cfd"]:
+        try:
+            url_scan = f"https://scanner.tradingview.com/{scan_endpoint}/scan"
+            res = requests.post(url_scan, json=payload, headers=headers, timeout=8).json()
+            for item in res.get("data", []):
+                ticker = item["s"]
+                vals = item["d"]
+                tv_data[ticker] = {
+                    "close": vals[0],
+                    "change": vals[1],
+                    "rsi": vals[2],
+                    "vwap": vals[3],
+                    "recommend": vals[4],
+                    "volume": vals[5],
+                    "atr": vals[6],
+                    "open": vals[7],
+                    "high": vals[8],
+                    "low": vals[9]
+                }
+        except Exception as e:
+            print(f"Error fetching TradingView scan ({scan_endpoint}): {e}")
+            
     return tv_data
 
 def get_tv_rating_text(score):
@@ -108,7 +131,26 @@ def get_tv_rating_text(score):
     else:
         return "NEUTRAL", "#ffd166"
 
-def fetch_futures_candles(symbol: str, timeframe: str = "5m"):
+def fetch_cfd_candles(symbol: str, timeframe: str = "5m", oanda_inst: str = None):
+    oanda_key = os.getenv("OANDA_API_KEY", "").strip()
+    if oanda_key and oanda_inst:
+        try:
+            from oanda_feed import fetch_oanda_candles
+            odf = fetch_oanda_candles(instrument=oanda_inst, timeframe=timeframe, count=100, api_key=oanda_key)
+            records = []
+            for t, row in odf.iterrows():
+                records.append({
+                    "Timestamp": int(t.timestamp()),
+                    "Open": row["Open"],
+                    "High": row["High"],
+                    "Low": row["Low"],
+                    "Close": row["Close"],
+                    "Volume": row["Volume"]
+                })
+            return pd.DataFrame(records)
+        except Exception as e:
+            print(f"OANDA API fetch failed for {oanda_inst}: {e}")
+
     range_str = "5d" if timeframe == "5m" else ("1mo" if timeframe == "1h" else "3mo")
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval={timeframe}&range={range_str}"
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -139,16 +181,16 @@ def call_jev_api(state_str: str) -> dict:
         "questions": {
             "tactical_action": {
                 "type": "choice",
-                "instructions": "Determine tactical positioning for the next 15-30 minutes based on TradingView futures momentum, VWAP deviation, and technical ratings.",
+                "instructions": "Determine tactical positioning for the next 10 minutes (10 bars forward on 1-minute interval) based on TradingView & OANDA CFD momentum, VWAP deviation, and technical ratings.",
                 "criteria": {
-                    "BUY_LONG": "Clear bullish momentum above VWAP with upside acceleration",
-                    "HOLD_CASH": "Consolidation, neutral chop, or tight range near VWAP",
-                    "SELL_SHORT": "Clear bearish breakdown below VWAP with downside acceleration"
+                    "BUY_LONG": "Clear bullish momentum above VWAP with high probability of higher prices over next 10 minutes",
+                    "HOLD_CASH": "Consolidation, neutral chop, or tight range near VWAP over next 10 minutes",
+                    "SELL_SHORT": "Clear bearish breakdown below VWAP with high probability of lower prices over next 10 minutes"
                 }
             },
             "prob_continuation": {
                 "type": "noul",
-                "instructions": "Will price close higher over the next 3 bars?"
+                "instructions": "What is the probability that price will close higher 10 minutes from now (next 10 bars forward on 1-minute interval)?"
             }
         }
     }
@@ -177,7 +219,7 @@ def call_jev_api(state_str: str) -> dict:
         "raw_response": data
     }
 
-def analyze_asset(df, name="S&P 500 (ES)", timeframe="5m", tv_metric=None):
+def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
     close_vals = df["Close"].values
     high_vals = df["High"].values
     low_vals = df["Low"].values
@@ -191,7 +233,8 @@ def analyze_asset(df, name="S&P 500 (ES)", timeframe="5m", tv_metric=None):
     atr_14 = float(np.mean(tr[-14:])) if len(tr) >= 14 else float(np.std(close_vals))
     
     ret_3 = (close_vals[-1] / close_vals[-4] - 1) * 100 if len(close_vals) > 4 else 0.0
-    ret_6 = (close_vals[-1] / close_vals[-7] - 1) * 100 if len(close_vals) > 7 else 0.0
+    ret_5 = (close_vals[-1] / close_vals[-6] - 1) * 100 if len(close_vals) > 6 else 0.0
+    ret_10 = (close_vals[-1] / close_vals[-11] - 1) * 100 if len(close_vals) > 11 else 0.0
     
     tv_ticker = ASSETS[name]["tv_ticker"]
     if tv_metric and tv_metric.get("close") is not None:
@@ -200,7 +243,7 @@ def analyze_asset(df, name="S&P 500 (ES)", timeframe="5m", tv_metric=None):
         rsi_14 = float(tv_metric["rsi"]) if tv_metric["rsi"] is not None else 50.0
         vwap = float(tv_metric["vwap"]) if tv_metric["vwap"] is not None else float(np.mean(close_vals[-20:]))
         tv_rating_score = tv_metric.get("recommend")
-        feed_source = "TradingView Futures Live"
+        feed_source = "TradingView CFD Live"
     else:
         price = float(close_vals[-1])
         session_change = (close_vals[-1] / open_p[0] - 1) * 100
@@ -216,18 +259,19 @@ def analyze_asset(df, name="S&P 500 (ES)", timeframe="5m", tv_metric=None):
         else:
             vwap = float(np.mean(close_vals[-20:]))
         tv_rating_score = None
-        feed_source = "Futures Chart Feed"
+        feed_source = "CFD Chart Feed"
 
     vwap_z = (price - vwap) / (atr_14 + 1e-9)
     tv_rating_label, tv_rating_color = get_tv_rating_text(tv_rating_score)
 
     state_str = (
-        f"Futures Asset: {name} (TradingView Symbol: {tv_ticker}, {timeframe} horizon). "
-        f"TradingView Futures Price: ${price:,.2f}. "
-        f"TradingView Futures VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
+        f"CFD Asset: {name} (TradingView Symbol: {tv_ticker}, 1-Minute Horizon). "
+        f"Forecasting Objective: Next 10 Minutes Movement (10 bars forward). "
+        f"TradingView CFD Price: ${price:,.2f}. "
+        f"TradingView CFD VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
         f"TradingView 14-RSI: {rsi_14:.1f}. "
         f"TradingView Technical Rating: {tv_rating_label} ({tv_rating_score if tv_rating_score is not None else 0:+.2f}). "
-        f"Micro-Momentum: 3-bar={ret_3:+.2f}%, 6-bar={ret_6:+.2f}%. Session Return: {session_change:+.2f}%."
+        f"Micro-Momentum: 3-min={ret_3:+.2f}%, 5-min={ret_5:+.2f}%, 10-min={ret_10:+.2f}%. Session Return: {session_change:+.2f}%."
     )
     
     try:
@@ -237,7 +281,7 @@ def analyze_asset(df, name="S&P 500 (ES)", timeframe="5m", tv_metric=None):
         confidence = float(jev_res["confidence"])
         is_live_jev = True
     except Exception:
-        raw_score = 0.35 * ret_3 + 0.35 * ret_6 + 0.30 * (vwap_z * 0.4)
+        raw_score = 0.30 * ret_3 + 0.35 * ret_5 + 0.35 * ret_10 + 0.25 * (vwap_z * 0.4)
         if tv_rating_score is not None:
             raw_score += 0.20 * tv_rating_score
         prob_up = float(1.0 / (1.0 + np.exp(- (0.19 + 0.35 * raw_score))))
@@ -261,7 +305,7 @@ def analyze_asset(df, name="S&P 500 (ES)", timeframe="5m", tv_metric=None):
     # Candle series for Plotly chart
     last_df = df.iloc[-45:]
     candles = []
-    decimals = 3 if "ZN=F" in ASSETS[name]["symbol"] else 2
+    decimals = 3 if "^TNX" in ASSETS[name]["symbol"] else 2
     for _, row in last_df.iterrows():
         candles.append({
             "t": int(row["Timestamp"]),
@@ -301,38 +345,48 @@ def analyze_asset(df, name="S&P 500 (ES)", timeframe="5m", tv_metric=None):
 
 def generate_insights(results):
     insights = []
-    if "S&P 500 (ES)" in results and "Nasdaq 100 (NQ)" in results and "Russell 2000 (RTY)" in results and "Nikkei 225 (NKD)" in results:
-        sp = results["S&P 500 (ES)"]
-        ndx = results["Nasdaq 100 (NQ)"]
-        rut = results["Russell 2000 (RTY)"]
-        nik = results["Nikkei 225 (NKD)"]
+    if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 2000 (RUT)" in results and "Nikkei 225 (NI225)" in results:
+        sp = results["S&P 500 (SPX)"]
+        ndx = results["Nasdaq 100 (NDX)"]
+        rut = results["Russell 2000 (RUT)"]
+        nik = results["Nikkei 225 (NI225)"]
         
         tech_spread = ndx["ret_6"] - sp["ret_6"]
         small_spread = rut["ret_6"] - sp["ret_6"]
         
         if tech_spread > 0.15:
-            insights.append({"type": "bull", "text": "Tech Futures Leadership (NQ > ES): E-mini Nasdaq outperforming broader index futures."})
+            insights.append({"type": "bull", "text": "Tech CFD Leadership (NDX > SPX): Nasdaq 100 CFD outperforming broader index CFDs."})
         elif tech_spread < -0.15:
-            insights.append({"type": "warn", "text": "Tech Futures Drag (NQ < ES): Tech futures lagging broader market momentum."})
+            insights.append({"type": "warn", "text": "Tech CFD Drag (NDX < SPX): Tech CFD lagging broader market momentum."})
             
         if small_spread > 0.20:
-            insights.append({"type": "bull", "text": "Broad Risk-On Breadth (RTY > ES): Small-cap futures showing aggressive beta leadership."})
+            insights.append({"type": "bull", "text": "Broad Risk-On Breadth (RUT > SPX): Small-cap Russell CFD showing aggressive beta leadership."})
         elif small_spread < -0.20:
-            insights.append({"type": "warn", "text": "Defensive Posture (RTY < ES): Russell futures lagging; watch for false large-cap breakouts."})
+            insights.append({"type": "warn", "text": "Defensive Posture (RUT < SPX): Russell CFD lagging; watch for false large-cap breakouts."})
             
         if nik["prob_up"] > 0.55 or nik.get("tv_rating") in ["BUY", "STRONG BUY"]:
-            insights.append({"type": "info", "text": f"Nikkei 225 Futures Signal: Osaka/CME Asian session {nik.get('tv_rating', 'BULLISH')} momentum bias."})
+            insights.append({"type": "info", "text": f"Nikkei 225 CFD Signal: Asian session {nik.get('tv_rating', 'BULLISH')} momentum bias."})
 
-    # Rates & Macro Insights with 10Y Treasury Note Futures
-    if "10Y T-Note (TY10)" in results and "S&P 500 (ES)" in results:
-        ty = results["10Y T-Note (TY10)"]
-        sp = results["S&P 500 (ES)"]
-        if ty["ret_6"] > 0.10 and sp["ret_6"] < -0.10:
-            insights.append({"type": "info", "text": "🏛️ Flight-to-Safety: 10Y Treasury Futures rallying while equity futures pull back (classic safe-haven bid)."})
-        elif ty["ret_6"] < -0.10 and sp["ret_6"] > 0.10:
-            insights.append({"type": "bull", "text": "⚡ Growth Reflation: 10Y Treasury Futures softening as equity futures accelerate higher."})
-        elif ty.get("tv_rating") in ["SELL", "STRONG SELL"]:
-            insights.append({"type": "warn", "text": "⚠️ Rate Pressure (TY10 Selling): Bond yields pushing higher; watch duration headwinds for Nasdaq futures (NQ)."})
+    # Rates & Macro Insights with 10Y Treasury CFD
+    if "10Y Treasury (TNX)" in results and "S&P 500 (SPX)" in results:
+        tnx = results["10Y Treasury (TNX)"]
+        sp = results["S&P 500 (SPX)"]
+        if tnx["ret_6"] > 0.10 and sp["ret_6"] < -0.10:
+            insights.append({"type": "info", "text": "🏛️ Rate Surge & Risk Off: 10Y Treasury Yield CFD rising while equity CFDs pull back."})
+        elif tnx["ret_6"] < -0.10 and sp["ret_6"] > 0.10:
+            insights.append({"type": "bull", "text": "⚡ Growth Reflation: 10Y Yield CFD softening as equity CFDs accelerate higher."})
+        elif tnx.get("tv_rating") in ["BUY", "STRONG BUY"]:
+            insights.append({"type": "warn", "text": "⚠️ Yield Pressure (TNX Rising): 10Y Yields pushing higher; watch duration headwinds for Nasdaq 100 CFD (NDX)."})
+
+    # Energy Insights with WTI & Brent Crude CFDs
+    if "WTI Crude (WTI)" in results and "Brent Crude (BRENT)" in results:
+        wti = results["WTI Crude (WTI)"]
+        brent = results["Brent Crude (BRENT)"]
+        spread = brent["price"] - wti["price"]
+        if brent["ret_6"] > 0.20 and wti["ret_6"] > 0.20:
+            insights.append({"type": "warn", "text": f"🛢️ Crude Energy Surge: WTI (${wti['price']:.2f}) & Brent (${brent['price']:.2f}) accelerating higher. Brent-WTI Spread: ${spread:.2f}."})
+        elif brent["ret_6"] < -0.20 and wti["ret_6"] < -0.20:
+            insights.append({"type": "bull", "text": f"🌊 Deflationary Energy Relief: Crude oil pulling back (WTI {wti['ret_6']:+.2f}%, Brent {brent['ret_6']:+.2f}%), easing macro pressure."})
 
     return insights
 
@@ -343,20 +397,21 @@ def serve_home():
         html_path = Path("public/index.html")
     if html_path.exists():
         return FileResponse(html_path)
-    return HTMLResponse("<h1>Global Multi-Futures Momentum Radar is Running</h1>")
+    return HTMLResponse("<h1>Global Multi-CFD Momentum Radar is Running</h1>")
 
 @app.get("/api/radar")
 @app.get("/radar")
-def get_radar(timeframe: str = "5m"):
-    if timeframe not in ["5m", "1h", "1d"]:
-        timeframe = "5m"
+def get_radar(timeframe: str = "1m"):
+    if timeframe not in ["1m", "5m", "1h", "1d"]:
+        timeframe = "1m"
 
-    tv_data = fetch_tradingview_scan(timeframe)
+    tv_scan_tf = "5m" if timeframe == "1m" else timeframe
+    tv_data = fetch_tradingview_scan(tv_scan_tf)
 
     results = {}
     for name, meta in ASSETS.items():
         try:
-            df = fetch_futures_candles(meta["symbol"], timeframe)
+            df = fetch_cfd_candles(meta["symbol"], timeframe, oanda_inst=meta.get("oanda"))
             tv_metric = tv_data.get(meta["tv_ticker"])
             sig = analyze_asset(df, name=name, timeframe=timeframe, tv_metric=tv_metric)
             if sig:
@@ -367,7 +422,7 @@ def get_radar(timeframe: str = "5m"):
     insights = generate_insights(results)
     return {
         "status": "success",
-        "feed": "TradingView Official Futures Feeds",
+        "feed": "TradingView Official CFD Feeds",
         "timeframe": timeframe,
         "results": results,
         "insights": insights
