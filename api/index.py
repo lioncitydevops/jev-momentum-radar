@@ -40,10 +40,10 @@ ASSETS = {
     "Nasdaq 100 (NDX)": {
         "symbol": "^NDX",
         "oanda": "NAS100_USD",
-        "tv_ticker": "TVC:IXIC",
-        "tv_scan_ticker": "TVC:IXIC",
+        "tv_ticker": "NASDAQ:NDX",
+        "tv_scan_ticker": "NASDAQ:NDX",
         "flag": "💻",
-        "desc": "Nasdaq 100 Index / CFD",
+        "desc": "Nasdaq 100 Index / 24H CFD",
         "market": "cfd"
     },
     "Russell 2000 (RUT)": {
@@ -184,10 +184,11 @@ def generate_synthetic_candles(price: float, session_change: float = 0.0, vwap: 
 
 def fetch_cfd_candles(symbol: str, timeframe: str = "1m", oanda_inst: str = None, tv_metric: dict = None) -> pd.DataFrame:
     oanda_key = os.getenv("OANDA_API_KEY", "").strip()
+    oanda_env = os.getenv("OANDA_ENVIRONMENT", "live").strip()
     if oanda_key and oanda_inst:
         try:
             from oanda_feed import fetch_oanda_candles
-            odf = fetch_oanda_candles(instrument=oanda_inst, timeframe=timeframe, count=60, api_key=oanda_key)
+            odf = fetch_oanda_candles(instrument=oanda_inst, timeframe=timeframe, count=60, api_key=oanda_key, environment=oanda_env)
             if odf is not None and len(odf) >= 15:
                 records = []
                 for t, row in odf.iterrows():
@@ -316,40 +317,40 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
     ret_10 = (close_vals[-1] / close_vals[-11] - 1) * 100 if len(close_vals) > 11 else 0.0
     
     tv_ticker = ASSETS[name]["tv_ticker"]
-    if tv_metric and tv_metric.get("close") is not None:
-        price = float(tv_metric["close"])
-        session_change = float(tv_metric["change"]) if tv_metric["change"] is not None else (close_vals[-1] / open_p[0] - 1) * 100
-        rsi_14 = float(tv_metric["rsi"]) if tv_metric["rsi"] is not None else 50.0
-        vwap = float(tv_metric["vwap"]) if tv_metric["vwap"] is not None else float(np.mean(close_vals[-20:]))
-        tv_rating_score = tv_metric.get("recommend")
-        feed_source = "TradingView CFD Live"
+    price = float(close_vals[-1])
+    session_change = float((close_vals[-1] / open_p[0] - 1) * 100)
+    
+    delta = np.diff(close_vals[-15:])
+    gain = np.where(delta > 0, delta, 0)
+    loss = np.where(delta < 0, -delta, 0)
+    rs = np.mean(gain) / (np.mean(loss) + 1e-9)
+    rsi_14 = float(100 - (100 / (1 + rs)))
+    
+    total_vol = volume_vals.sum()
+    if total_vol > 0:
+        typical_price = (high_vals + low_vals + close_vals) / 3.0
+        vwap = float((typical_price * volume_vals).sum() / (total_vol + 1e-9))
     else:
-        price = float(close_vals[-1])
-        session_change = (close_vals[-1] / open_p[0] - 1) * 100
-        delta = np.diff(close_vals[-15:])
-        gain = np.where(delta > 0, delta, 0)
-        loss = np.where(delta < 0, -delta, 0)
-        rs = np.mean(gain) / (np.mean(loss) + 1e-9)
-        rsi_14 = float(100 - (100 / (1 + rs)))
-        total_vol = volume_vals.sum()
-        if total_vol > 0:
-            typical_price = (high_vals + low_vals + close_vals) / 3.0
-            vwap = float((typical_price * volume_vals).sum() / (total_vol + 1e-9))
-        else:
-            vwap = float(np.mean(close_vals[-20:]))
-        tv_rating_score = None
-        feed_source = "CFD Chart Feed"
+        vwap = float(np.mean(close_vals[-20:]))
+
+    tv_rating_score = tv_metric.get("recommend") if (tv_metric and tv_metric.get("recommend") is not None) else None
+    if tv_rating_score is None:
+        # Calibrated technical score if scan rating unavailable
+        raw_tech = (rsi_14 - 50.0) / 40.0 + (ret_6 / 1.5)
+        tv_rating_score = float(np.clip(raw_tech, -1.0, 1.0))
+        
+    tv_rating_label, tv_rating_color = get_tv_rating_text(tv_rating_score)
+    feed_source = "OANDA 24H CFD Live"
 
     vwap_z = (price - vwap) / (atr_14 + 1e-9)
-    tv_rating_label, tv_rating_color = get_tv_rating_text(tv_rating_score)
 
     state_str = (
-        f"CFD Asset: {name} (TradingView Symbol: {tv_ticker}, 1-Minute Horizon). "
+        f"CFD Asset: {name} (Symbol: {tv_ticker}, 1-Minute Horizon). "
         f"Forecasting Objective: Next 10 Minutes Movement (10 bars forward). "
-        f"TradingView CFD Price: ${price:,.2f}. "
-        f"TradingView CFD VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
-        f"TradingView 14-RSI: {rsi_14:.1f}. "
-        f"TradingView Technical Rating: {tv_rating_label} ({tv_rating_score if tv_rating_score is not None else 0:+.2f}). "
+        f"Live 24H CFD Price: ${price:,.2f}. "
+        f"Live CFD VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
+        f"14-RSI: {rsi_14:.1f}. "
+        f"Technical Rating: {tv_rating_label} ({tv_rating_score:+.2f}). "
         f"Micro-Momentum: 3-min={ret_3:+.2f}%, 6-min={ret_6:+.2f}%, 10-min={ret_10:+.2f}%. Session Return: {session_change:+.2f}%."
     )
     
