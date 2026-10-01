@@ -614,19 +614,18 @@
       <table>
         <thead>
           <tr>
-            <th>CFD Instrument</th>
-            <th>TV Symbol</th>
-            <th>Live CFD Price</th>
-            <th>CFD Return</th>
-            <th>TV Tech Rating</th>
-            <th>10m Jev Signal</th>
-            <th>10m P(Higher)</th>
-            <th>CFD VWAP Distance</th>
-            <th>CFD 14-RSI</th>
+            <th>Instrument</th>
+            <th>Signal</th>
+            <th>Continuation Prob</th>
+            <th>Jev Confidence</th>
+            <th>3-Bar Momentum</th>
+            <th>6-Bar Momentum</th>
+            <th>VWAP Distance</th>
+            <th>14-RSI</th>
           </tr>
         </thead>
         <tbody id="matrix-tbody">
-          <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Fetching TradingView CFD feeds...</td></tr>
+          <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Fetching live feeds...</td></tr>
         </tbody>
       </table>
     </div>
@@ -828,14 +827,13 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><strong>${sig.flag} ${name}</strong></td>
-          <td><a href="https://www.tradingview.com/chart/?symbol=${sig.tv_ticker}" target="_blank" style="color:#60a5fa; text-decoration:none; font-family:'JetBrains Mono'; font-weight:600;">${sig.tv_ticker}</a></td>
-          <td class="mono font-weight-bold">$${priceFormatted}</td>
-          <td class="mono" style="color: ${isUp ? '#00ff88' : '#ff4d6d'}; font-weight:600;">${isUp ? '+' : ''}${sig.session_change.toFixed(2)}%</td>
-          <td><span style="color: ${tvRatingColor}; font-weight:700; font-family:'JetBrains Mono'; font-size:11px;">${tvRatingText}</span></td>
           <td><span style="color: ${sig.color}; font-weight: 700;">${sig.action}</span></td>
           <td class="mono" style="color: ${probColor}; font-weight:700;">${probPct}%</td>
+          <td class="mono">${(sig.confidence * 100).toFixed(0)}%</td>
+          <td class="mono" style="color: ${sig.ret_3 >= 0 ? '#00ff88' : '#ff4d6d'}; font-weight:600;">${sig.ret_3 >= 0 ? '+' : ''}${sig.ret_3.toFixed(2)}%</td>
+          <td class="mono" style="color: ${sig.ret_6 >= 0 ? '#00ff88' : '#ff4d6d'}; font-weight:600;">${sig.ret_6 >= 0 ? '+' : ''}${sig.ret_6.toFixed(2)}%</td>
           <td class="mono">${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)} ATR</td>
-          <td class="mono">${sig.rsi}</td>
+          <td class="mono">${Number(sig.rsi).toFixed(1)}</td>
         `;
         matrixTbody.appendChild(tr);
       }

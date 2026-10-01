@@ -233,7 +233,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
     atr_14 = float(np.mean(tr[-14:])) if len(tr) >= 14 else float(np.std(close_vals))
     
     ret_3 = (close_vals[-1] / close_vals[-4] - 1) * 100 if len(close_vals) > 4 else 0.0
-    ret_5 = (close_vals[-1] / close_vals[-6] - 1) * 100 if len(close_vals) > 6 else 0.0
+    ret_6 = (close_vals[-1] / close_vals[-7] - 1) * 100 if len(close_vals) > 7 else 0.0
     ret_10 = (close_vals[-1] / close_vals[-11] - 1) * 100 if len(close_vals) > 11 else 0.0
     
     tv_ticker = ASSETS[name]["tv_ticker"]
@@ -271,7 +271,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
         f"TradingView CFD VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
         f"TradingView 14-RSI: {rsi_14:.1f}. "
         f"TradingView Technical Rating: {tv_rating_label} ({tv_rating_score if tv_rating_score is not None else 0:+.2f}). "
-        f"Micro-Momentum: 3-min={ret_3:+.2f}%, 5-min={ret_5:+.2f}%, 10-min={ret_10:+.2f}%. Session Return: {session_change:+.2f}%."
+        f"Micro-Momentum: 3-min={ret_3:+.2f}%, 6-min={ret_6:+.2f}%, 10-min={ret_10:+.2f}%. Session Return: {session_change:+.2f}%."
     )
     
     try:
@@ -281,7 +281,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
         confidence = float(jev_res["confidence"])
         is_live_jev = True
     except Exception:
-        raw_score = 0.30 * ret_3 + 0.35 * ret_5 + 0.35 * ret_10 + 0.25 * (vwap_z * 0.4)
+        raw_score = 0.30 * ret_3 + 0.35 * ret_6 + 0.35 * ret_10 + 0.25 * (vwap_z * 0.4)
         if tv_rating_score is not None:
             raw_score += 0.20 * tv_rating_score
         prob_up = float(1.0 / (1.0 + np.exp(- (0.19 + 0.35 * raw_score))))
@@ -400,6 +400,7 @@ def serve_home():
     return HTMLResponse("<h1>Global Multi-CFD Momentum Radar is Running</h1>")
 
 @app.get("/api/radar")
+@app.get("/api/signals")
 @app.get("/radar")
 def get_radar(timeframe: str = "1m"):
     if timeframe not in ["1m", "5m", "1h", "1d"]:

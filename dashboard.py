@@ -366,7 +366,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA")
     vwap_z = (close[-1] - vwap) / (atr_14 + 1e-9)
     
     ret_3 = ((close[-1] / close[-4]) - 1) * 100 if len(close) > 4 else 0.0
-    ret_5 = ((close[-1] / close[-6]) - 1) * 100 if len(close) > 6 else 0.0
+    ret_6 = ((close[-1] / close[-7]) - 1) * 100 if len(close) > 7 else 0.0
     ret_10 = ((close[-1] / close[-11]) - 1) * 100 if len(close) > 11 else 0.0
     session_change = ((close[-1] / open_p[0]) - 1) * 100
     
@@ -385,7 +385,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA")
         f"Current Price: ${close[-1]:.2f}\n"
         f"Session Return: {session_change:+.2f}%\n"
         f"Session VWAP: ${vwap:.2f} (Deviation: {vwap_z:+.2f} ATR)\n"
-        f"1-Minute Micro-Momentum: 3-min={ret_3:+.2f}%, 5-min={ret_5:+.2f}%, 10-min={ret_10:+.2f}%\n"
+        f"1-Minute Micro-Momentum: 3-min={ret_3:+.2f}%, 6-min={ret_6:+.2f}%, 10-min={ret_10:+.2f}%\n"
         f"14-Period RSI: {rsi_14:.1f}\n"
         f"1-Minute ATR: ${atr_14:.2f}\n"
         f"10-Minute Momentum Trajectory: {'Bullish Expansion' if ret_10 > 0.1 else ('Bearish Contraction' if ret_10 < -0.1 else 'Rangebound/Flat')}"
@@ -399,7 +399,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA")
         confidence = jev_res["confidence"]
         is_live_jev = True
     except Exception:
-        raw_score = 0.30 * ret_3 + 0.35 * ret_5 + 0.35 * ret_10 + 0.25 * (vwap_z * 0.4)
+        raw_score = 0.30 * ret_3 + 0.35 * ret_6 + 0.35 * ret_10 + 0.25 * (vwap_z * 0.4)
         prob_up = float(1.0 / (1.0 + np.exp(- (0.19 + 0.35 * raw_score))))
         jev_choice = "BUY_LONG" if (prob_up > 0.54 and vwap_z > 0.15) else ("SELL_SHORT" if (prob_up < 0.46 and vwap_z < -0.15) else "HOLD_CASH")
         confidence = 0.70
@@ -431,7 +431,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA")
         "vwap_z": vwap_z,
         "rsi": rsi_14,
         "ret_3": ret_3,
-        "ret_5": ret_5,
+        "ret_6": ret_6,
         "ret_10": ret_10,
         "state_str": state_str,
         "feed_source": feed_source,
@@ -443,8 +443,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA")
 # ---------------------------------------------------------
 header_col1, header_col2 = st.columns([3, 1])
 with header_col1:
-    st.title("🌐 Global Multi-CFD Momentum Radar")
-    st.caption("Real-Time OANDA Institutional CFD & Yahoo Feed • Powered by TypeSafe Jev System One")
+    st.title("🌐 Global Multi-Index Momentum Radar")
+    st.caption("Nikkei 225 • S&P 500 • Nasdaq 100 • Russell 2000 • 10Y Treasury • WTI & Brent Crude — Powered by TypeSafe Jev System One")
 with header_col2:
     st.write("")
     st.markdown('<div style="text-align: right;"><span class="status-badge">🟢 JEV MODEL: ONLINE (jev-1.14.0)</span></div>', unsafe_allow_html=True)
@@ -493,32 +493,57 @@ for name, meta in ASSETS.items():
         st.warning(f"Error analyzing {name}: {e}")
 
 # ---------------------------------------------------------
-# 1. Multi-CFD Cards Grid (10-Minute Forward Forecast)
+# 1. Multi-Index Cards Grid
 # ---------------------------------------------------------
-st.subheader("⚡ Live 10-Minute Movement Forecast (TypeSafe Jev System One)")
-st.caption("Forecasting asset price movement and trajectory for the next 10 minutes (10 bars forward on 1-minute OANDA feed)")
-cols = st.columns(len(ASSETS))
+st.subheader("⚡ Live Decision Overview (TypeSafe Jev)")
 
-for i, (name, meta) in enumerate(ASSETS.items()):
+asset_keys = list(ASSETS.keys())
+row1_keys = asset_keys[:4]
+row2_keys = asset_keys[4:]
+
+# Row 1
+cols1 = st.columns(4)
+for i, name in enumerate(row1_keys):
+    meta = ASSETS[name]
     sig = results.get(name)
-    with cols[i]:
+    with cols1[i]:
         if sig:
             engine_tag = "Jev Decision" if sig["is_live_jev"] else "Quant Fallback"
-            feed_badge = '<span class="feed-badge-live">⚡ OANDA LIVE 1M</span>' if "OANDA" in sig["feed_source"] else '<span class="feed-badge-delayed">⏳ 15m DELAY</span>'
-            display_ticker = meta["oanda"] if "OANDA" in sig["feed_source"] else meta["symbol"]
             st.markdown(f"""
             <div class="index-card {sig['badge_class']}">
-                <div style="font-size: 13px; opacity: 0.85;">{meta['flag']} {name}</div>
-                <div style="font-size: 10px; opacity: 0.65;">{display_ticker} • {sig['timestamp']}</div>
+                <div style="font-size: 13px; opacity: 0.8;">{meta['flag']} {name} ({meta['symbol']})</div>
                 <div style="font-size: 22px; font-weight: 700; margin: 4px 0;">${sig['price']:,.2f}</div>
                 <div style="font-size: 12px; margin-bottom: 6px; color: {'#00ff88' if sig['session_change'] >= 0 else '#ff4d6d'};">
-                    {sig['session_change']:+.2f}%
+                    {sig['session_change']:+.2f}% (Session)
                 </div>
                 <div class="metric-badge" style="color: {sig['color']};">{sig['action']}</div>
-                <div style="font-size: 13px; font-weight: 600;">10m P(Higher): {sig['prob_up']*100:.1f}%</div>
-                <div style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Conf: {sig['confidence']*100:.0f}% | VWAP: {sig['vwap_z']:+.1f}σ</div>
-                <div style="font-size: 11px; color: #93c5fd; margin-top: 3px;">10m Return: {sig['ret_10']:+.2f}%</div>
-                <div>{feed_badge}</div>
+                <div style="font-size: 13px; font-weight: 600;">Continuation Prob: {sig['prob_up']*100:.1f}%</div>
+                <div style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Confidence: {sig['confidence']*100:.0f}% | VWAP: {sig['vwap_z']:+.1f}σ</div>
+                <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">⚡ {engine_tag}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info(f"Loading {name}...")
+
+# Row 2
+cols2 = st.columns(len(row2_keys))
+for i, name in enumerate(row2_keys):
+    meta = ASSETS[name]
+    sig = results.get(name)
+    with cols2[i]:
+        if sig:
+            engine_tag = "Jev Decision" if sig["is_live_jev"] else "Quant Fallback"
+            st.markdown(f"""
+            <div class="index-card {sig['badge_class']}">
+                <div style="font-size: 13px; opacity: 0.8;">{meta['flag']} {name} ({meta['symbol']})</div>
+                <div style="font-size: 22px; font-weight: 700; margin: 4px 0;">${sig['price']:,.2f}</div>
+                <div style="font-size: 12px; margin-bottom: 6px; color: {'#00ff88' if sig['session_change'] >= 0 else '#ff4d6d'};">
+                    {sig['session_change']:+.2f}% (Session)
+                </div>
+                <div class="metric-badge" style="color: {sig['color']};">{sig['action']}</div>
+                <div style="font-size: 13px; font-weight: 600;">Continuation Prob: {sig['prob_up']*100:.1f}%</div>
+                <div style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Confidence: {sig['confidence']*100:.0f}% | VWAP: {sig['vwap_z']:+.1f}σ</div>
+                <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">⚡ {engine_tag}</div>
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -529,21 +554,18 @@ st.divider()
 # ---------------------------------------------------------
 # 2. Cross-Market Relative Strength Matrix
 # ---------------------------------------------------------
-st.subheader("📊 Cross-Market 10-Minute Momentum Matrix (CFD)")
+st.subheader("📊 Cross-Market Relative Strength Matrix")
 matrix_data = []
 for name, sig in results.items():
     matrix_data.append({
-        "CFD Instrument": f"{ASSETS[name]['flag']} {name}",
-        "Data Feed": "🟢 OANDA Real-Time (1m)" if "OANDA" in sig["feed_source"] else "⏳ Yahoo (15m Delay)",
-        "10m Horizon Signal": sig["action"],
-        "10m P(Higher)": f"{sig['prob_up']*100:.1f}%",
+        "Instrument": f"{ASSETS[name]['flag']} {name}",
+        "Signal": sig["action"],
+        "Continuation Prob": f"{sig['prob_up']*100:.1f}%",
         "Jev Confidence": f"{sig['confidence']*100:.0f}%",
-        "3m Micro-Mom": f"{sig['ret_3']:+.2f}%",
-        "5m Micro-Mom": f"{sig['ret_5']:+.2f}%",
-        "10m Return": f"{sig['ret_10']:+.2f}%",
-        "VWAP Deviation": f"{sig['vwap_z']:+.2f} ATR",
-        "14-RSI": f"{sig['rsi']:.1f}",
-        "Latest Bar": sig["timestamp"]
+        "3-Bar Momentum": f"{sig['ret_3']:+.2f}%",
+        "6-Bar Momentum": f"{sig['ret_6']:+.2f}%",
+        "VWAP Distance": f"{sig['vwap_z']:+.2f} ATR",
+        "14-RSI": f"{sig['rsi']:.1f}"
     })
 
 matrix_df = pd.DataFrame(matrix_data)
