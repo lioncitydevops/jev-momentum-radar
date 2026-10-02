@@ -1,7 +1,14 @@
 import os
 import json
 import time
+import sys
 from pathlib import Path
+
+# Ensure root directory is in sys.path for Vercel serverless functions
+root_dir = str(Path(__file__).parent.parent.resolve())
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
