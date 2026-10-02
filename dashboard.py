@@ -341,10 +341,21 @@ def call_jev_api(state_str: str) -> dict:
         "raw_response": data
     }
 
+from multi_horizon_momentum import generate_multi_horizon_signals
+from macro_conditioned_momentum import generate_macro_full_signals, generate_rate_only_signals
+
+def format_horizon_badge(action_str: str):
+    if "LONG" in action_str or "BUY" in action_str:
+        return action_str.replace("_", " "), "card-buy", "#00ff88"
+    elif "SHORT" in action_str or "SELL" in action_str:
+        return action_str.replace("_", " "), "card-sell", "#ff4d6d"
+    else:
+        return "NEUTRAL", "card-neutral", "#ffd166"
+
 # ---------------------------------------------------------
 # Feature & Signal Computation
 # ---------------------------------------------------------
-def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA"):
+def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA", model_variant="standalone", macro_dfs=None):
     close = df["Close"].values
     high = df["High"].values
     low = df["Low"].values
@@ -378,38 +389,40 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA")
     rsi_14 = 100 - (100 / (1 + (avg_gain / (avg_loss + 1e-9))))
     
     feed_label = "OANDA CFD Live Feed" if "OANDA" in feed_source else "Yahoo Finance"
-    state_str = (
-        f"Asset: {name} (Timeframe: 1-Minute Bars, {feed_label})\n"
-        f"Forecasting Horizon: Next 10 Minutes (10 bars forward)\n"
-        f"Latest 1m Bar Timestamp (UTC): {df.index[-1].strftime('%Y-%m-%d %H:%M:%S')}\n"
-        f"Current Price: ${close[-1]:.2f}\n"
-        f"Session Return: {session_change:+.2f}%\n"
-        f"Session VWAP: ${vwap:.2f} (Deviation: {vwap_z:+.2f} ATR)\n"
-        f"1-Minute Micro-Momentum: 3-min={ret_3:+.2f}%, 6-min={ret_6:+.2f}%, 10-min={ret_10:+.2f}%\n"
-        f"14-Period RSI: {rsi_14:.1f}\n"
-        f"1-Minute ATR: ${atr_14:.2f}\n"
-        f"10-Minute Momentum Trajectory: {'Bullish Expansion' if ret_10 > 0.1 else ('Bearish Contraction' if ret_10 < -0.1 else 'Rangebound/Flat')}"
-    )
-    
-    # Execute Live Jev call
-    try:
-        jev_res = call_jev_api(state_str)
-        jev_choice = jev_res["choice"]
-        prob_up = jev_res["prob_up"]
-        confidence = jev_res["confidence"]
-        is_live_jev = True
-    except Exception:
-        raw_score = 0.30 * ret_3 + 0.35 * ret_6 + 0.35 * ret_10 + 0.25 * (vwap_z * 0.4)
-        prob_up = float(1.0 / (1.0 + np.exp(- (0.19 + 0.35 * raw_score))))
-        jev_choice = "BUY_LONG" if (prob_up > 0.54 and vwap_z > 0.15) else ("SELL_SHORT" if (prob_up < 0.46 and vwap_z < -0.15) else "HOLD_CASH")
-        confidence = 0.70
-        is_live_jev = False
 
-    if "BUY" in jev_choice:
+    # Multi-Horizon Trend Signals based on selected Model Variant (standalone vs rate_only vs macro_full)
+    is_equity = name in ["S&P 500 (SPX)", "Nasdaq 100 (NDX)", "Russell 2000 (RUT)", "Nikkei 225 (NI225)"]
+    has_macro = macro_dfs and "10Y Treasury (TNX)" in macro_dfs and macro_dfs["10Y Treasury (TNX)"] is not None
+
+    if is_equity and model_variant == "rate_only" and has_macro:
+        mh_data = generate_rate_only_signals(df, macro_dfs["10Y Treasury (TNX)"], equity_name=name, all_dfs=macro_dfs)
+        mh_sigs = mh_data["signals"]
+    elif is_equity and model_variant == "macro_full" and has_macro and "Brent Crude (BRENT)" in macro_dfs and "WTI Crude (WTI)" in macro_dfs:
+        mh_data = generate_macro_full_signals(df, macro_dfs["10Y Treasury (TNX)"], macro_dfs["Brent Crude (BRENT)"], macro_dfs["WTI Crude (WTI)"], equity_name=name, all_dfs=macro_dfs)
+        mh_sigs = mh_data["signals"]
+    else:
+        mh_data = generate_multi_horizon_signals(df, asset_name=name)
+        mh_sigs = mh_data["signals"]
+
+    sig_5m = mh_sigs["forward_5m"]
+    sig_10m = mh_sigs["forward_10m"]
+    sig_15m = mh_sigs["forward_15m"]
+
+    act_5m, badge_5m, color_5m = format_horizon_badge(sig_5m["action"])
+    act_10m, badge_10m, color_10m = format_horizon_badge(sig_10m["action"])
+    act_15m, badge_15m, color_15m = format_horizon_badge(sig_15m["action"])
+
+    jev_choice = sig_10m["action"]
+    prob_up = sig_10m["prob_up"]
+    confidence = sig_10m["confidence"]
+    is_live_jev = mh_sigs.get("is_live_jev", False)
+    state_str = mh_data.get("state_prompt", f"Asset: {name}")
+
+    if "LONG" in jev_choice or "BUY" in jev_choice:
         action = "BUY / LONG"
         badge_class = "card-buy"
         color = "#00ff88"
-    elif "SELL" in jev_choice:
+    elif "SHORT" in jev_choice or "SELL" in jev_choice:
         action = "SELL / SHORT"
         badge_class = "card-sell"
         color = "#ff4d6d"
@@ -435,7 +448,39 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA")
         "ret_10": ret_10,
         "state_str": state_str,
         "feed_source": feed_source,
-        "timestamp": df.index[-1].strftime("%H:%M:%S UTC")
+        "timestamp": df.index[-1].strftime("%H:%M:%S UTC") if isinstance(df.index, pd.DatetimeIndex) else "NOW",
+        "multi_horizon": {
+            "model_type": mh_sigs.get("model_type", "STANDALONE"),
+            "alignment": mh_sigs.get("alignment", "NEUTRAL"),
+            "average_prob_up": mh_sigs.get("average_prob_up", round(prob_up, 4)),
+            "forward_5m": {
+                "horizon": "5min forward (5 bars)",
+                "action": act_5m,
+                "raw_action": sig_5m["action"],
+                "prob_up": round(sig_5m["prob_up"], 4),
+                "confidence": sig_5m["confidence"],
+                "badge_class": badge_5m,
+                "color": color_5m
+            },
+            "forward_10m": {
+                "horizon": "10min forward (10 bars)",
+                "action": act_10m,
+                "raw_action": sig_10m["action"],
+                "prob_up": round(sig_10m["prob_up"], 4),
+                "confidence": sig_10m["confidence"],
+                "badge_class": badge_10m,
+                "color": color_10m
+            },
+            "forward_15m": {
+                "horizon": "15min forward (15 bars)",
+                "action": act_15m,
+                "raw_action": sig_15m["action"],
+                "prob_up": round(sig_15m["prob_up"], 4),
+                "confidence": sig_15m["confidence"],
+                "badge_class": badge_15m,
+                "color": color_15m
+            }
+        }
     }
 
 # ---------------------------------------------------------
@@ -454,7 +499,7 @@ effective_key = oanda_key_input.strip() or os.getenv("OANDA_API_KEY", "")
 if is_oanda_selected and not effective_key:
     st.warning("⚠️ **OANDA API Token Not Entered**: You selected OANDA Zero-Lag Feed, but no API key is provided yet. The radar is temporarily falling back to Yahoo Finance (which has a 15-minute delay). **Enter your OANDA API Key in the left sidebar** to unlock instant zero-delay 24/5 streaming.")
 
-ctrl_col1, ctrl_col2, ctrl_col3 = st.columns([2, 1, 1])
+ctrl_col1, ctrl_col2, ctrl_col3, ctrl_col4 = st.columns([2, 2, 1, 1])
 
 with ctrl_col1:
     timeframe = st.selectbox(
@@ -472,25 +517,51 @@ with ctrl_col1:
         tf_code = "1d"
 
 with ctrl_col2:
+    model_choice = st.selectbox(
+        "Cross-Asset Model Engine",
+        [
+            "Model A: Full Macro (10Y Yield + Brent + WTI)",
+            "Model B: Rate-Only (10Y Yield ONLY, excl Oil)",
+            "Standalone Microstructure (Single-Asset Only)"
+        ],
+        index=0
+    )
+    if "Model A" in model_choice:
+        model_var = "macro_full"
+    elif "Model B" in model_choice:
+        model_var = "rate_only"
+    else:
+        model_var = "standalone"
+
+with ctrl_col3:
     st.write("")
     st.write("")
     st.button("🔄 Refresh Radar Now", use_container_width=True)
 
-with ctrl_col3:
+with ctrl_col4:
     auto_refresh = st.checkbox("Auto-refresh (every 10s)", value=False)
 
-# Fetch and analyze all assets
-results = {}
+# Fetch raw data for all assets first to enable cross-asset conditioning
 raw_dfs = {}
+feed_sources = {}
 for name, meta in ASSETS.items():
     try:
         df, feed_src = fetch_asset_data_unified(name, meta, tf_code)
-        sig = analyze_asset(df, name=name, timeframe=tf_code, feed_source=feed_src)
+        if df is not None and len(df) >= 15:
+            raw_dfs[name] = df
+            feed_sources[name] = feed_src
+    except Exception as e:
+        st.warning(f"Error fetching {name}: {e}")
+
+# Compute signals with selected model_var (Model A vs Model B vs Standalone)
+results = {}
+for name, meta in ASSETS.items():
+    if name in raw_dfs:
+        df = raw_dfs[name]
+        feed_src = feed_sources.get(name, "OANDA")
+        sig = analyze_asset(df, name=name, timeframe=tf_code, feed_source=feed_src, model_variant=model_var, macro_dfs=raw_dfs)
         if sig:
             results[name] = sig
-            raw_dfs[name] = df
-    except Exception as e:
-        st.warning(f"Error analyzing {name}: {e}")
 
 # ---------------------------------------------------------
 # 1. Multi-Index Cards Grid
@@ -570,6 +641,27 @@ for name, sig in results.items():
 
 matrix_df = pd.DataFrame(matrix_data)
 st.dataframe(matrix_df, use_container_width=True, hide_index=True)
+
+# Multi-Horizon Forward Signal Matrix (5m, 10m, 15m Forward from 1m input)
+st.subheader("⏱️ Multi-Horizon Forward Trend Signals (1m Input Interval)")
+st.caption("Predictive directional trend classification and continuation probabilities for 5-min (5 bars), 10-min (10 bars), and 15-min (15 bars) forward horizons.")
+
+mh_matrix_data = []
+for name, sig in results.items():
+    mh = sig.get("multi_horizon", {})
+    s5 = mh.get("forward_5m", {})
+    s10 = mh.get("forward_10m", {})
+    s15 = mh.get("forward_15m", {})
+    mh_matrix_data.append({
+        "Instrument": f"{ASSETS[name]['flag']} {name}",
+        "5m Forward Signal": f"{s5.get('action', 'NEUTRAL')} ({s5.get('prob_up', 0.5)*100:.1f}%)",
+        "10m Forward Signal": f"{s10.get('action', 'NEUTRAL')} ({s10.get('prob_up', 0.5)*100:.1f}%)",
+        "15m Forward Signal": f"{s15.get('action', 'NEUTRAL')} ({s15.get('prob_up', 0.5)*100:.1f}%)",
+        "Multi-Horizon Alignment": mh.get("alignment", "NEUTRAL"),
+        "Mean Prob P(Up)": f"{mh.get('average_prob_up', 0.5)*100:.1f}%"
+    })
+mh_matrix_df = pd.DataFrame(mh_matrix_data)
+st.dataframe(mh_matrix_df, use_container_width=True, hide_index=True)
 
 # Cross-Market Intelligence (10-Minute Horizon)
 if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 2000 (RUT)" in results and "Nikkei 225 (NI225)" in results:

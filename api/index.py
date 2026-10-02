@@ -291,7 +291,25 @@ def call_jev_api(state_str: str) -> dict:
         "raw_response": data
     }
 
-def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
+from multi_horizon_momentum import generate_multi_horizon_signals
+from macro_conditioned_momentum import generate_macro_full_signals, generate_rate_only_signals
+
+def format_horizon_badge(action_str: str):
+    if "LONG" in action_str or "BUY" in action_str:
+        return action_str.replace("_", " "), "card-buy", "#00ff88"
+    elif "SHORT" in action_str or "SELL" in action_str:
+        return action_str.replace("_", " "), "card-sell", "#ff4d6d"
+    else:
+        return "NEUTRAL", "card-neutral", "#ffd166"
+
+def fetch_asset_df(name: str, meta: dict, timeframe: str, tv_metric: dict):
+    try:
+        return fetch_cfd_candles(meta["symbol"], timeframe, oanda_inst=meta.get("oanda"), tv_metric=tv_metric)
+    except Exception as e:
+        print(f"Error fetching asset {name}: {e}")
+        return None
+
+def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, model_variant="standalone", macro_dfs=None):
     if df is None or len(df) < 15:
         if tv_metric and tv_metric.get("close"):
             df = generate_synthetic_candles(
@@ -335,45 +353,46 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
 
     tv_rating_score = tv_metric.get("recommend") if (tv_metric and tv_metric.get("recommend") is not None) else None
     if tv_rating_score is None:
-        # Calibrated technical score if scan rating unavailable
         raw_tech = (rsi_14 - 50.0) / 40.0 + (ret_6 / 1.5)
         tv_rating_score = float(np.clip(raw_tech, -1.0, 1.0))
         
     tv_rating_label, tv_rating_color = get_tv_rating_text(tv_rating_score)
     feed_source = "OANDA 24H CFD Live"
-
     vwap_z = (price - vwap) / (atr_14 + 1e-9)
 
-    state_str = (
-        f"CFD Asset: {name} (Symbol: {tv_ticker}, 1-Minute Horizon). "
-        f"Forecasting Objective: Next 10 Minutes Movement (10 bars forward). "
-        f"Live 24H CFD Price: ${price:,.2f}. "
-        f"Live CFD VWAP: ${vwap:,.2f} (Distance: {vwap_z:+.2f} ATRs). "
-        f"14-RSI: {rsi_14:.1f}. "
-        f"Technical Rating: {tv_rating_label} ({tv_rating_score:+.2f}). "
-        f"Micro-Momentum: 3-min={ret_3:+.2f}%, 6-min={ret_6:+.2f}%, 10-min={ret_10:+.2f}%. Session Return: {session_change:+.2f}%."
-    )
-    
-    try:
-        jev_res = call_jev_api(state_str)
-        jev_choice = jev_res["choice"]
-        prob_up = float(jev_res["prob_up"])
-        confidence = float(jev_res["confidence"])
-        is_live_jev = True
-    except Exception:
-        raw_score = 0.30 * ret_3 + 0.35 * ret_6 + 0.35 * ret_10 + 0.25 * (vwap_z * 0.4)
-        if tv_rating_score is not None:
-            raw_score += 0.20 * tv_rating_score
-        prob_up = float(1.0 / (1.0 + np.exp(- (0.19 + 0.35 * raw_score))))
-        jev_choice = "BUY_LONG" if (prob_up > 0.54 and vwap_z > 0.15) else ("SELL_SHORT" if (prob_up < 0.46 and vwap_z < -0.15) else "HOLD_CASH")
-        confidence = 0.70
-        is_live_jev = False
+    # Multi-Horizon Trend Signals based on selected Model Variant (standalone vs rate_only vs macro_full)
+    is_equity = name in ["S&P 500 (SPX)", "Nasdaq 100 (NDX)", "Russell 2000 (RUT)", "Nikkei 225 (NI225)"]
+    has_macro = macro_dfs and "10Y Treasury (TNX)" in macro_dfs and macro_dfs["10Y Treasury (TNX)"] is not None
 
-    if "BUY" in jev_choice:
+    if is_equity and model_variant == "rate_only" and has_macro:
+        mh_data = generate_rate_only_signals(df, macro_dfs["10Y Treasury (TNX)"], equity_name=name, all_dfs=macro_dfs)
+        mh_sigs = mh_data["signals"]
+    elif is_equity and model_variant == "macro_full" and has_macro and "Brent Crude (BRENT)" in macro_dfs and "WTI Crude (WTI)" in macro_dfs:
+        mh_data = generate_macro_full_signals(df, macro_dfs["10Y Treasury (TNX)"], macro_dfs["Brent Crude (BRENT)"], macro_dfs["WTI Crude (WTI)"], equity_name=name, all_dfs=macro_dfs)
+        mh_sigs = mh_data["signals"]
+    else:
+        mh_data = generate_multi_horizon_signals(df, asset_name=name, tv_rating_score=tv_rating_score)
+        mh_sigs = mh_data["signals"]
+
+    sig_5m = mh_sigs["forward_5m"]
+    sig_10m = mh_sigs["forward_10m"]
+    sig_15m = mh_sigs["forward_15m"]
+
+    act_5m, badge_5m, color_5m = format_horizon_badge(sig_5m["action"])
+    act_10m, badge_10m, color_10m = format_horizon_badge(sig_10m["action"])
+    act_15m, badge_15m, color_15m = format_horizon_badge(sig_15m["action"])
+
+    jev_choice = sig_10m["action"]
+    prob_up = sig_10m["prob_up"]
+    confidence = sig_10m["confidence"]
+    is_live_jev = mh_sigs.get("is_live_jev", False)
+    state_str = mh_data.get("state_prompt", f"Asset: {name}")
+
+    if "LONG" in jev_choice or "BUY" in jev_choice:
         action = "BUY / LONG"
         badge_class = "card-buy"
         color = "#00ff88"
-    elif "SELL" in jev_choice:
+    elif "SHORT" in jev_choice or "SELL" in jev_choice:
         action = "SELL / SHORT"
         badge_class = "card-sell"
         color = "#ff4d6d"
@@ -382,7 +401,6 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
         badge_class = "card-neutral"
         color = "#ffd166"
 
-    # Candle series for UI / chart
     last_df = df.iloc[-45:]
     candles = []
     decimals = 3 if "^TNX" in ASSETS[name]["symbol"] else 2
@@ -403,6 +421,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
         "flag": ASSETS[name]["flag"],
         "desc": ASSETS[name]["desc"],
         "feed_source": feed_source,
+        "model_variant": model_variant,
         "action": action,
         "badge_class": badge_class,
         "color": color,
@@ -420,7 +439,39 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None):
         "tv_rating_score": round(tv_rating_score, 2) if tv_rating_score is not None else None,
         "tv_rating_color": tv_rating_color,
         "state_str": state_str,
-        "candles": candles
+        "candles": candles,
+        "multi_horizon": {
+            "model_type": mh_sigs.get("model_type", "STANDALONE"),
+            "alignment": mh_sigs.get("alignment", "NEUTRAL"),
+            "average_prob_up": mh_sigs.get("average_prob_up", round(prob_up, 4)),
+            "forward_5m": {
+                "horizon": "5min forward (5 bars)",
+                "action": act_5m,
+                "raw_action": sig_5m["action"],
+                "prob_up": round(sig_5m["prob_up"], 4),
+                "confidence": sig_5m["confidence"],
+                "badge_class": badge_5m,
+                "color": color_5m
+            },
+            "forward_10m": {
+                "horizon": "10min forward (10 bars)",
+                "action": act_10m,
+                "raw_action": sig_10m["action"],
+                "prob_up": round(sig_10m["prob_up"], 4),
+                "confidence": sig_10m["confidence"],
+                "badge_class": badge_10m,
+                "color": color_10m
+            },
+            "forward_15m": {
+                "horizon": "15min forward (15 bars)",
+                "action": act_15m,
+                "raw_action": sig_15m["action"],
+                "prob_up": round(sig_15m["prob_up"], 4),
+                "confidence": sig_15m["confidence"],
+                "badge_class": badge_15m,
+                "color": color_15m
+            }
+        }
     }
 
 def generate_insights(results):
@@ -431,7 +482,6 @@ def generate_insights(results):
         rut = results["Russell 2000 (RUT)"]
         ni = results["Nikkei 225 (NI225)"]
 
-        # Risk-On / Risk-Off Divergence
         if ndx["action"] == "BUY / LONG" and sp["action"] == "BUY / LONG" and rut["action"] == "BUY / LONG":
             insights.append({"type": "bull", "text": "🟢 Broad-Based Risk-On Rally: SPX, NDX, and RUT are uniformly confirming bullish upside momentum."})
         elif ndx["action"] == "SELL / SHORT" and sp["action"] == "SELL / SHORT":
@@ -439,11 +489,9 @@ def generate_insights(results):
         elif rut["prob_up"] > 0.55 and sp["prob_up"] < 0.48:
             insights.append({"type": "warn", "text": "⚡ Small-Cap vs Large-Cap Rotation: Russell 2000 showing relative strength vs S&P 500."})
 
-        # Global Asia vs US Correlation
         if ni["session_change"] > 1.0 and sp["session_change"] < -0.3:
             insights.append({"type": "neutral", "text": f"🌏 Trans-Pacific Divergence: Nikkei 225 strong ({ni['session_change']:+.2f}%) while US Equities lag ({sp['session_change']:+.2f}%)."})
 
-    # 10Y Treasury Yield Pressure
     if "10Y Treasury (TNX)" in results:
         tnx = results["10Y Treasury (TNX)"]
         if tnx["ret_6"] > 0.15:
@@ -451,7 +499,6 @@ def generate_insights(results):
         elif tnx["ret_6"] < -0.15:
             insights.append({"type": "bull", "text": f"🏛️ Yield Relief: 10Y Treasury yield cooling ({tnx['ret_6']:+.2f}%), providing valuation breathing room for Equities."})
 
-    # Energy Insights with WTI & Brent Crude CFDs
     if "WTI Crude (WTI)" in results and "Brent Crude (BRENT)" in results:
         wti = results["WTI Crude (WTI)"]
         brent = results["Brent Crude (BRENT)"]
@@ -472,47 +519,45 @@ def serve_home():
         return FileResponse(html_path)
     return HTMLResponse("<h1>Global Multi-CFD Momentum Radar is Running</h1>")
 
-def process_single_asset(name: str, meta: dict, timeframe: str, tv_metric: dict):
-    try:
-        df = fetch_cfd_candles(meta["symbol"], timeframe, oanda_inst=meta.get("oanda"), tv_metric=tv_metric)
-        sig = analyze_asset(df, name=name, timeframe=timeframe, tv_metric=tv_metric)
-        return name, sig
-    except Exception as e:
-        print(f"Error processing asset {name}: {e}")
-        return name, None
-
 @app.get("/api/radar")
 @app.get("/api/signals")
 @app.get("/radar")
-def get_radar(timeframe: str = "1m"):
+def get_radar(timeframe: str = "1m", model_variant: str = "standalone"):
     if timeframe not in ["1m", "5m", "1h", "1d"]:
         timeframe = "1m"
+    if model_variant not in ["standalone", "rate_only", "macro_full"]:
+        model_variant = "standalone"
 
     tv_scan_tf = "5m" if timeframe == "1m" else timeframe
     tv_data = fetch_tradingview_scan(tv_scan_tf)
 
-    results_unordered = {}
+    # Fetch raw candle data for all instruments concurrently
+    raw_dfs = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(ASSETS)) as executor:
         futures = {
-            executor.submit(process_single_asset, name, meta, timeframe, tv_data.get(meta["tv_ticker"])): name
+            executor.submit(fetch_asset_df, name, meta, timeframe, tv_data.get(meta["tv_ticker"])): name
             for name, meta in ASSETS.items()
         }
         for future in concurrent.futures.as_completed(futures):
-            name, sig = future.result()
-            if sig:
-                results_unordered[name] = sig
+            name = futures[future]
+            df = future.result()
+            if df is not None and len(df) >= 15:
+                raw_dfs[name] = df
 
-    # Maintain consistent asset order as defined in ASSETS
+    # Analyze assets with selected model_variant (standalone vs rate_only vs macro_full)
     results = {}
-    for name in ASSETS.keys():
-        if name in results_unordered:
-            results[name] = results_unordered[name]
+    for name, meta in ASSETS.items():
+        if name in raw_dfs:
+            sig = analyze_asset(raw_dfs[name], name=name, timeframe=timeframe, tv_metric=tv_data.get(meta["tv_ticker"]), model_variant=model_variant, macro_dfs=raw_dfs)
+            if sig:
+                results[name] = sig
 
     insights = generate_insights(results)
     return {
         "status": "success",
         "feed": "TradingView Official CFD Feeds",
         "timeframe": timeframe,
+        "model_variant": model_variant,
         "results": results,
         "insights": insights
     }

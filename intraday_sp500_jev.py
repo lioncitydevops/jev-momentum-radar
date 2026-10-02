@@ -158,3 +158,8 @@ if __name__ == "__main__":
     print("=" * 65)
     print(result["state_str"])
     print("=" * 65)
+
+    from multi_horizon_momentum import generate_multi_horizon_signals
+    print("\n=== Multi-Horizon Trend Signals (5m, 10m, 15m Forward) ===")
+    mh_res = generate_multi_horizon_signals(df, asset_name="S&P 500 (SPX)")
+    print(json.dumps(mh_res["signals"], indent=2))

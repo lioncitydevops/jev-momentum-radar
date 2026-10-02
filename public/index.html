@@ -521,6 +521,15 @@
         <button class="tf-btn" data-tf="1d" onclick="switchTimeframe('1d')">1d Daily</button>
       </div>
 
+      <div class="model-selector" style="display:flex; align-items:center; gap:8px;">
+        <span class="tf-label" style="font-size:12px; font-weight:600; color:var(--text-muted);">Macro Engine:</span>
+        <select id="model-variant-select" onchange="switchModelVariant(this.value)" style="background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600;">
+          <option value="macro_full">Model A: Full Macro (Yield + Brent + WTI)</option>
+          <option value="rate_only">Model B: Rate-Only (Yield ONLY, excl Oil)</option>
+          <option value="standalone">Standalone Microstructure (Single Asset)</option>
+        </select>
+      </div>
+
       <div class="refresh-actions">
         <label class="auto-toggle">
           <input type="checkbox" id="auto-refresh-toggle" onchange="toggleAutoRefresh(this.checked)">
@@ -533,11 +542,31 @@
     </div>
 
     <!-- Cards Section -->
-    <div class="section-title">⚡ 1-Minute Live CFDs & TypeSafe Jev 10-Minute Movement Forecast</div>
+    <div class="section-title">⚡ 1-Minute Live CFDs & TypeSafe Jev Multi-Horizon Movement Forecast</div>
     <div class="cards-grid" id="cards-container">
       <div class="radar-card" style="text-align: center; color: var(--text-muted); padding: 40px; grid-column: 1 / -1;">
         Connecting to TradingView CFD Scanner & TypeSafe Jev...
       </div>
+    </div>
+
+    <!-- Multi-Horizon Forward Trend Matrix (5m, 10m, 15m) -->
+    <div class="section-title">⏱️ Multi-Horizon Forward Trend Signal Matrix (5m, 10m, 15m Forward)</div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Instrument</th>
+            <th>5-Min Forward Trend</th>
+            <th>10-Min Forward Trend</th>
+            <th>15-Min Forward Trend</th>
+            <th>Horizon Alignment</th>
+            <th>Mean Prob P(Up)</th>
+          </tr>
+        </thead>
+        <tbody id="multi-horizon-tbody">
+          <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Fetching multi-horizon signals...</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Cross-Market Relative Strength Matrix -->
@@ -577,6 +606,7 @@
 
   <script>
     let currentTimeframe = '1m';
+    let currentModelVariant = 'macro_full';
     let latestData = null;
     let autoRefreshInterval = null;
 
@@ -587,7 +617,7 @@
       refreshBtn.disabled = true;
 
       try {
-        const response = await fetch(`/api/radar?timeframe=${currentTimeframe}`);
+        const response = await fetch(`/api/radar?timeframe=${currentTimeframe}&model_variant=${currentModelVariant}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         latestData = data;
@@ -609,15 +639,22 @@
       fetchRadarData();
     }
 
+    function switchModelVariant(variant) {
+      currentModelVariant = variant;
+      fetchRadarData();
+    }
+
     function renderDashboard(data) {
       const results = data.results || {};
       const cardsContainer = document.getElementById('cards-container');
       const matrixTbody = document.getElementById('matrix-tbody');
+      const mhTbody = document.getElementById('multi-horizon-tbody');
       const insightsPanel = document.getElementById('insights-panel');
       const insightsContent = document.getElementById('insights-content');
 
       cardsContainer.innerHTML = '';
       matrixTbody.innerHTML = '';
+      if (mhTbody) mhTbody.innerHTML = '';
 
       for (const [name, sig] of Object.entries(results)) {
         const isUp = sig.session_change >= 0;
@@ -631,6 +668,11 @@
         const decimals = sig.symbol === '^TNX' ? 3 : 2;
         const priceFormatted = sig.price.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
         const vwapFormatted = sig.vwap.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+
+        const mh = sig.multi_horizon || {};
+        const s5 = mh.forward_5m || {};
+        const s10 = mh.forward_10m || {};
+        const s15 = mh.forward_15m || {};
 
         const card = document.createElement('div');
         card.className = `radar-card ${sig.badge_class}`;
@@ -653,7 +695,12 @@
 
           <div class="card-action-badge ${actionClass}">${sig.action}</div>
           
-          <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600;">
+          <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; margin-top: 6px;">
+            <span style="color: var(--text-muted);">5m / 10m / 15m Alignment</span>
+            <span style="color: #60a5fa;">${mh.alignment ? mh.alignment.split(' ')[0] : 'NEUTRAL'}</span>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:600; margin-top: 4px;">
             <span>10m P(Higher)</span>
             <span class="mono" style="color: ${probColor};">${probPct}%</span>
           </div>
@@ -677,7 +724,21 @@
         `;
         cardsContainer.appendChild(card);
 
-        // Render Table Row
+        // Render Multi-Horizon Table Row
+        if (mhTbody) {
+          const mhtr = document.createElement('tr');
+          mhtr.innerHTML = `
+            <td><strong>${sig.flag} ${name}</strong></td>
+            <td><span style="color: ${s5.color || '#ffd166'}; font-weight:700;">${s5.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">(${(s5.prob_up*100).toFixed(1)}%)</span></td>
+            <td><span style="color: ${s10.color || '#ffd166'}; font-weight:700;">${s10.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">(${(s10.prob_up*100).toFixed(1)}%)</span></td>
+            <td><span style="color: ${s15.color || '#ffd166'}; font-weight:700;">${s15.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">(${(s15.prob_up*100).toFixed(1)}%)</span></td>
+            <td><span style="font-weight:600; color: #60a5fa;">${mh.alignment || 'NEUTRAL'}</span></td>
+            <td class="mono" style="font-weight:700;">${(mh.average_prob_up*100).toFixed(1)}%</td>
+          `;
+          mhTbody.appendChild(mhtr);
+        }
+
+        // Render Matrix Table Row
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><strong>${sig.flag} ${name}</strong></td>

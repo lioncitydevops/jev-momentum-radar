@@ -141,6 +141,49 @@ Jev evaluates two formal System One primitives:
    * *Instructions*: "Will price close higher over the next 3 bars?"
    * *Output*: Continuous probability $P(\text{Up}) \in [0.0, 1.0]$.
 
+### 3.3 Multi-Horizon Forward Trend Signal Framework (1-Minute Input Interval)
+
+When operating on high-frequency 1-minute input candles, the decision engine forecasts across three concurrent forward horizons:
+
+1. **5-Minute Forward Signal ($t+5$ bars ahead)**:
+   * Focus: Ultra-short micro-burst continuation vs immediate pullback risk.
+   * Primitive: `choice` (`signal_5m_action`) with criteria `[STRONG_LONG, LEAN_LONG, NEUTRAL, LEAN_SHORT, STRONG_SHORT]`.
+   * Primitive: `noul` (`prob_up_5m`) returning continuous $P(\text{Up}_{5m})$.
+
+2. **10-Minute Forward Signal ($t+10$ bars ahead)**:
+   * Focus: Microstructure session momentum cycle and VWAP deviation confirmation.
+   * Primitive: `choice` (`signal_10m_action`) with criteria `[STRONG_LONG, LEAN_LONG, NEUTRAL, LEAN_SHORT, STRONG_SHORT]`.
+   * Primitive: `noul` (`prob_up_10m`) returning continuous $P(\text{Up}_{10m})$.
+
+3. **15-Minute Forward Signal ($t+15$ bars ahead)**:
+   * Focus: Macro intraday trend continuation, oscillator regime, and institutional flow expansion.
+   * Primitive: `choice` (`signal_15m_action`) with criteria `[STRONG_LONG, LEAN_LONG, NEUTRAL, LEAN_SHORT, STRONG_SHORT]`.
+   * Primitive: `noul` (`prob_up_15m`) returning continuous $P(\text{Up}_{15m})$.
+
+#### Multi-Horizon Alignment & Consensus Metrics:
+* **`STRONG_BULLISH_ALIGNMENT`**: All 3 horizons ($5m, 10m, 15m$) exhibit directional upside probabilities $P(\text{Up}) > 0.53$.
+* **`STRONG_BEARISH_ALIGNMENT`**: All 3 horizons exhibit directional downside probabilities $P(\text{Up}) < 0.47$.
+* **`DIVERGENT_CHOP / NEUTRAL`**: Mixed signals across horizons indicating mean-reverting consolidation or micro-regime transitions.
+
+### 3.4 Macro-Conditioned Model Variants for Equity Indices
+
+To model macro spillover and inter-market feedback loops, the system provides two specialized cross-asset model variants for equity indices (S&P 500, Nasdaq 100, Russell 2000, Nikkei 225):
+
+#### Model A: Full Macro Cross-Asset Model (10Y Yield + Brent Crude + WTI Crude)
+* **Description**: Equity index trend signals are conditioned on real-time micro-momentum and VWAP state of **10Y Treasury Yields (`TNX`)**, **Brent Crude (`BRENT`)**, and **WTI Crude (`WTI`)**.
+* **Conditioning Logic**:
+  * $\uparrow TNX$ (Surging 10Y Yields) $\rightarrow$ Multiple compression drag on high-duration equity indices (`NDX`, `SPX`, `RUT`).
+  * $\uparrow BRENT, \uparrow WTI$ (Surging Crude Oil) $\rightarrow$ Cost inflation & profit margin drag on equities.
+  * Mathematical Prior Formulation:
+    $$\text{Score}_{\text{MacroFull}} = \text{Score}_{\text{Base}} - \alpha_{\text{TNX}} \cdot Z_{\text{mom}, \text{TNX}} - \beta_{\text{Oil}} \cdot \left(\frac{Z_{\text{mom}, \text{BRENT}} + Z_{\text{mom}, \text{WTI}}}{2}\right)$$
+
+#### Model B: Rate-Only Macro Model (10Y Yield ONLY, Excluding Crude Oil)
+* **Description**: Equity index trend signals are conditioned on **10Y Treasury Yields (`TNX`) ONLY**, explicitly ignoring energy commodities (`BRENT` and `WTI`).
+* **Conditioning Logic**:
+  * Evaluates duration risk and discount rate pressure independent of energy shocks.
+  * Mathematical Prior Formulation:
+    $$\text{Score}_{\text{RateOnly}} = \text{Score}_{\text{Base}} - \alpha_{\text{TNX}} \cdot Z_{\text{mom}, \text{TNX}}$$
+
 ---
 
 ## 4. Cross-Market & Macro Yield Spread Engine
