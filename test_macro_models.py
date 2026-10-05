@@ -7,6 +7,11 @@ Author: Quantitative Trader & Mathematician
 
 import os
 import sys
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 import json
 import numpy as np
 import pandas as pd
@@ -25,15 +30,15 @@ def run_tests():
     print("=" * 100)
 
     # Generate test market scenario: Yield (TNX) surging, Crude (Brent/WTI) surging, Equities near VWAP
-    dates = pd.date_range(end=pd.Timestamp.now(), periods=40, freq="1min")
+    dates = pd.date_range(end=pd.Timestamp.now(), periods=75, freq="1min")
     np.random.seed(123)
 
     make_series = lambda base, drift, vol: pd.DataFrame({
-        "Open": base + np.cumsum(np.random.normal(drift, vol, 40)),
-        "High": base + np.cumsum(np.random.normal(drift, vol, 40)) + 0.3,
-        "Low": base + np.cumsum(np.random.normal(drift, vol, 40)) - 0.3,
-        "Close": base + np.cumsum(np.random.normal(drift, vol, 40)),
-        "Volume": np.random.randint(200, 1500, 40)
+        "Open": base + np.cumsum(np.random.normal(drift, vol, 75)),
+        "High": base + np.cumsum(np.random.normal(drift, vol, 75)) + 0.3,
+        "Low": base + np.cumsum(np.random.normal(drift, vol, 75)) - 0.3,
+        "Close": base + np.cumsum(np.random.normal(drift, vol, 75)),
+        "Volume": np.random.randint(200, 1500, 75)
     }, index=dates)
 
     sp_df = make_series(5800.0, 0.05, 0.3)
@@ -53,7 +58,7 @@ def run_tests():
     }
 
     print("\n[SCENARIO] 10Y Yields surging (+1.5% in 5m), Crude Oil surging (+2.0% in 5m).")
-    print("Testing sensitivity of Equity Trend Signals under Model A vs Model B:\n")
+    print("Testing sensitivity of Equity Trend Signals under Model A vs Model B (1m, 10m, 30m, 1h):\n")
 
     all_dfs = {**equities, "10Y Treasury (TNX)": tnx_df, "Brent Crude (BRENT)": brent_df, "WTI Crude (WTI)": wti_df}
 
@@ -71,15 +76,17 @@ def run_tests():
 
         print(f"  Model A (Full Macro: Yield + Brent + WTI):")
         print(f"    - Alignment: {sig_a['alignment']}")
-        print(f"    - 5m: {sig_a['forward_5m']['action']:<12} (P={sig_a['forward_5m']['prob_up']*100:.1f}%)")
+        print(f"    - 1m:  {sig_a['forward_1m']['action']:<12} (P={sig_a['forward_1m']['prob_up']*100:.1f}%)")
         print(f"    - 10m: {sig_a['forward_10m']['action']:<12} (P={sig_a['forward_10m']['prob_up']*100:.1f}%)")
-        print(f"    - 15m: {sig_a['forward_15m']['action']:<12} (P={sig_a['forward_15m']['prob_up']*100:.1f}%)")
+        print(f"    - 30m: {sig_a['forward_30m']['action']:<12} (P={sig_a['forward_30m']['prob_up']*100:.1f}%)")
+        print(f"    - 1h:  {sig_a['forward_1h']['action']:<12} (P={sig_a['forward_1h']['prob_up']*100:.1f}%)")
 
         print(f"  Model B (Rate-Only: Yield ONLY):")
         print(f"    - Alignment: {sig_b['alignment']}")
-        print(f"    - 5m: {sig_b['forward_5m']['action']:<12} (P={sig_b['forward_5m']['prob_up']*100:.1f}%)")
+        print(f"    - 1m:  {sig_b['forward_1m']['action']:<12} (P={sig_b['forward_1m']['prob_up']*100:.1f}%)")
         print(f"    - 10m: {sig_b['forward_10m']['action']:<12} (P={sig_b['forward_10m']['prob_up']*100:.1f}%)")
-        print(f"    - 15m: {sig_b['forward_15m']['action']:<12} (P={sig_b['forward_15m']['prob_up']*100:.1f}%)")
+        print(f"    - 30m: {sig_b['forward_30m']['action']:<12} (P={sig_b['forward_30m']['prob_up']*100:.1f}%)")
+        print(f"    - 1h:  {sig_b['forward_1h']['action']:<12} (P={sig_b['forward_1h']['prob_up']*100:.1f}%)")
 
     print("\n" + "=" * 100)
     print("                     ALL MODEL A & MODEL B TESTS PASSED SUCCESSFULLY!")

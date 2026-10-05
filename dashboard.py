@@ -404,13 +404,15 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         mh_data = generate_multi_horizon_signals(df, asset_name=name)
         mh_sigs = mh_data["signals"]
 
-    sig_5m = mh_sigs["forward_5m"]
+    sig_1m = mh_sigs["forward_1m"]
     sig_10m = mh_sigs["forward_10m"]
-    sig_15m = mh_sigs["forward_15m"]
+    sig_30m = mh_sigs["forward_30m"]
+    sig_1h = mh_sigs["forward_1h"]
 
-    act_5m, badge_5m, color_5m = format_horizon_badge(sig_5m["action"])
+    act_1m, badge_1m, color_1m = format_horizon_badge(sig_1m["action"])
     act_10m, badge_10m, color_10m = format_horizon_badge(sig_10m["action"])
-    act_15m, badge_15m, color_15m = format_horizon_badge(sig_15m["action"])
+    act_30m, badge_30m, color_30m = format_horizon_badge(sig_30m["action"])
+    act_1h, badge_1h, color_1h = format_horizon_badge(sig_1h["action"])
 
     jev_choice = sig_10m["action"]
     prob_up = sig_10m["prob_up"]
@@ -453,14 +455,14 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
             "model_type": mh_sigs.get("model_type", "STANDALONE"),
             "alignment": mh_sigs.get("alignment", "NEUTRAL"),
             "average_prob_up": mh_sigs.get("average_prob_up", round(prob_up, 4)),
-            "forward_5m": {
-                "horizon": "5min forward (5 bars)",
-                "action": act_5m,
-                "raw_action": sig_5m["action"],
-                "prob_up": round(sig_5m["prob_up"], 4),
-                "confidence": sig_5m["confidence"],
-                "badge_class": badge_5m,
-                "color": color_5m
+            "forward_1m": {
+                "horizon": "1min forward (1 bar)",
+                "action": act_1m,
+                "raw_action": sig_1m["action"],
+                "prob_up": round(sig_1m["prob_up"], 4),
+                "confidence": sig_1m["confidence"],
+                "badge_class": badge_1m,
+                "color": color_1m
             },
             "forward_10m": {
                 "horizon": "10min forward (10 bars)",
@@ -471,14 +473,42 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "badge_class": badge_10m,
                 "color": color_10m
             },
+            "forward_30m": {
+                "horizon": "30min forward (30 bars)",
+                "action": act_30m,
+                "raw_action": sig_30m["action"],
+                "prob_up": round(sig_30m["prob_up"], 4),
+                "confidence": sig_30m["confidence"],
+                "badge_class": badge_30m,
+                "color": color_30m
+            },
+            "forward_1h": {
+                "horizon": "1h forward (60 bars)",
+                "action": act_1h,
+                "raw_action": sig_1h["action"],
+                "prob_up": round(sig_1h["prob_up"], 4),
+                "confidence": sig_1h["confidence"],
+                "badge_class": badge_1h,
+                "color": color_1h
+            },
+            # Backward-compatibility aliases
+            "forward_5m": {
+                "horizon": "1min forward (1 bar)",
+                "action": act_1m,
+                "raw_action": sig_1m["action"],
+                "prob_up": round(sig_1m["prob_up"], 4),
+                "confidence": sig_1m["confidence"],
+                "badge_class": badge_1m,
+                "color": color_1m
+            },
             "forward_15m": {
-                "horizon": "15min forward (15 bars)",
-                "action": act_15m,
-                "raw_action": sig_15m["action"],
-                "prob_up": round(sig_15m["prob_up"], 4),
-                "confidence": sig_15m["confidence"],
-                "badge_class": badge_15m,
-                "color": color_15m
+                "horizon": "30min forward (30 bars)",
+                "action": act_30m,
+                "raw_action": sig_30m["action"],
+                "prob_up": round(sig_30m["prob_up"], 4),
+                "confidence": sig_30m["confidence"],
+                "badge_class": badge_30m,
+                "color": color_30m
             }
         }
     }
@@ -642,21 +672,23 @@ for name, sig in results.items():
 matrix_df = pd.DataFrame(matrix_data)
 st.dataframe(matrix_df, use_container_width=True, hide_index=True)
 
-# Multi-Horizon Forward Signal Matrix (5m, 10m, 15m Forward from 1m input)
+# Multi-Horizon Forward Signal Matrix (1m, 10m, 30m, 1h Forward from 1m input)
 st.subheader("⏱️ Multi-Horizon Forward Trend Signals (1m Input Interval)")
-st.caption("Predictive directional trend classification and continuation probabilities for 5-min (5 bars), 10-min (10 bars), and 15-min (15 bars) forward horizons.")
+st.caption("Predictive directional trend classification and continuation probabilities for 1-min (1 bar), 10-min (10 bars), 30-min (30 bars), and 1-hour (60 bars) forward horizons.")
 
 mh_matrix_data = []
 for name, sig in results.items():
     mh = sig.get("multi_horizon", {})
-    s5 = mh.get("forward_5m", {})
+    s1 = mh.get("forward_1m", mh.get("forward_5m", {}))
     s10 = mh.get("forward_10m", {})
-    s15 = mh.get("forward_15m", {})
+    s30 = mh.get("forward_30m", mh.get("forward_15m", {}))
+    s1h = mh.get("forward_1h", {})
     mh_matrix_data.append({
         "Instrument": f"{ASSETS[name]['flag']} {name}",
-        "5m Forward Signal": f"{s5.get('action', 'NEUTRAL')} ({s5.get('prob_up', 0.5)*100:.1f}%)",
+        "1m Forward Signal": f"{s1.get('action', 'NEUTRAL')} ({s1.get('prob_up', 0.5)*100:.1f}%)",
         "10m Forward Signal": f"{s10.get('action', 'NEUTRAL')} ({s10.get('prob_up', 0.5)*100:.1f}%)",
-        "15m Forward Signal": f"{s15.get('action', 'NEUTRAL')} ({s15.get('prob_up', 0.5)*100:.1f}%)",
+        "30m Forward Signal": f"{s30.get('action', 'NEUTRAL')} ({s30.get('prob_up', 0.5)*100:.1f}%)",
+        "1h Forward Signal": f"{s1h.get('action', 'NEUTRAL')} ({s1h.get('prob_up', 0.5)*100:.1f}%)",
         "Multi-Horizon Alignment": mh.get("alignment", "NEUTRAL"),
         "Mean Prob P(Up)": f"{mh.get('average_prob_up', 0.5)*100:.1f}%"
     })

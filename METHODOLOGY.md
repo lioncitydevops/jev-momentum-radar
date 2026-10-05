@@ -209,20 +209,83 @@ $$\text{Bond-Equity Correlation} = \text{Sign}\left(\text{ret}_{6}(\text{TNX}) \
 
 ---
 
-## 5. Walk-Forward Calibration & Fallback Layer
+## 5. nanoHUB Wave Mechanics & Continuous Matrix Exponential Forward Propagator (Supriyo Datta Framework)
+
+To replace heuristic static lookups with continuous physical wave dynamics, the multi-horizon forward estimation engine incorporates the state-space differential wave mechanics developed by **Prof. Supriyo Datta (Purdue University)** in [*nanoHUB-U: Mathematics of Waves - Visualized with Neural Networks*](https://nanohub.org/resources/38532).
+
+### 5.1 Market State-Space Damped Harmonic Oscillator Formulation
+Market microstructure momentum is modeled as a 1st-order damped harmonic wave system driven by restoring forces and liquidity friction:
+
+$$\frac{d\mathbf{y}}{dt} = [A] \mathbf{y}(t) + \mathbf{s}_{\text{macro}}(t)$$
+
+where the state-space vector $\mathbf{y}(t)$ represents:
+
+$$\mathbf{y}(t) = \begin{bmatrix} z_{\text{mom}}(t) \\ a_{\text{mom}}(t) \\ z_{\text{vwap}}(t) \end{bmatrix}$$
+
+* $z_{\text{mom}}(t)$: Volatility-adjusted 1-minute normalized price momentum.
+* $a_{\text{mom}}(t) = \frac{d z_{\text{mom}}}{dt}$: Momentum acceleration (instantaneous velocity dy/dt per 1-minute bar).
+* $z_{\text{vwap}}(t) = \frac{P(t) - \text{VWAP}(t)}{\text{ATR}}$: Restoring force distance from fair value equilibrium.
+
+### 5.2 System Matrix $[A]$ & Complex Eigenvalues ($\lambda_k$)
+The $3 \times 3$ system matrix $[A]$ models natural frequency $\omega_0$, damping parameter $\gamma$, restoring stiffness $\kappa$, and accumulation rate $\beta$:
+
+$$[A] = \begin{bmatrix} 0 & 1 & 0 \\ -\omega_0^2 & -2\gamma & -\kappa \\ \beta & 0 & -\mu \end{bmatrix}$$
+
+* **Natural Frequency ($\omega_0$)**: Angular frequency extracted from the autocorrelation of micro-returns $\rho_1$.
+* **Damping Parameter ($\gamma$)**: Energy dissipation rate / liquidity friction coefficient.
+* **Complex Eigenvalues**: $\lambda_{1,2} = -\gamma \pm i \omega_d$ where damped angular frequency $\omega_d = \sqrt{|\omega_0^2 - \gamma^2|}$.
+* **Quality Factor ($Q$)**: Measures wave energy retention versus dissipation:
+  $$Q = \frac{\omega_0}{2\gamma}$$
+
+### 5.3 Continuous Matrix Exponential Forward Propagator ($e^{[A]\tau}$)
+The input interval remains strictly at **1-minute** ($t_{\text{interval}} = 1\text{m}$). For any target forward estimated horizon $\tau \in \{1\text{m}, 10\text{m}, 30\text{m}, 60\text{m} (1\text{h})\}$, corresponding to forward bar steps $\{1, 10, 30, 60\}$, the continuous state trajectory is computed analytically using matrix exponentials:
+
+$$\mathbf{y}_{\text{pred}}(t+\tau) = e^{[A]\cdot (\tau \cdot \Delta t)} \mathbf{y}(t)$$
+
+Extracting the first component $z_{\text{pred}}(\tau) = [\mathbf{y}_{\text{pred}}(t+\tau)]_1$ yields the continuous wave-propagated momentum z-score:
+* **$z_{\text{pred}}(1\text{m})$**: Immediate 1-minute micro-burst continuation.
+* **$z_{\text{pred}}(10\text{m})$**: Harmonic cycle crest / momentum acceleration phase.
+* **$z_{\text{pred}}(30\text{m})$**: Intermediate restoring force inflection towards equilibrium.
+* **$z_{\text{pred}}(1\text{h})$**: Long-wave 1-hour macro trend dissipation and steady-state decay.
+
+### 5.4 Multi-Horizon Normal Mode Spectral Analysis & Wave Interference
+Decomposing the returns curve across lookbacks ($1\text{m}, 3\text{m}, 5\text{m}, 10\text{m}, 30\text{m}, 60\text{m}$) into orthogonal normal modes yields:
+* **Group Velocity ($v_g$)**: Velocity of wave energy propagation across spectral horizons $v_g = \frac{r_{1m} - r_{30m}}{29}$.
+* **Phase Shift ($\Delta \phi$)**: Angular shift between micro-mode ($1\text{m}$) and macro-mode ($30\text{m}$):
+  $$\Delta \phi = \arccos\left(\frac{\mathbf{v}_{\text{micro}} \cdot \mathbf{v}_{\text{macro}}}{\|\mathbf{v}_{\text{micro}}\| \|\mathbf{v}_{\text{macro}}\|}\right)$$
+* **Interference Classifications**:
+  1. **`CONSTRUCTIVE_WAVE_ACCELERATION`** ($\Delta \phi < 45^\circ, v_g > 0$): Micro-burst and macro trend resonate in phase $\rightarrow$ high-conviction breakout expansion across horizons.
+  2. **`DESTRUCTIVE_WAVE_DISSIPATION`** ($\Delta \phi > 135^\circ$): Micro-burst opposes macro trend $\rightarrow$ wave dissipation, turnover, or exhaustion pullback risk.
+  3. **`HIGHLY_DAMPED_FRICTION`** ($Q < 0.8$): Heavy liquidity friction causing rapid decay of momentum oscillations.
+  4. **`HARMONIC_MEAN_REVERSION`** ($z_{\text{mom}} \cdot z_{\text{vwap}} < -0.5$): Restoring stiffness pulling price back toward VWAP fair value.
+  5. **`STATIONARY_STANDING_WAVE`**: Equilibrium consolidation oscillations.
+
+### 5.5 Incorporation with TypeSafe Jev AI (System One)
+All wave parameters are rigorously grounded into the semantic state representation and questions submitted to TypeSafe Jev AI:
+1. **Dynamic Wave Physics State Injection**: The exact damped harmonic eigenvalues ($\lambda = -\gamma \pm i\omega_d$), quality factor ($Q$), matrix exponential propagated states ($1\text{m}_z, 10\text{m}_z, 30\text{m}_z, 1\text{h}_z$), group velocity ($v_g$), phase shift ($\Delta\phi$), and interference classification are supplied in the prompt's `--- nanoHUB Wave Physics & Continuous Propagator ---` block.
+2. **Horizon-Specific Structured Questions**: Jev AI is queried with dedicated Choice and Noul primitives for each horizon:
+   - `signal_1m_action` & `prob_up_1m`: Fast 1-minute tactical response.
+   - `signal_10m_action` & `prob_up_10m`: Intraday swing cycle.
+   - `signal_30m_action` & `prob_up_30m`: Intermediate trend continuation.
+   - `signal_1h_action` & `prob_up_1h`: Macro 1-hour trend sustainability.
+   - `horizon_term_structure`: Multi-horizon wave resonance assessment (`UNIFORM_ACCELERATION`, `EXHAUSTION_PULLBACK`, `PULLBACK_RECOVERY`, `MEAN_REVERTING_CHOP`).
+
+---
+
+## 6. Walk-Forward Calibration & Fallback Layer
 
 To prevent operational downtime if external LLM gateways experience latency or rate limits, the system features a **purged and embargoed logistic calibration model** based on Marcos López de Prado's *Advances in Financial Machine Learning*:
 
 $$P(\text{Up}) = \frac{1}{1 + e^{-(\beta_0 + \beta_1 \cdot \text{RawScore})}}$$
 
-$$\text{RawScore} = 0.35 \cdot Z_{\text{mom}, 3} + 0.35 \cdot Z_{\text{mom}, 6} + 0.30 \cdot (0.4 \cdot Z_{\text{VWAP}}) + 0.20 \cdot \text{Rating}_{TV}$$
+$$\text{RawScore}(\tau) = w_1 \cdot Z_{\text{mom}}(\tau) + w_2 \cdot (0.4 \cdot Z_{\text{VWAP}}) + w_3 \cdot (0.3 \cdot Z_{\text{pred}}(\tau)) + w_4 \cdot \text{Rating}_{TV}$$
 
 * **Walk-Forward Validation**: 5-year rolling training window with a 3-day embargo window to eliminate lookahead leakage.
-* **Accuracy Thresholds**: Action triggers require directional probability $P(\text{Up}) > 0.54$ with $Z_{\text{VWAP}} > +0.15\sigma$ for Longs, and $P(\text{Up}) < 0.46$ with $Z_{\text{VWAP}} < -0.15\sigma$ for Shorts.
+* **Accuracy Thresholds**: Action triggers require directional probability $P(\text{Up}) > 0.53$ for Longs, and $P(\text{Up}) < 0.47$ for Shorts across the 4 estimated horizons (1m, 10m, 30m, 1h).
 
 ---
 
-## 6. Real-Time Data Pipeline Summary
+## 7. Real-Time Data Pipeline Summary
 
 ```
 TradingView CFD & Global Scanner (https://scanner.tradingview.com/global/scan)
@@ -231,7 +294,7 @@ TradingView CFD & Global Scanner (https://scanner.tradingview.com/global/scan)
   │
 FastAPI Backend (api/index.py on Vercel)
   │
-  ├──> Computes ATR-z, Momentum Spreads, Macro Inter-market Signals
+  ├──> Computes ATR-z, Momentum Spreads, nanoHUB Wave Matrix Exponential e^[A]τ Propagator
   │
 TypeSafe Jev System One (https://api.typesafe.ai/v1/systemone)
   │

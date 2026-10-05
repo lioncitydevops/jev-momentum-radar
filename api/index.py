@@ -159,7 +159,7 @@ def get_tv_rating_text(score):
     else:
         return "NEUTRAL", "#ffd166"
 
-def generate_synthetic_candles(price: float, session_change: float = 0.0, vwap: float = None, atr: float = None, count: int = 45) -> pd.DataFrame:
+def generate_synthetic_candles(price: float, session_change: float = 0.0, vwap: float = None, atr: float = None, count: int = 75) -> pd.DataFrame:
     """Generates synthetic recent candle bars from TradingView scan metrics when external candle feed is unavailable."""
     now = int(time.time())
     atr = float(atr) if atr and atr > 0 else max(float(price) * 0.0015, 0.01)
@@ -381,13 +381,15 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         mh_data = generate_multi_horizon_signals(df, asset_name=name, tv_rating_score=tv_rating_score)
         mh_sigs = mh_data["signals"]
 
-    sig_5m = mh_sigs["forward_5m"]
+    sig_1m = mh_sigs["forward_1m"]
     sig_10m = mh_sigs["forward_10m"]
-    sig_15m = mh_sigs["forward_15m"]
+    sig_30m = mh_sigs["forward_30m"]
+    sig_1h = mh_sigs["forward_1h"]
 
-    act_5m, badge_5m, color_5m = format_horizon_badge(sig_5m["action"])
+    act_1m, badge_1m, color_1m = format_horizon_badge(sig_1m["action"])
     act_10m, badge_10m, color_10m = format_horizon_badge(sig_10m["action"])
-    act_15m, badge_15m, color_15m = format_horizon_badge(sig_15m["action"])
+    act_30m, badge_30m, color_30m = format_horizon_badge(sig_30m["action"])
+    act_1h, badge_1h, color_1h = format_horizon_badge(sig_1h["action"])
 
     jev_choice = sig_10m["action"]
     prob_up = sig_10m["prob_up"]
@@ -451,14 +453,14 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
             "model_type": mh_sigs.get("model_type", "STANDALONE"),
             "alignment": mh_sigs.get("alignment", "NEUTRAL"),
             "average_prob_up": mh_sigs.get("average_prob_up", round(prob_up, 4)),
-            "forward_5m": {
-                "horizon": "5min forward (5 bars)",
-                "action": act_5m,
-                "raw_action": sig_5m["action"],
-                "prob_up": round(sig_5m["prob_up"], 4),
-                "confidence": sig_5m["confidence"],
-                "badge_class": badge_5m,
-                "color": color_5m
+            "forward_1m": {
+                "horizon": "1min forward (1 bar)",
+                "action": act_1m,
+                "raw_action": sig_1m["action"],
+                "prob_up": round(sig_1m["prob_up"], 4),
+                "confidence": sig_1m["confidence"],
+                "badge_class": badge_1m,
+                "color": color_1m
             },
             "forward_10m": {
                 "horizon": "10min forward (10 bars)",
@@ -469,14 +471,42 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
                 "badge_class": badge_10m,
                 "color": color_10m
             },
+            "forward_30m": {
+                "horizon": "30min forward (30 bars)",
+                "action": act_30m,
+                "raw_action": sig_30m["action"],
+                "prob_up": round(sig_30m["prob_up"], 4),
+                "confidence": sig_30m["confidence"],
+                "badge_class": badge_30m,
+                "color": color_30m
+            },
+            "forward_1h": {
+                "horizon": "1h forward (60 bars)",
+                "action": act_1h,
+                "raw_action": sig_1h["action"],
+                "prob_up": round(sig_1h["prob_up"], 4),
+                "confidence": sig_1h["confidence"],
+                "badge_class": badge_1h,
+                "color": color_1h
+            },
+            # Backward-compatibility aliases
+            "forward_5m": {
+                "horizon": "1min forward (1 bar)",
+                "action": act_1m,
+                "raw_action": sig_1m["action"],
+                "prob_up": round(sig_1m["prob_up"], 4),
+                "confidence": sig_1m["confidence"],
+                "badge_class": badge_1m,
+                "color": color_1m
+            },
             "forward_15m": {
-                "horizon": "15min forward (15 bars)",
-                "action": act_15m,
-                "raw_action": sig_15m["action"],
-                "prob_up": round(sig_15m["prob_up"], 4),
-                "confidence": sig_15m["confidence"],
-                "badge_class": badge_15m,
-                "color": color_15m
+                "horizon": "30min forward (30 bars)",
+                "action": act_30m,
+                "raw_action": sig_30m["action"],
+                "prob_up": round(sig_30m["prob_up"], 4),
+                "confidence": sig_30m["confidence"],
+                "badge_class": badge_30m,
+                "color": color_30m
             }
         }
     }
