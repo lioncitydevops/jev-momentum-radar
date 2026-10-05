@@ -293,8 +293,8 @@ def compute_1m_features(df: pd.DataFrame) -> dict:
         "wave_dynamics": wave_dynamics
     }
 
-def format_multi_horizon_state_prompt(asset_name: str, features: dict, timestamp_str: str = None) -> str:
-    """Formats 1-minute state representation prompt for TypeSafe Jev System One with rich temporal term structure awareness and nanoHUB wave physics."""
+def format_multi_horizon_state_prompt(asset_name: str, features: dict, timestamp_str: str = None, loop_feedback: str = None) -> str:
+    """Formats 1-minute state representation prompt for TypeSafe Jev System One with rich temporal term structure awareness, nanoHUB wave physics, and empirical loop feedback."""
     ts_text = f"Bar Timestamp: {timestamp_str}\n" if timestamp_str else ""
     w_dyn = features.get("wave_dynamics", {})
     w_block = ""
@@ -305,6 +305,13 @@ def format_multi_horizon_state_prompt(asset_name: str, features: dict, timestamp
             f"Matrix Exponential Propagated States (e^[A]τ): 1m_z={w_dyn.get('z_pred_1m',0):+.2f}σ, 10m_z={w_dyn.get('z_pred_10m',0):+.2f}σ, 30m_z={w_dyn.get('z_pred_30m',0):+.2f}σ, 1h_z={w_dyn.get('z_pred_1h',0):+.2f}σ\n"
             f"Multi-Horizon Wave Normal Modes: Group Velocity v_g={w_dyn.get('group_velocity',0):+.4f}, Phase Shift Δϕ={w_dyn.get('wave_phase_shift_deg',0):.1f}°\n"
             f"Wave Interference Regime: {w_dyn.get('wave_interference_type','N/A')}\n"
+        )
+
+    loop_block = ""
+    if loop_feedback:
+        loop_block = (
+            f"--- Empirical Closed-Loop Feedback (Walk-Forward Autotuning) ---\n"
+            f"{loop_feedback}\n"
         )
 
     return (
@@ -322,6 +329,7 @@ def format_multi_horizon_state_prompt(asset_name: str, features: dict, timestamp
         f"Momentum Acceleration: {features['mom_accel']:+.3f}%\n"
         f"Temporal Term Structure Regime: {features['term_structure_type']}\n"
         f"{w_block}"
+        f"{loop_block}"
     )
 
 def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: float = 0.0) -> dict:
@@ -635,14 +643,14 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
         print(f"[Warning] Live TypeSafe Jev API call failed ({e}). Falling back to calibrated prior model.")
         return simulate_calibrated_multi_horizon_prior(features, tv_rating_score)
 
-def generate_multi_horizon_signals(df_1m: pd.DataFrame, asset_name: str = "S&P 500 (SPX)", tv_rating_score: float = 0.0) -> dict:
+def generate_multi_horizon_signals(df_1m: pd.DataFrame, asset_name: str = "S&P 500 (SPX)", tv_rating_score: float = 0.0, loop_feedback: str = None) -> dict:
     """
     Main entry point to compute 1-min forward, 10-min forward, 30-min forward, and 1-hour forward trend signals
-    from 1-minute input candles.
+    from 1-minute input candles with closed-loop empirical feedback injection.
     """
     features = compute_1m_features(df_1m)
     timestamp_str = df_1m.index[-1].strftime('%Y-%m-%d %H:%M:%S') if isinstance(df_1m.index, pd.DatetimeIndex) else None
-    prompt = format_multi_horizon_state_prompt(asset_name, features, timestamp_str)
+    prompt = format_multi_horizon_state_prompt(asset_name, features, timestamp_str, loop_feedback=loop_feedback)
     jev_result = query_typesafe_jev_multi_horizon(prompt, features, tv_rating_score)
 
     return {

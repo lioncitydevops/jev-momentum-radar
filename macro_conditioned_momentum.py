@@ -425,7 +425,7 @@ def compute_cross_sectional_context(all_dfs: dict) -> dict:
         "energy_equity_spread": energy_equity_spread
     }
 
-def generate_macro_full_signals(eq_df: pd.DataFrame, tnx_df: pd.DataFrame, brent_df: pd.DataFrame, wti_df: pd.DataFrame, equity_name: str = "S&P 500 (SPX)", all_dfs: dict = None) -> dict:
+def generate_macro_full_signals(eq_df: pd.DataFrame, tnx_df: pd.DataFrame, brent_df: pd.DataFrame, wti_df: pd.DataFrame, equity_name: str = "S&P 500 (SPX)", all_dfs: dict = None, loop_feedback: str = None) -> dict:
     """
     Model A Generator: Computes equity trend signals conditioned on 10Y Yield, Brent, WTI, and Cross-Sectional Spreads.
     """
@@ -436,6 +436,9 @@ def generate_macro_full_signals(eq_df: pd.DataFrame, tnx_df: pd.DataFrame, brent
 
     cs_context = compute_cross_sectional_context(all_dfs) if all_dfs else None
     prompt = format_macro_full_prompt(equity_name, eq_feat, tnx_feat, brent_feat, wti_feat, cs_context)
+    if loop_feedback:
+        prompt += f"\n--- Empirical Closed-Loop Feedback (Walk-Forward Autotuning) ---\n{loop_feedback}\n"
+
     fallback = lambda: simulate_macro_full_prior(equity_name, eq_feat, tnx_feat, brent_feat, wti_feat)
     signals = query_typesafe_jev_macro(prompt, "MODEL_A_MACRO_FULL", fallback)
 
@@ -444,10 +447,11 @@ def generate_macro_full_signals(eq_df: pd.DataFrame, tnx_df: pd.DataFrame, brent
         "description": "Affected by 10Y Yield (TNX) + Brent Crude + WTI Crude + Cross-Sectional Spreads",
         "equity_name": equity_name,
         "cross_sectional_context": cs_context,
-        "signals": signals
+        "signals": signals,
+        "state_prompt": prompt
     }
 
-def generate_rate_only_signals(eq_df: pd.DataFrame, tnx_df: pd.DataFrame, equity_name: str = "S&P 500 (SPX)", all_dfs: dict = None) -> dict:
+def generate_rate_only_signals(eq_df: pd.DataFrame, tnx_df: pd.DataFrame, equity_name: str = "S&P 500 (SPX)", all_dfs: dict = None, loop_feedback: str = None) -> dict:
     """
     Model B Generator: Computes equity trend signals conditioned on 10Y Yield ONLY + Cross-Sectional Spreads.
     """
@@ -456,6 +460,9 @@ def generate_rate_only_signals(eq_df: pd.DataFrame, tnx_df: pd.DataFrame, equity
 
     cs_context = compute_cross_sectional_context(all_dfs) if all_dfs else None
     prompt = format_rate_only_prompt(equity_name, eq_feat, tnx_feat, cs_context)
+    if loop_feedback:
+        prompt += f"\n--- Empirical Closed-Loop Feedback (Walk-Forward Autotuning) ---\n{loop_feedback}\n"
+
     fallback = lambda: simulate_rate_only_prior(equity_name, eq_feat, tnx_feat)
     signals = query_typesafe_jev_macro(prompt, "MODEL_B_RATE_ONLY", fallback)
 
@@ -464,7 +471,8 @@ def generate_rate_only_signals(eq_df: pd.DataFrame, tnx_df: pd.DataFrame, equity
         "description": "Affected by 10Y Yield (TNX) ONLY + Cross-Sectional Spreads",
         "equity_name": equity_name,
         "cross_sectional_context": cs_context,
-        "signals": signals
+        "signals": signals,
+        "state_prompt": prompt
     }
 
 if __name__ == "__main__":
