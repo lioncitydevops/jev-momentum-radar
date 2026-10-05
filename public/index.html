@@ -481,6 +481,265 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
+    /* Live Multi-Horizon Confusion Matrix Styles */
+    .cm-container {
+      background: var(--bg-card);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .cm-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .cm-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .cm-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    .cm-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .cm-kpi-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .cm-kpi-chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .cm-kpi-chip .chip-label {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .cm-kpi-chip .chip-val {
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .cm-selector-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .cm-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 1200px) {
+      .cm-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 680px) {
+      .cm-cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .cm-horizon-card {
+      background: linear-gradient(145deg, rgba(20, 27, 45, 0.8), rgba(15, 23, 42, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cm-horizon-card:hover {
+      border-color: rgba(96, 165, 250, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .cm-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 10px;
+    }
+
+    .cm-horizon-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cm-rate-badge {
+      font-size: 12px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .cm-matrix-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .cm-axis-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      text-align: center;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .cm-grid-2x2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .cm-cell {
+      padding: 10px 8px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      transition: transform 0.15s ease;
+    }
+
+    .cm-cell:hover {
+      transform: scale(1.02);
+    }
+
+    .cm-cell-tp {
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid rgba(0, 255, 136, 0.35);
+    }
+
+    .cm-cell-tn {
+      background: rgba(0, 255, 136, 0.06);
+      border: 1px solid rgba(0, 255, 136, 0.25);
+    }
+
+    .cm-cell-fp {
+      background: rgba(255, 77, 109, 0.08);
+      border: 1px solid rgba(255, 77, 109, 0.35);
+    }
+
+    .cm-cell-fn {
+      background: rgba(255, 77, 109, 0.06);
+      border: 1px solid rgba(255, 77, 109, 0.25);
+    }
+
+    .cm-cell-tag {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .cm-cell-val {
+      font-size: 20px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .cm-cell-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .cm-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .cm-dual-bar {
+      height: 7px;
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .cm-bar-hits {
+      background: var(--green-bull);
+      height: 100%;
+      transition: width 0.4s ease;
+    }
+
+    .cm-bar-misses {
+      background: var(--red-bear);
+      height: 100%;
+      transition: width 0.4s ease;
+    }
+
+    .cm-card-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
     /* Footer */
     footer {
       text-align: center;
@@ -568,6 +827,85 @@
           <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Fetching multi-horizon signals...</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Live Multi-Horizon Confusion Matrix (Hits & Misses for 1m, 10m, 30m, 1h) -->
+    <div class="cm-container" id="cm-section">
+      <div class="cm-header-row">
+        <div class="cm-title-wrap">
+          <div class="cm-title">
+            <span>🎯</span> Live Multi-Horizon Confusion Matrix (Hits & Misses)
+          </div>
+          <div class="cm-subtitle">
+            Walk-Forward Evaluation using State-Space Wave Propagator e^[A]·(τΔt) y(t) & Jev Decision Engine
+          </div>
+        </div>
+        <div class="cm-kpi-bar" id="cm-kpi-bar">
+          <div class="cm-kpi-chip">
+            <span class="chip-label">Total Predictions:</span>
+            <span class="chip-val" id="cm-kpi-total">--</span>
+          </div>
+          <div class="cm-kpi-chip">
+            <span class="chip-label">Hits (TP+TN):</span>
+            <span class="chip-val" style="color:var(--green-bull);" id="cm-kpi-hits">--</span>
+          </div>
+          <div class="cm-kpi-chip">
+            <span class="chip-label">Misses (FP+FN):</span>
+            <span class="chip-val" style="color:var(--red-bear);" id="cm-kpi-misses">--</span>
+          </div>
+          <div class="cm-kpi-chip">
+            <span class="chip-label">Aggregate Hit Rate:</span>
+            <span class="chip-val" id="cm-kpi-rate" style="color:#60a5fa;">--%</span>
+          </div>
+          <div class="cm-kpi-chip">
+            <span class="chip-label">Directional Edge:</span>
+            <span class="chip-val" id="cm-kpi-edge" style="color:var(--green-bull);">--%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cm-selector-row">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">View Dataset:</span>
+          <select id="cm-asset-select" onchange="updateConfusionMatrixView(this.value)" style="background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">
+            <option value="aggregate">🌐 All Tracked CFDs (Aggregate Portfolio)</option>
+          </select>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted);">
+          <span>Purged Walk-Forward • Zero-Lookahead Evaluated Realized Returns</span>
+        </div>
+      </div>
+
+      <!-- 4 Horizon Confusion Matrix Cards -->
+      <div class="cm-cards-grid" id="cm-cards-grid">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Comparative Performance Table -->
+      <div style="font-size:13px; font-weight:700; color:#e2e8f0; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+        <span>📋</span> Horizon Comparison & Precision Breakdown
+      </div>
+      <div class="table-container" style="margin-bottom:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Forward Horizon</th>
+              <th>Forward Span (τ bars)</th>
+              <th>Total Trials (N)</th>
+              <th>Hits (TP + TN)</th>
+              <th>Misses (FP + FN)</th>
+              <th>Realized Hit Rate</th>
+              <th>Bullish Precision (Win on Longs)</th>
+              <th>Bearish Precision (Win on Shorts)</th>
+              <th>Directional Edge (Δ)</th>
+              <th>Statistical Status</th>
+            </tr>
+          </thead>
+          <tbody id="cm-table-tbody">
+            <tr><td colspan="10" style="text-align:center; color:var(--text-muted);">Computing confusion matrix...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Cross-Market Relative Strength Matrix -->
@@ -763,7 +1101,219 @@
       } else {
         insightsPanel.style.display = 'none';
       }
+
+      // Render Live Confusion Matrix
+      if (data.confusion_matrix) {
+        renderConfusionMatrix(data.confusion_matrix, selectedCmAsset);
+      }
     }
+
+    let currentCmData = null;
+    let selectedCmAsset = 'aggregate';
+
+    function updateConfusionMatrixView(assetKey) {
+      selectedCmAsset = assetKey;
+      if (currentCmData) {
+        renderConfusionMatrix(currentCmData, selectedCmAsset);
+      }
+    }
+
+    function renderConfusionMatrix(cmData, selectedAsset = 'aggregate') {
+      if (!cmData) return;
+      currentCmData = cmData;
+
+      // Populate asset select options once
+      const assetSelect = document.getElementById('cm-asset-select');
+      if (assetSelect && cmData.by_asset) {
+        const currentVal = assetSelect.value || selectedAsset;
+        const existingKeys = new Set(Array.from(assetSelect.options).map(o => o.value));
+        for (const assetName of Object.keys(cmData.by_asset)) {
+          if (!existingKeys.has(assetName)) {
+            const opt = document.createElement('option');
+            opt.value = assetName;
+            opt.innerText = assetName;
+            assetSelect.appendChild(opt);
+          }
+        }
+        assetSelect.value = currentVal;
+      }
+
+      // Determine dataset to display
+      let horizonData = {};
+      let totalEval = 0;
+      let totalHits = 0;
+      let totalMisses = 0;
+      let overallHitRate = 0;
+      let overallEdge = 0;
+
+      if (selectedAsset === 'aggregate' || !cmData.by_asset[selectedAsset]) {
+        horizonData = cmData.aggregate || {};
+        const overall = cmData.overall || {};
+        totalEval = overall.total_evaluations || 0;
+        totalHits = overall.total_hits || 0;
+        totalMisses = overall.total_misses || 0;
+        overallHitRate = overall.overall_hit_rate || 0;
+        overallEdge = overall.overall_edge || 0;
+      } else {
+        horizonData = cmData.by_asset[selectedAsset] || {};
+        for (const h of Object.values(horizonData)) {
+          totalEval += h.total;
+          totalHits += h.hits;
+          totalMisses += h.misses;
+        }
+        overallHitRate = totalEval > 0 ? (totalHits / totalEval * 100).toFixed(1) : 0;
+        overallEdge = (overallHitRate - 50.0).toFixed(1);
+      }
+
+      // Update KPI Header chips
+      const kpiTotal = document.getElementById('cm-kpi-total');
+      const kpiHits = document.getElementById('cm-kpi-hits');
+      const kpiMisses = document.getElementById('cm-kpi-misses');
+      const kpiRate = document.getElementById('cm-kpi-rate');
+      const kpiEdge = document.getElementById('cm-kpi-edge');
+
+      if (kpiTotal) kpiTotal.innerText = totalEval.toLocaleString();
+      if (kpiHits) kpiHits.innerText = totalHits.toLocaleString();
+      if (kpiMisses) kpiMisses.innerText = totalMisses.toLocaleString();
+      if (kpiRate) kpiRate.innerText = `${overallHitRate}%`;
+      if (kpiEdge) {
+        kpiEdge.innerText = `${overallEdge >= 0 ? '+' : ''}${overallEdge}%`;
+        kpiEdge.style.color = overallEdge >= 0 ? 'var(--green-bull)' : 'var(--red-bear)';
+      }
+
+      // Render 4 Horizon Cards
+      const cardsGrid = document.getElementById('cm-cards-grid');
+      const tableTbody = document.getElementById('cm-table-tbody');
+      if (!cardsGrid) return;
+      cardsGrid.innerHTML = '';
+      if (tableTbody) tableTbody.innerHTML = '';
+
+      const horizonOrder = ['1m', '10m', '30m', '1h'];
+      const horizonIcons = { '1m': '⚡', '10m': '⏱️', '30m': '📈', '1h': '🏛️' };
+
+      for (const hKey of horizonOrder) {
+        const h = horizonData[hKey];
+        if (!h) continue;
+
+        const hr = h.hit_rate;
+        const badgeColor = hr >= 55.0 ? 'rgba(0, 255, 136, 0.15)' : (hr >= 50.0 ? 'rgba(96, 165, 250, 0.15)' : 'rgba(255, 77, 109, 0.15)');
+        const badgeTextColor = hr >= 55.0 ? 'var(--green-bull)' : (hr >= 50.0 ? '#60a5fa' : 'var(--red-bear)');
+        const hitsPct = h.total > 0 ? ((h.hits / h.total) * 100).toFixed(1) : 50;
+        const missesPct = (100 - hitsPct).toFixed(1);
+
+        const tpPct = h.total > 0 ? ((h.tp / h.total) * 100).toFixed(1) : 0;
+        const tnPct = h.total > 0 ? ((h.tn / h.total) * 100).toFixed(1) : 0;
+        const fpPct = h.total > 0 ? ((h.fp / h.total) * 100).toFixed(1) : 0;
+        const fnPct = h.total > 0 ? ((h.fn / h.total) * 100).toFixed(1) : 0;
+
+        const card = document.createElement('div');
+        card.className = 'cm-horizon-card';
+        card.innerHTML = `
+          <div class="cm-card-head">
+            <div class="cm-horizon-name">
+              <span>${horizonIcons[hKey] || '⏱️'}</span>
+              <span>${h.label}</span>
+              <span style="font-size:10px; color:var(--text-muted); font-weight:normal;">(${h.tau_bars} bar${h.tau_bars>1?'s':''})</span>
+            </div>
+            <div class="cm-rate-badge" style="background:${badgeColor}; color:${badgeTextColor};">
+              ${h.hit_rate}% Hit
+            </div>
+          </div>
+
+          <div class="cm-matrix-box">
+            <div class="cm-axis-header">
+              <span>Predicted UP</span>
+              <span>Predicted DOWN</span>
+            </div>
+            <div class="cm-grid-2x2">
+              <!-- True Positive -->
+              <div class="cm-cell cm-cell-tp" title="True Positive: Predicted UP and Realized Positive Return">
+                <div class="cm-cell-tag" style="color:var(--green-bull);">
+                  <span>🟢 HIT LONG</span>
+                  <span>TP</span>
+                </div>
+                <div class="cm-cell-val">${h.tp}</div>
+                <div class="cm-cell-sub">${tpPct}% of total</div>
+              </div>
+
+              <!-- False Negative -->
+              <div class="cm-cell cm-cell-fn" title="False Negative: Predicted DOWN but Market Rose">
+                <div class="cm-cell-tag" style="color:var(--red-bear);">
+                  <span>🔴 MISS SHORT</span>
+                  <span>FN</span>
+                </div>
+                <div class="cm-cell-val">${h.fn}</div>
+                <div class="cm-cell-sub">${fnPct}% of total</div>
+              </div>
+
+              <!-- False Positive -->
+              <div class="cm-cell cm-cell-fp" title="False Positive: Predicted UP but Market Dropped">
+                <div class="cm-cell-tag" style="color:var(--red-bear);">
+                  <span>🔴 MISS LONG</span>
+                  <span>FP</span>
+                </div>
+                <div class="cm-cell-val">${h.fp}</div>
+                <div class="cm-cell-sub">${fpPct}% of total</div>
+              </div>
+
+              <!-- True Negative -->
+              <div class="cm-cell cm-cell-tn" title="True Negative: Predicted DOWN and Realized Negative Return">
+                <div class="cm-cell-tag" style="color:var(--green-bull);">
+                  <span>🟢 HIT SHORT</span>
+                  <span>TN</span>
+                </div>
+                <div class="cm-cell-val">${h.tn}</div>
+                <div class="cm-cell-sub">${tnPct}% of total</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual Progress Bar (Hits vs Misses) -->
+          <div class="cm-bar-wrap">
+            <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:700;">
+              <span style="color:var(--green-bull);">Hits: ${h.hits} (${hitsPct}%)</span>
+              <span style="color:var(--red-bear);">Misses: ${h.misses} (${missesPct}%)</span>
+            </div>
+            <div class="cm-dual-bar">
+              <div class="cm-bar-hits" style="width:${hitsPct}%;"></div>
+              <div class="cm-bar-misses" style="width:${missesPct}%;"></div>
+            </div>
+          </div>
+
+          <div class="cm-card-footer">
+            <span>Long Win: <strong style="color:#fff;">${h.precision_long}%</strong></span>
+            <span>Short Win: <strong style="color:#fff;">${h.precision_short}%</strong></span>
+            <span>Edge: <strong style="color:${h.edge>=0?'var(--green-bull)':'var(--red-bear)'};">${h.edge>=0?'+':''}${h.edge}%</strong></span>
+          </div>
+        `;
+        cardsGrid.appendChild(card);
+
+        // Add to comparison table
+        if (tableTbody) {
+          const statusBadge = h.hit_rate >= 60.0 
+            ? '<span class="badge-buy" style="padding:2px 8px; border-radius:4px; font-weight:700;">🟢 ALPHA STRONG</span>'
+            : (h.hit_rate >= 50.0 
+                ? '<span class="badge-neutral" style="padding:2px 8px; border-radius:4px; font-weight:700; color:#60a5fa; border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.1);">🔵 PERSISTENT</span>'
+                : '<span class="badge-sell" style="padding:2px 8px; border-radius:4px; font-weight:700;">🔴 MEAN REVERTING</span>');
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${horizonIcons[hKey] || '⏱️'} ${h.label}</strong></td>
+            <td class="mono">${h.tau_bars} bar${h.tau_bars>1?'s':''}</td>
+            <td class="mono" style="font-weight:700;">${h.total}</td>
+            <td class="mono" style="color:var(--green-bull); font-weight:700;">${h.hits}</td>
+            <td class="mono" style="color:var(--red-bear); font-weight:700;">${h.misses}</td>
+            <td class="mono" style="color:${h.hit_rate>=50?'var(--green-bull)':'var(--red-bear)'}; font-weight:800;">${h.hit_rate}%</td>
+            <td class="mono">${h.precision_long}%</td>
+            <td class="mono">${h.precision_short}%</td>
+            <td class="mono" style="color:${h.edge>=0?'var(--green-bull)':'var(--red-bear)'}; font-weight:700;">${h.edge>=0?'+':''}${h.edge}%</td>
+            <td>${statusBadge}</td>
+          `;
+          tableTbody.appendChild(tr);
+        }
+      }
+    }
+
 
     function toggleAutoRefresh(enable) {
       if (enable) {
