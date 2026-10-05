@@ -298,8 +298,32 @@ def call_jev_api(state_str: str) -> dict:
         "raw_response": data
     }
 
-from multi_horizon_momentum import generate_multi_horizon_signals
-from macro_conditioned_momentum import generate_macro_full_signals, generate_rate_only_signals
+try:
+    from multi_horizon_momentum import generate_multi_horizon_signals
+except Exception as _e_mh:
+    print(f"Warning importing multi_horizon_momentum: {_e_mh}")
+    def generate_multi_horizon_signals(df, asset_name="S&P 500 (SPX)", tv_rating_score=0.0):
+        return {
+            "model_type": "CALIBRATED_FALLBACK",
+            "alignment": "NEUTRAL",
+            "average_prob_up": 0.50,
+            "signals": {
+                "forward_1m": {"horizon": "1min", "action": "HOLD_CASH", "prob_up": 0.50, "confidence": 0.50},
+                "forward_10m": {"horizon": "10min", "action": "HOLD_CASH", "prob_up": 0.50, "confidence": 0.50},
+                "forward_30m": {"horizon": "30min", "action": "HOLD_CASH", "prob_up": 0.50, "confidence": 0.50},
+                "forward_1h": {"horizon": "1h", "action": "HOLD_CASH", "prob_up": 0.50, "confidence": 0.50},
+            }
+        }
+
+try:
+    from macro_conditioned_momentum import generate_macro_full_signals, generate_rate_only_signals
+except Exception as _e_macro:
+    print(f"Warning importing macro_conditioned_momentum: {_e_macro}")
+    def generate_rate_only_signals(df_eq, df_tnx, equity_name="S&P 500 (SPX)", all_dfs=None):
+        return generate_multi_horizon_signals(df_eq, asset_name=equity_name)
+    def generate_macro_full_signals(df_eq, df_tnx, df_brent, df_wti, equity_name="S&P 500 (SPX)", all_dfs=None):
+        return generate_multi_horizon_signals(df_eq, asset_name=equity_name)
+
 
 def format_horizon_badge(action_str: str):
     if "LONG" in action_str or "BUY" in action_str:

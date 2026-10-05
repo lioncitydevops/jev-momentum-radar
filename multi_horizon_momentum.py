@@ -12,12 +12,34 @@ import math
 import numpy as np
 import pandas as pd
 import requests
-import scipy.linalg
 from dotenv import load_dotenv
 
 load_dotenv()
 
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
+
+def _matrix_expm(M: np.ndarray) -> np.ndarray:
+    """
+    Computes matrix exponential using scipy if available, or Taylor series
+    with scaling and squaring in pure NumPy (exact to machine precision).
+    """
+    try:
+        import scipy.linalg
+        return scipy.linalg.expm(M)
+    except (ImportError, Exception):
+        norm = float(np.linalg.norm(M, np.inf))
+        if norm == 0.0:
+            return np.eye(M.shape[0])
+        n_sq = int(max(0, math.ceil(math.log2(norm))))
+        M_s = M / (2.0 ** n_sq)
+        res = np.eye(M.shape[0], dtype=float)
+        term = np.eye(M.shape[0], dtype=float)
+        for i in range(1, 16):
+            term = (term @ M_s) / i
+            res += term
+        for _ in range(n_sq):
+            res = res @ res
+        return res
 
 def compute_wave_oscillator_dynamics(df: pd.DataFrame) -> dict:
     """
@@ -84,13 +106,11 @@ def compute_wave_oscillator_dynamics(df: pd.DataFrame) -> dict:
 
     eigenvals = np.linalg.eigvals(A)
 
-    # 4. Continuous Matrix Exponential Forward Propagator: e^[A]*tau
-    # For target forward horizons: 1m (1 bar), 10m (10 bars), 30m (30 bars), 1h (60 bars)
     dt_scale = 0.05
-    y_pred_1m = scipy.linalg.expm(A * (1 * dt_scale)) @ y_t
-    y_pred_10m = scipy.linalg.expm(A * (10 * dt_scale)) @ y_t
-    y_pred_30m = scipy.linalg.expm(A * (30 * dt_scale)) @ y_t
-    y_pred_1h = scipy.linalg.expm(A * (60 * dt_scale)) @ y_t
+    y_pred_1m = _matrix_expm(A * (1 * dt_scale)) @ y_t
+    y_pred_10m = _matrix_expm(A * (10 * dt_scale)) @ y_t
+    y_pred_30m = _matrix_expm(A * (30 * dt_scale)) @ y_t
+    y_pred_1h = _matrix_expm(A * (60 * dt_scale)) @ y_t
 
     z_pred_1m = float(np.round(y_pred_1m[0], 3))
     z_pred_10m = float(np.round(y_pred_10m[0], 3))
