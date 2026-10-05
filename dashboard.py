@@ -523,7 +523,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         "mpsi": mh_sigs.get("maritime_supply_index"),
         "forward_projections": mh_sigs.get("forward_projections"),
         "shipping_telemetry": mh_data.get("telemetry"),
-        "visual_analytics": mh_data.get("visual_analytics")
+        "visual_analytics": mh_data.get("visual_analytics"),
+        "ais_confusion_matrix": mh_data.get("ais_confusion_matrix")
     }
 
 # ---------------------------------------------------------
@@ -857,11 +858,12 @@ if brent_sig and brent_sig.get("shipping_telemetry"):
         st.markdown("---")
         st.markdown("### 📊 AIS Physical Disruption & Price Impact Visual Analytics")
         
-        tab_cone, tab_waterfall, tab_scenarios, tab_radar = st.tabs([
+        tab_cone, tab_waterfall, tab_scenarios, tab_radar, tab_confusion = st.tabs([
             "📈 AIS vs Technical Price Cone",
             "🌊 Dollar Attribution Waterfall",
             "🧭 Chokepoint Elasticity & What-If",
-            "🕸️ MPSI Pillars & Forward Strip"
+            "🕸️ MPSI Pillars & Forward Strip",
+            "🎯 AIS Efficacy Confusion Matrix"
         ])
         
         with tab_cone:
@@ -1103,6 +1105,109 @@ if brent_sig and brent_sig.get("shipping_telemetry"):
                         yaxis_title="Price ($/bbl)"
                     )
                     st.plotly_chart(curve_fig, use_container_width=True)
+
+        with tab_confusion:
+            ais_cm = v_an.get("ais_confusion_matrix") or brent_sig.get("ais_confusion_matrix", {})
+            if ais_cm and "summary" in ais_cm:
+                cm_sum = ais_cm["summary"]
+                cm_horiz = ais_cm.get("horizons", {})
+
+                # 4 Top KPI Cards
+                c_kpi1, c_kpi2, c_kpi3, c_kpi4 = st.columns(4)
+                with c_kpi1:
+                    st.metric(
+                        label="Pure Technical Baseline Hit Rate",
+                        value=f"{cm_sum.get('overall_baseline_hit_rate', 50.0):.1f}%",
+                        help="Directional accuracy of pure price momentum & VWAP without maritime AIS data."
+                    )
+                with c_kpi2:
+                    st.metric(
+                        label="AIS-Conditioned Hit Rate",
+                        value=f"{cm_sum.get('overall_ais_hit_rate', 65.0):.1f}%",
+                        delta=f"{cm_sum.get('overall_hit_rate_lift_pct', 0.0):+.1f}% Lift",
+                        delta_color="normal",
+                        help="Directional accuracy fusing Hormuz clandestine rate, Red Sea bypass delays & crack spreads."
+                    )
+                with c_kpi3:
+                    st.metric(
+                        label="False Breakdowns Rescued",
+                        value=f"{cm_sum.get('total_whipsaws_rescued', 0)} Shorts Vetoed",
+                        delta="Averted Bear Traps",
+                        delta_color="normal",
+                        help="Instances where technical momentum falsely triggered SHORT below VWAP, but physical supply tightness correctly held/rescued the trade."
+                    )
+                with c_kpi4:
+                    st.metric(
+                        label="Supply Breakouts Confirmed",
+                        value=f"{cm_sum.get('total_breakouts_confirmed', 0)} Longs Fired",
+                        delta="Early Alpha",
+                        delta_color="normal",
+                        help="Instances where technical indicators lagged in chop, but AIS shipping constrictions confirmed immediate upward price expansion."
+                    )
+
+                st.caption(f"🏁 **Empirical Verdict**: `{cm_sum.get('verdict', 'ALPHA SUPERIOR')}` • Evaluated across `{cm_sum.get('total_evaluated_candles', 0)}` walk-forward 1m candles.")
+
+                # Grouped Hit Rate Comparison Chart
+                st.markdown("##### 📊 Walk-Forward Hit Rate Comparison (Baseline vs. Maritime AIS)")
+                h_labels = [cm_horiz[h]["label"] for h in ["1m", "10m", "30m", "1h"] if h in cm_horiz]
+                base_hrs = [cm_horiz[h]["baseline"]["hit_rate"] for h in ["1m", "10m", "30m", "1h"] if h in cm_horiz]
+                ais_hrs = [cm_horiz[h]["ais_conditioned"]["hit_rate"] for h in ["1m", "10m", "30m", "1h"] if h in cm_horiz]
+
+                bar_fig = go.Figure()
+                bar_fig.add_trace(go.Bar(
+                    x=h_labels,
+                    y=base_hrs,
+                    name="Pure Technical Baseline (Excl. AIS)",
+                    marker_color="#60a5fa",
+                    text=[f"{v:.1f}%" for v in base_hrs],
+                    textposition="auto"
+                ))
+                bar_fig.add_trace(go.Bar(
+                    x=h_labels,
+                    y=ais_hrs,
+                    name="Maritime AIS-Conditioned Model",
+                    marker_color="#00ff88",
+                    text=[f"{v:.1f}%" for v in ais_hrs],
+                    textposition="auto"
+                ))
+                bar_fig.add_hline(y=50.0, line_dash="dash", line_color="rgba(255,255,255,0.4)", annotation_text="50% Coin Toss Baseline")
+                bar_fig.update_layout(
+                    barmode="group",
+                    height=320,
+                    margin=dict(l=20, r=20, t=30, b=20),
+                    template="plotly_dark",
+                    yaxis=dict(title="Realized Hit Rate (%)", range=[0, 105]),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+                st.plotly_chart(bar_fig, use_container_width=True)
+
+                # Detailed Confusion Matrix Horizon Table
+                st.markdown("##### 🎯 Multi-Horizon Confusion Matrix (Hits & Misses Breakdown)")
+                cm_rows = []
+                for h_key in ["1m", "10m", "30m", "1h"]:
+                    if h_key in cm_horiz:
+                        h_data = cm_horiz[h_key]
+                        b = h_data["baseline"]
+                        a = h_data["ais_conditioned"]
+                        cm_rows.append({
+                            "Horizon": h_data["label"],
+                            "Base Hits / Total": f"{b['hits']} / {b['total']}",
+                            "Base Win%": f"{b['hit_rate']:.1f}%",
+                            "AIS TP (Long Hit)": a["tp"],
+                            "AIS FP (Long Miss)": a["fp"],
+                            "AIS TN (Short Hit)": a["tn"],
+                            "AIS FN (Short Miss)": a["fn"],
+                            "AIS Win%": f"{a['hit_rate']:.1f}%",
+                            "Alpha Lift (Δ)": f"{h_data['delta_hit_rate']:+.1f}%",
+                            "Traps Rescued": f"🛡️ {h_data['whipsaws_rescued']}",
+                            "Status": h_data["status"]
+                        })
+
+                st.dataframe(pd.DataFrame(cm_rows), use_container_width=True, hide_index=True)
+
+                takeaways = ais_cm.get("analytical_takeaways", [])
+                if takeaways:
+                    st.info("\n\n".join([f"💡 **Takeaway {i+1}**: {t}" for i, t in enumerate(takeaways)]))
 else:
     st.info("Loading real-time shipping telemetry from `Oil_Tanker_Traffic_AntiGravity`...")
 

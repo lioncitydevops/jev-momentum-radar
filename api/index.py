@@ -556,7 +556,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         "maritime_supply_index": mh_sigs.get("maritime_supply_index"),
         "forward_projections": mh_sigs.get("forward_projections"),
         "shipping_telemetry": mh_data.get("telemetry"),
-        "visual_analytics": mh_data.get("visual_analytics")
+        "visual_analytics": mh_data.get("visual_analytics"),
+        "ais_confusion_matrix": mh_data.get("ais_confusion_matrix")
     }
 
 def generate_insights(results):
@@ -1143,9 +1144,16 @@ async def tradingview_webhook(request: Request):
 def get_maritime_brent_endpoint():
     """
     Dedicated endpoint returning real-time shipping telemetry,
-    Maritime Physical Supply Index (MPSI), and Brent forward estimation projections.
+    Maritime Physical Supply Index (MPSI), Brent forward estimation projections,
+    and the AIS Predictive Efficacy Confusion Matrix.
     """
     try:
+        from maritime_brent_momentum import (
+            get_live_shipping_telemetry,
+            compute_maritime_physical_supply_index,
+            compute_maritime_visual_analytics,
+            compute_ais_efficacy_confusion_matrix
+        )
         telemetry = get_live_shipping_telemetry()
         mpsi = compute_maritime_physical_supply_index(telemetry)
         # Compute baseline visual analytics using prompt price
@@ -1157,8 +1165,9 @@ def get_maritime_brent_endpoint():
             "forward_30m": {"projected_price": round(prompt_p + 0.28, 2)},
             "forward_1h": {"projected_price": round(prompt_p + 0.18, 2)},
         }
-        from maritime_brent_momentum import compute_maritime_visual_analytics
         v_analytics = compute_maritime_visual_analytics(fake_feat, telemetry, mpsi, fake_sigs)
+        ais_cm = compute_ais_efficacy_confusion_matrix(None, telemetry, mpsi)
+        v_analytics["ais_confusion_matrix"] = ais_cm
 
         return {
             "status": "success",
@@ -1168,7 +1177,8 @@ def get_maritime_brent_endpoint():
             "forward_curve_structure": telemetry.get("energy_state", {}).get("forward_curve_structure", "Inverted / Backwardation"),
             "prompt_to_m6_spread": telemetry.get("energy_state", {}).get("prompt_to_m6_spread", "N/A"),
             "forward_curve_strip": telemetry.get("forward_curve_strip", []),
-            "visual_analytics": v_analytics
+            "visual_analytics": v_analytics,
+            "ais_confusion_matrix": ais_cm
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}

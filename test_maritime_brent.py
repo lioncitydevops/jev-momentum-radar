@@ -77,7 +77,29 @@ def run_maritime_brent_test():
     assert sigs["forward_10m"]["prob_up"] is not None
     assert sigs["forward_30m"]["prob_up"] is not None
     assert sigs["forward_1h"]["prob_up"] is not None
-    print("\n[SUCCESS] All forward estimation tests passed successfully!")
+
+    # 5. Verify AIS Efficacy Confusion Matrix
+    print(f"\n[5] AIS Predictive Efficacy Confusion Matrix Analysis:")
+    assert "ais_confusion_matrix" in res, "ais_confusion_matrix missing from signals output!"
+    ais_cm = res["ais_confusion_matrix"]
+    cm_sum = ais_cm["summary"]
+    cm_horiz = ais_cm["horizons"]
+
+    print(f"    - Baseline Overall Hit Rate: {cm_sum['overall_baseline_hit_rate']:.1f}%")
+    print(f"    - AIS-Conditioned Hit Rate : {cm_sum['overall_ais_hit_rate']:.1f}%")
+    print(f"    - Alpha Lift               : {cm_sum['overall_hit_rate_lift_pct']:+.1f}%")
+    print(f"    - False Breakdowns Rescued : {cm_sum['total_whipsaws_rescued']} shorts vetoed")
+    print(f"    - Supply Breakouts Added   : {cm_sum['total_breakouts_confirmed']} longs confirmed")
+    print(f"    - Empirical Verdict        : {cm_sum['verdict']}")
+
+    for h_key in ["1m", "10m", "30m", "1h"]:
+        h = cm_horiz[h_key]
+        print(f"      * {h['label']:16s}: Base={h['baseline']['hit_rate']:4.1f}% | AIS={h['ais_conditioned']['hit_rate']:4.1f}% | Lift={h['delta_hit_rate']:+5.1f}% | Rescued={h['whipsaws_rescued']:2d} | Status={h['status']}")
+
+    assert cm_sum["overall_hit_rate_lift_pct"] is not None
+    assert len(cm_horiz) == 4
+
+    print("\n[SUCCESS] All forward estimation and AIS confusion matrix tests passed successfully!")
 
 if __name__ == "__main__":
     run_maritime_brent_test()
