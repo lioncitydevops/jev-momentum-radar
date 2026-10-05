@@ -343,6 +343,11 @@ def call_jev_api(state_str: str) -> dict:
 
 from multi_horizon_momentum import generate_multi_horizon_signals
 from macro_conditioned_momentum import generate_macro_full_signals, generate_rate_only_signals
+from maritime_brent_momentum import (
+    generate_maritime_brent_signals,
+    get_live_shipping_telemetry,
+    compute_maritime_physical_supply_index
+)
 
 def format_horizon_badge(action_str: str):
     if "LONG" in action_str or "BUY" in action_str:
@@ -399,6 +404,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         mh_sigs = mh_data["signals"]
     elif is_equity and model_variant == "macro_full" and has_macro and "Brent Crude (BRENT)" in macro_dfs and "WTI Crude (WTI)" in macro_dfs:
         mh_data = generate_macro_full_signals(df, macro_dfs["10Y Treasury (TNX)"], macro_dfs["Brent Crude (BRENT)"], macro_dfs["WTI Crude (WTI)"], equity_name=name, all_dfs=macro_dfs)
+        mh_sigs = mh_data["signals"]
+    elif name == "Brent Crude (BRENT)":
+        wti_df = macro_dfs.get("WTI Crude (WTI)") if macro_dfs else None
+        mh_data = generate_maritime_brent_signals(df, wti_df=wti_df)
         mh_sigs = mh_data["signals"]
     else:
         mh_data = generate_multi_horizon_signals(df, asset_name=name)
@@ -510,7 +519,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "badge_class": badge_30m,
                 "color": color_30m
             }
-        }
+        },
+        "mpsi": mh_sigs.get("maritime_supply_index"),
+        "forward_projections": mh_sigs.get("forward_projections"),
+        "shipping_telemetry": mh_data.get("telemetry")
     }
 
 # ---------------------------------------------------------
@@ -766,6 +778,110 @@ if selected_asset in raw_dfs:
         xaxis_rangeslider_visible=False
     )
     st.plotly_chart(fig, use_container_width=True)
+
+# ---------------------------------------------------------
+# 4. Maritime Tanker Traffic & Physical Brent Forward Estimation
+# ---------------------------------------------------------
+st.divider()
+st.subheader("🚢 Real-Time Maritime AIS Tanker Traffic & Brent Forward Estimation")
+st.caption("Live physical shipping telemetry, chokepoint transit flows, and forward curve backwardation bridged from `Oil_Tanker_Traffic_AntiGravity`.")
+
+brent_sig = results.get("Brent Crude (BRENT)")
+if brent_sig and brent_sig.get("shipping_telemetry"):
+    s_telem = brent_sig["shipping_telemetry"]
+    s_mpsi = brent_sig.get("mpsi", {})
+    s_proj = brent_sig.get("forward_projections", {})
+    s_h = s_telem.get("hormuz", {})
+    s_r = s_telem.get("redsea_bab_el_mandeb", {})
+    s_e = s_telem.get("energy_state", {})
+
+    # Status KPI row
+    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+    with m_col1:
+        z_val = s_mpsi.get("z_maritime", 0.0)
+        st.metric(
+            label="Maritime Supply Index (MPSI)",
+            value=f"{z_val:+.2f}σ",
+            delta=s_mpsi.get("bias", "NORMAL").replace("_", " "),
+            delta_color="normal" if z_val > 0 else "inverse"
+        )
+        st.caption(f"Regime: `{s_mpsi.get('regime', 'EQUILIBRIUM')}`")
+    with m_col2:
+        st.metric(
+            label="Hormuz Clandestine Rate",
+            value=f"{s_h.get('clandestine_rate_pct', 90.0):.1f}%",
+            delta=f"{s_h.get('active_vessels_counted', 2)} Active vs {s_h.get('baseline_vessels', 46)} Base",
+            delta_color="inverse"
+        )
+        st.caption("Night STS lightering via Fujairah")
+    with m_col3:
+        st.metric(
+            label="Bab El-Mandeb / Red Sea Delay",
+            value=f"+{s_r.get('cape_diversion_delay_days', 12.0):.0f} Days",
+            delta=f"{s_r.get('traffic_today', 12)} Daily vs {s_r.get('historical_5yr_avg', 42.0):.0f} 5yr Avg",
+            delta_color="inverse"
+        )
+        st.caption("Cape of Good Hope rerouting")
+    with m_col4:
+        st.metric(
+            label="Singapore Gasoil 10ppm Crack",
+            value=f"${s_e.get('singapore_gasoil_crack_usd', 28.50):.2f}/bbl",
+            delta=f"Prompt/M6: {s_e.get('prompt_to_m6_spread', '+$9.70')}",
+            delta_color="normal"
+        )
+        st.caption("Middle distillate margin tightness")
+
+    # Forward Price Estimates Strip
+    st.markdown("#### 🎯 Quantitative Multi-Horizon Price Projections")
+    p_col1, p_col2, p_col3, p_col4, p_col5 = st.columns(5)
+    curr_p = s_proj.get("current_price", brent_sig["price"])
+    with p_col1:
+        st.metric("Current Prompt", f"${curr_p:.2f}")
+    with p_col2:
+        p1 = s_proj.get("pred_1m", curr_p)
+        st.metric("1-Min Projected", f"${p1:.2f}", f"{((p1/curr_p)-1)*100:+.2f}%")
+    with p_col3:
+        p10 = s_proj.get("pred_10m", curr_p)
+        st.metric("10-Min Projected", f"${p10:.2f}", f"{((p10/curr_p)-1)*100:+.2f}%")
+    with p_col4:
+        p30 = s_proj.get("pred_30m", curr_p)
+        st.metric("30-Min Projected", f"${p30:.2f}", f"{((p30/curr_p)-1)*100:+.2f}%")
+    with p_col5:
+        p1h = s_proj.get("pred_1h", curr_p)
+        st.metric("1-Hour Projected", f"${p1h:.2f}", f"{((p1h/curr_p)-1)*100:+.2f}%")
+
+    # Forward Curve Visualization
+    strip = s_telem.get("forward_curve_strip", [])
+    if strip:
+        curve_months = [item["month"] for item in strip]
+        curve_prices = [item["price"] for item in strip]
+
+        curve_fig = go.Figure()
+        curve_fig.add_trace(go.Scatter(
+            x=curve_months,
+            y=curve_prices,
+            mode='lines+markers',
+            name="Physical Futures Forward Curve",
+            line=dict(color='#ff9f1c', width=3),
+            marker=dict(size=8)
+        ))
+        curve_fig.add_trace(go.Scatter(
+            x=["Model 1h Forward"],
+            y=[p1h],
+            mode='markers',
+            name="Jev System One (1h Projection)",
+            marker=dict(size=12, color='#00ff88', symbol='star')
+        ))
+        curve_fig.update_layout(
+            title=f"Brent Forward Curve Term Structure ({s_e.get('forward_curve_structure', 'Inverted / Steep Backwardation')})",
+            height=320,
+            margin=dict(l=20, r=20, t=40, b=20),
+            template="plotly_dark",
+            yaxis_title="Price ($/bbl)"
+        )
+        st.plotly_chart(curve_fig, use_container_width=True)
+else:
+    st.info("Loading real-time shipping telemetry from `Oil_Tanker_Traffic_AntiGravity`...")
 
 if auto_refresh:
     import time

@@ -325,6 +325,21 @@ except Exception as _e_macro:
     def generate_macro_full_signals(df_eq, df_tnx, df_brent, df_wti, equity_name="S&P 500 (SPX)", all_dfs=None, loop_feedback=None):
         return generate_multi_horizon_signals(df_eq, asset_name=equity_name, loop_feedback=loop_feedback)
 
+try:
+    from maritime_brent_momentum import (
+        generate_maritime_brent_signals,
+        get_live_shipping_telemetry,
+        compute_maritime_physical_supply_index
+    )
+except Exception as _e_maritime:
+    print(f"Warning importing maritime_brent_momentum: {_e_maritime}")
+    def generate_maritime_brent_signals(df_brent, wti_df=None, loop_feedback=None):
+        return generate_multi_horizon_signals(df_brent, asset_name="Brent Crude (BRENT)", loop_feedback=loop_feedback)
+    def get_live_shipping_telemetry():
+        return {}
+    def compute_maritime_physical_supply_index(telemetry):
+        return {"z_maritime": 0.0, "regime": "EQUILIBRIUM_MARITIME_FLOW", "bias": "NEUTRAL_FLOW"}
+
 
 def format_horizon_badge(action_str: str):
     if "LONG" in action_str or "BUY" in action_str:
@@ -401,6 +416,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         mh_sigs = mh_data["signals"]
     elif is_equity and model_variant == "macro_full" and has_macro and "Brent Crude (BRENT)" in macro_dfs and "WTI Crude (WTI)" in macro_dfs:
         mh_data = generate_macro_full_signals(df, macro_dfs["10Y Treasury (TNX)"], macro_dfs["Brent Crude (BRENT)"], macro_dfs["WTI Crude (WTI)"], equity_name=name, all_dfs=macro_dfs, loop_feedback=loop_feedback)
+        mh_sigs = mh_data["signals"]
+    elif name == "Brent Crude (BRENT)":
+        wti_df = macro_dfs.get("WTI Crude (WTI)") if macro_dfs else None
+        mh_data = generate_maritime_brent_signals(df, wti_df=wti_df, loop_feedback=loop_feedback)
         mh_sigs = mh_data["signals"]
     else:
         mh_data = generate_multi_horizon_signals(df, asset_name=name, tv_rating_score=tv_rating_score, loop_feedback=loop_feedback)
@@ -533,7 +552,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
                 "badge_class": badge_30m,
                 "color": color_30m
             }
-        }
+        },
+        "maritime_supply_index": mh_sigs.get("maritime_supply_index"),
+        "forward_projections": mh_sigs.get("forward_projections"),
+        "shipping_telemetry": mh_data.get("telemetry")
     }
 
 def generate_insights(results):
@@ -569,6 +591,14 @@ def generate_insights(results):
             insights.append({"type": "warn", "text": f"🛢️ Crude Energy Surge: WTI (${wti['price']:.2f}) & Brent (${brent['price']:.2f}) accelerating higher. Brent-WTI Spread: ${spread:.2f}."})
         elif brent["ret_6"] < -0.20 and wti["ret_6"] < -0.20:
             insights.append({"type": "bull", "text": f"🌊 Deflationary Energy Relief: Crude oil pulling back (WTI {wti['ret_6']:+.2f}%, Brent {brent['ret_6']:+.2f}%), easing macro pressure."})
+        
+        mpsi = brent.get("maritime_supply_index")
+        if mpsi:
+            z_m = mpsi.get("z_maritime", 0.0)
+            if z_m >= 1.5:
+                insights.append({"type": "warn", "text": f"🚢 Maritime Chokepoint Tightness (MPSI: {z_m:+.2f}σ): Strait of Hormuz dark fleet transits & Bab El-Mandeb Cape delays pinning prompt Brent into backwardation."})
+            elif z_m <= -1.0:
+                insights.append({"type": "bull", "text": f"🚢 Maritime Flow Normalization (MPSI: {z_m:+.2f}σ): Global tanker traffic bottlenecks easing, dampening physical delivery premiums."})
 
     return insights
 
@@ -1106,3 +1136,25 @@ async def tradingview_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Invalid JSON body")
         
     return {"status": "received", "data": body}
+
+
+@app.get("/api/maritime-brent")
+def get_maritime_brent_endpoint():
+    """
+    Dedicated endpoint returning real-time shipping telemetry,
+    Maritime Physical Supply Index (MPSI), and Brent forward estimation projections.
+    """
+    try:
+        telemetry = get_live_shipping_telemetry()
+        mpsi = compute_maritime_physical_supply_index(telemetry)
+        return {
+            "status": "success",
+            "asset": "Brent Crude (BRENT)",
+            "telemetry": telemetry,
+            "mpsi": mpsi,
+            "forward_curve_structure": telemetry.get("energy_state", {}).get("forward_curve_structure", "Inverted / Backwardation"),
+            "prompt_to_m6_spread": telemetry.get("energy_state", {}).get("prompt_to_m6_spread", "N/A"),
+            "forward_curve_strip": telemetry.get("forward_curve_strip", [])
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

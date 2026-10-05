@@ -1111,6 +1111,20 @@
             <span class="val">$${vwapFormatted} (${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)}σ)</span>
           </div>
 
+          ${sig.maritime_supply_index ? `
+            <div style="background: rgba(0, 200, 255, 0.1); border: 1px solid rgba(0, 200, 255, 0.3); border-radius: 6px; padding: 6px 10px; margin-top: 8px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: #38bdf8; font-weight: 700;">🚢 Maritime AIS (MPSI)</span>
+              <span class="mono" style="color: #fff; font-weight: 800;">${sig.maritime_supply_index.z_maritime >= 0 ? '+' : ''}${sig.maritime_supply_index.z_maritime.toFixed(2)}σ</span>
+            </div>
+            ${sig.forward_projections ? `
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between;">
+              <span>10m: <strong style="color:#fff;">$${sig.forward_projections.pred_10m.toFixed(2)}</strong></span>
+              <span>30m: <strong style="color:#fff;">$${sig.forward_projections.pred_30m.toFixed(2)}</strong></span>
+              <span>1h: <strong style="color:#fff;">$${sig.forward_projections.pred_1h.toFixed(2)}</strong></span>
+            </div>
+            ` : ''}
+          ` : ''}
+
           <div class="card-footer-info">
             <span>📡 100% TradingView CFD</span>
             <span>⚡ Jev System One</span>
