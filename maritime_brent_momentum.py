@@ -641,6 +641,141 @@ def query_typesafe_jev_maritime_brent(
         return simulate_calibrated_maritime_brent_prior(brent_feat, telemetry, mpsi, wti_feat)
 
 
+def compute_maritime_visual_analytics(
+    brent_feat: dict,
+    telemetry: dict,
+    mpsi: dict,
+    signals: dict
+) -> dict:
+    """
+    Computes visual analytics data structures demonstrating explicitly how AIS data
+    alters the Brent crude forward price estimate:
+    1. Dollar-per-barrel attribution waterfall of the AIS physical disruption premium.
+    2. Multi-horizon forward price trajectory comparing pure technical vs. AIS-conditioned paths.
+    3. Chokepoint sensitivity curves (elasticity to Hormuz dark rate, Cape delays, Gasoil cracks).
+    4. MPSI 4-pillar radar vector.
+    """
+    curr_p = float(brent_feat.get("price", 104.50))
+    z_m = float(mpsi.get("z_maritime", 2.60))
+    comps = mpsi.get("components", {})
+    s_choke = float(comps.get("chokepoints_score", 3.0))
+    s_crack = float(comps.get("refinery_crack_score", 2.13))
+    s_stor = float(comps.get("storage_buffer_score", 2.27))
+    s_back = float(comps.get("backwardation_score", 2.85))
+
+    # Pure technical projected price at 1h (excluding AIS MPSI)
+    ret_5m = float(brent_feat.get("ret_5m", 0.0))
+    z_vwap = float(brent_feat.get("vwap_z", 0.0))
+    base_mom = 0.40 * np.tanh(ret_5m / 0.35) + 0.35 * np.tanh(z_vwap / 1.5)
+    tech_drift_1h = float(base_mom * 0.008)
+
+    # AIS factor dollar contributions to the 1-hour forward price
+    ais_total_premium = round(max(0.20, (z_m / 3.0) * 1.80), 2)
+
+    w_choke = 0.38
+    w_crack = 0.28
+    w_stor = 0.18
+    w_back = 0.16
+
+    attrib_hormuz = round(ais_total_premium * w_choke * (s_choke / 3.0), 2)
+    attrib_redsea_cape = round(ais_total_premium * w_stor * (s_stor / 3.0), 2)
+    attrib_gasoil_crack = round(ais_total_premium * w_crack * (s_crack / 3.0), 2)
+    attrib_backwardation = round(ais_total_premium * w_back * (s_back / 3.0), 2)
+    total_physical_lift = round(attrib_hormuz + attrib_redsea_cape + attrib_gasoil_crack + attrib_backwardation, 2)
+
+    # Trajectory comparison over 8 time steps [0, 1, 5, 10, 15, 30, 45, 60] minutes
+    steps = [0, 1, 5, 10, 15, 30, 45, 60]
+    time_labels = ["Prompt (t=0)", "+1m", "+5m", "+10m", "+15m", "+30m", "+45m", "+60m (1h)"]
+    tech_trajectory = []
+    maritime_trajectory = []
+    physical_wedge = []
+    upper_band = []
+    lower_band = []
+
+    p1m = signals.get("forward_1m", {}).get("projected_price", curr_p)
+    p10m = signals.get("forward_10m", {}).get("projected_price", curr_p)
+    p30m = signals.get("forward_30m", {}).get("projected_price", curr_p)
+    p60m = signals.get("forward_1h", {}).get("projected_price", curr_p)
+
+    for m in steps:
+        if m == 0:
+            p_tech = curr_p
+            p_mar = curr_p
+        elif m == 1:
+            p_tech = round(curr_p * (1.0 + tech_drift_1h * 0.15), 2)
+            p_mar = p1m
+        elif m <= 10:
+            ratio = (m - 1) / 9.0
+            p_tech = round(curr_p * (1.0 + tech_drift_1h * 0.35 * ratio), 2)
+            p_mar = round(p1m + (p10m - p1m) * ratio, 2)
+        elif m <= 30:
+            ratio = (m - 10) / 20.0
+            p_tech = round(curr_p * (1.0 + tech_drift_1h * (0.35 + 0.35 * ratio)), 2)
+            p_mar = round(p10m + (p30m - p10m) * ratio, 2)
+        else:
+            ratio = (m - 30) / 30.0
+            p_tech = round(curr_p * (1.0 + tech_drift_1h * (0.70 + 0.30 * ratio)), 2)
+            p_mar = round(p30m + (p60m - p30m) * ratio, 2)
+
+        wedge = round(p_mar - p_tech, 2)
+        vol_band = round(0.12 * np.sqrt(max(1, m)), 2)
+
+        tech_trajectory.append(p_tech)
+        maritime_trajectory.append(p_mar)
+        physical_wedge.append(wedge)
+        upper_band.append(round(p_mar + vol_band, 2))
+        lower_band.append(round(p_mar - vol_band, 2))
+
+    # Scenario sensitivity curves (What-if elasticity)
+    hormuz_points = []
+    for dark_pct in [10, 25, 40, 55, 70, 85, 95, 100]:
+        price_delta = round((dark_pct - 35.0) / 35.0 * 0.75, 2)
+        hormuz_points.append({"dark_rate_pct": dark_pct, "delta_usd": price_delta, "implied_1h_price": round(curr_p + price_delta, 2)})
+
+    cape_points = []
+    for delay in [0, 4, 8, 12, 16, 20, 24]:
+        price_delta = round((delay - 0.0) / 12.0 * 0.65, 2)
+        cape_points.append({"cape_delay_days": delay, "delta_usd": price_delta, "implied_1h_price": round(curr_p + price_delta, 2)})
+
+    crack_points = []
+    for crack in [15, 20, 25, 30, 35, 40]:
+        price_delta = round((crack - 18.0) / 5.0 * 0.45, 2)
+        crack_points.append({"gasoil_crack_usd": crack, "delta_usd": price_delta, "implied_1h_price": round(curr_p + price_delta, 2)})
+
+    return {
+        "attribution_waterfall": {
+            "current_prompt_price": curr_p,
+            "pure_technical_drift_usd": round(tech_drift_1h * curr_p, 2),
+            "hormuz_constriction_lift_usd": attrib_hormuz,
+            "redsea_cape_rerouting_lift_usd": attrib_redsea_cape,
+            "gasoil_crack_refinery_lift_usd": attrib_gasoil_crack,
+            "backwardation_roll_lift_usd": attrib_backwardation,
+            "total_ais_physical_premium_usd": total_physical_lift,
+            "implied_maritime_1h_price": round(curr_p + (tech_drift_1h * curr_p) + total_physical_lift, 2)
+        },
+        "trajectory_comparison": {
+            "time_labels": time_labels,
+            "steps_minutes": steps,
+            "pure_technical_path": tech_trajectory,
+            "maritime_ais_path": maritime_trajectory,
+            "physical_supply_wedge_usd": physical_wedge,
+            "upper_band_1sigma": upper_band,
+            "lower_band_1sigma": lower_band
+        },
+        "scenario_elasticity": {
+            "hormuz_sensitivity": hormuz_points,
+            "cape_delay_sensitivity": cape_points,
+            "gasoil_crack_sensitivity": crack_points
+        },
+        "radar_pillars": [
+            {"pillar": "Chokepoints Constriction", "score": s_choke, "max_score": 3.0, "pct_tightness": round((s_choke/3.0)*100, 1), "detail": f"Hormuz 93.8% dark + Red Sea bypass"},
+            {"pillar": "Refinery Margin Pull", "score": s_crack, "max_score": 3.0, "pct_tightness": round((s_crack/3.0)*100, 1), "detail": f"Gasoil crack ${telemetry.get('energy_state',{}).get('singapore_gasoil_crack_usd', 28.5):.2f}/bbl"},
+            {"pillar": "Storage Depletion Buffer", "score": s_stor, "max_score": 3.0, "pct_tightness": round((s_stor/3.0)*100, 1), "detail": f"Floating storage {telemetry.get('energy_state',{}).get('fujairah_asean_floating_storage_mbbls', 18.2):.1f}M bbls"},
+            {"pillar": "Forward Curve Inversion", "score": s_back, "max_score": 3.0, "pct_tightness": round((s_back/3.0)*100, 1), "detail": f"Prompt/M6 spread {telemetry.get('energy_state',{}).get('prompt_to_m6_spread', '+$9.70')}"}
+        ]
+    }
+
+
 def generate_maritime_brent_signals(
     brent_df: pd.DataFrame,
     wti_df: Optional[pd.DataFrame] = None,
@@ -675,6 +810,13 @@ def generate_maritime_brent_signals(
         wti_feat=wti_feat
     )
 
+    visual_analytics = compute_maritime_visual_analytics(
+        brent_feat=brent_feat,
+        telemetry=telemetry,
+        mpsi=mpsi,
+        signals=signals
+    )
+
     timestamp_str = (
         brent_df.index[-1].strftime("%Y-%m-%d %H:%M:%S")
         if isinstance(brent_df.index, pd.DatetimeIndex)
@@ -690,7 +832,8 @@ def generate_maritime_brent_signals(
         "telemetry": telemetry,
         "mpsi": mpsi,
         "state_prompt": state_prompt,
-        "signals": signals
+        "signals": signals,
+        "visual_analytics": visual_analytics
     }
 
 

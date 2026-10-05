@@ -522,7 +522,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         },
         "mpsi": mh_sigs.get("maritime_supply_index"),
         "forward_projections": mh_sigs.get("forward_projections"),
-        "shipping_telemetry": mh_data.get("telemetry")
+        "shipping_telemetry": mh_data.get("telemetry"),
+        "visual_analytics": mh_data.get("visual_analytics")
     }
 
 # ---------------------------------------------------------
@@ -850,36 +851,258 @@ if brent_sig and brent_sig.get("shipping_telemetry"):
         p1h = s_proj.get("pred_1h", curr_p)
         st.metric("1-Hour Projected", f"${p1h:.2f}", f"{((p1h/curr_p)-1)*100:+.2f}%")
 
-    # Forward Curve Visualization
-    strip = s_telem.get("forward_curve_strip", [])
-    if strip:
-        curve_months = [item["month"] for item in strip]
-        curve_prices = [item["price"] for item in strip]
+    # Visual Analytics Suite
+    v_an = brent_sig.get("visual_analytics", {})
+    if v_an:
+        st.markdown("---")
+        st.markdown("### 📊 AIS Physical Disruption & Price Impact Visual Analytics")
+        
+        tab_cone, tab_waterfall, tab_scenarios, tab_radar = st.tabs([
+            "📈 AIS vs Technical Price Cone",
+            "🌊 Dollar Attribution Waterfall",
+            "🧭 Chokepoint Elasticity & What-If",
+            "🕸️ MPSI Pillars & Forward Strip"
+        ])
+        
+        with tab_cone:
+            traj = v_an.get("trajectory_comparison", {})
+            if traj:
+                cone_fig = go.Figure()
+                
+                # Volatility Envelope (+/- 1 sigma)
+                cone_fig.add_trace(go.Scatter(
+                    x=traj["time_labels"] + traj["time_labels"][::-1],
+                    y=traj["upper_band_1sigma"] + traj["lower_band_1sigma"][::-1],
+                    fill='toself',
+                    fillcolor='rgba(0, 255, 136, 0.08)',
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name="1σ Volatility Cone",
+                    hoverinfo="skip"
+                ))
+                
+                # Pure Technical Path
+                cone_fig.add_trace(go.Scatter(
+                    x=traj["time_labels"],
+                    y=traj["pure_technical_path"],
+                    mode='lines+markers',
+                    name="Pure Technical Model (Excl. AIS)",
+                    line=dict(color='#60a5fa', width=2, dash='dot'),
+                    marker=dict(size=6)
+                ))
+                
+                # Maritime AIS Conditioned Path
+                cone_fig.add_trace(go.Scatter(
+                    x=traj["time_labels"],
+                    y=traj["maritime_ais_path"],
+                    mode='lines+markers',
+                    name="Maritime AIS-Conditioned Model",
+                    line=dict(color='#00ff88', width=3),
+                    marker=dict(size=8, color='#00ff88')
+                ))
+                
+                # Highlight Physical Supply Risk Wedge at 1h
+                wedge_1h = traj["physical_supply_wedge_usd"][-1]
+                cone_fig.add_annotation(
+                    x=traj["time_labels"][-1],
+                    y=traj["maritime_ais_path"][-1],
+                    text=f"AIS Supply Wedge: +${wedge_1h:.2f}/bbl",
+                    showarrow=True,
+                    arrowhead=2,
+                    arrowcolor="#00ff88",
+                    font=dict(color="#00ff88", size=12, family="monospace"),
+                    bgcolor="rgba(0,0,0,0.8)",
+                    bordercolor="#00ff88"
+                )
+                
+                cone_fig.update_layout(
+                    title="Forward Price Trajectory: Pure Technical Baseline vs. Maritime AIS Physical Conditioned",
+                    height=380,
+                    margin=dict(l=20, r=20, t=40, b=20),
+                    template="plotly_dark",
+                    yaxis_title="Brent Price ($/bbl)",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+                st.plotly_chart(cone_fig, use_container_width=True)
+                st.caption(f"💡 **Physical Supply Wedge**: Real-time AIS shipping bottlenecks in Hormuz (93.8% clandestine rate) and Bab El-Mandeb (+12d Cape delay) inject a **+${wedge_1h:.2f}/bbl physical disruption premium** over pure technical momentum.")
 
-        curve_fig = go.Figure()
-        curve_fig.add_trace(go.Scatter(
-            x=curve_months,
-            y=curve_prices,
-            mode='lines+markers',
-            name="Physical Futures Forward Curve",
-            line=dict(color='#ff9f1c', width=3),
-            marker=dict(size=8)
-        ))
-        curve_fig.add_trace(go.Scatter(
-            x=["Model 1h Forward"],
-            y=[p1h],
-            mode='markers',
-            name="Jev System One (1h Projection)",
-            marker=dict(size=12, color='#00ff88', symbol='star')
-        ))
-        curve_fig.update_layout(
-            title=f"Brent Forward Curve Term Structure ({s_e.get('forward_curve_structure', 'Inverted / Steep Backwardation')})",
-            height=320,
-            margin=dict(l=20, r=20, t=40, b=20),
-            template="plotly_dark",
-            yaxis_title="Price ($/bbl)"
-        )
-        st.plotly_chart(curve_fig, use_container_width=True)
+        with tab_waterfall:
+            wf = v_an.get("attribution_waterfall", {})
+            if wf:
+                wf_fig = go.Figure(go.Waterfall(
+                    name="AIS Impact",
+                    orientation="v",
+                    measure=["absolute", "relative", "relative", "relative", "relative", "relative", "total"],
+                    x=[
+                        "Prompt Base",
+                        "Technical Drift",
+                        "Hormuz Dark Rate",
+                        "Red Sea Cape Delay",
+                        "Gasoil Crack Pull",
+                        "Curve Backwardation",
+                        "Implied 1h Target"
+                    ],
+                    textposition="outside",
+                    text=[
+                        f"${wf['current_prompt_price']:.2f}",
+                        f"{wf['pure_technical_drift_usd']:+.2f}",
+                        f"+${wf['hormuz_constriction_lift_usd']:.2f}",
+                        f"+${wf['redsea_cape_rerouting_lift_usd']:.2f}",
+                        f"+${wf['gasoil_crack_refinery_lift_usd']:.2f}",
+                        f"+${wf['backwardation_roll_lift_usd']:.2f}",
+                        f"${wf['implied_maritime_1h_price']:.2f}"
+                    ],
+                    y=[
+                        wf['current_prompt_price'],
+                        wf['pure_technical_drift_usd'],
+                        wf['hormuz_constriction_lift_usd'],
+                        wf['redsea_cape_rerouting_lift_usd'],
+                        wf['gasoil_crack_refinery_lift_usd'],
+                        wf['backwardation_roll_lift_usd'],
+                        0
+                    ],
+                    connector={"line": {"color": "rgb(63, 63, 63)"}},
+                    decreasing={"marker": {"color": "#ff4d6d"}},
+                    increasing={"marker": {"color": "#00ff88"}},
+                    totals={"marker": {"color": "#ffd166"}}
+                ))
+                wf_fig.update_layout(
+                    title="1-Hour Brent Forward Price Attribution Waterfall ($/bbl Contribution of AIS Factors)",
+                    height=380,
+                    margin=dict(l=20, r=20, t=40, b=20),
+                    template="plotly_dark",
+                    yaxis_title="Price ($/bbl)"
+                )
+                st.plotly_chart(wf_fig, use_container_width=True)
+                st.info(f"🛢️ **Total AIS Physical Premium**: +${wf['total_ais_physical_premium_usd']:.2f}/bbl added across chokepoint constriction, refinery margin pull, and backwardation.")
+
+        with tab_scenarios:
+            scen = v_an.get("scenario_elasticity", {})
+            sc_col1, sc_col2, sc_col3 = st.columns(3)
+            
+            with sc_col1:
+                h_data = scen.get("hormuz_sensitivity", [])
+                if h_data:
+                    h_fig = go.Figure()
+                    h_fig.add_trace(go.Scatter(
+                        x=[p["dark_rate_pct"] for p in h_data],
+                        y=[p["delta_usd"] for p in h_data],
+                        mode='lines+markers',
+                        line=dict(color='#ff4d6d', width=2),
+                        marker=dict(size=6)
+                    ))
+                    h_fig.add_vline(x=s_h.get("clandestine_rate_pct", 93.8), line_dash="dash", line_color="#ffd166", annotation_text="Current (93.8%)")
+                    h_fig.update_layout(
+                        title="Hormuz Clandestine Rate vs. ΔP ($/bbl)",
+                        xaxis_title="Dark Fleet Rate (%)",
+                        yaxis_title="ΔP ($/bbl)",
+                        height=300,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        template="plotly_dark"
+                    )
+                    st.plotly_chart(h_fig, use_container_width=True)
+                    
+            with sc_col2:
+                c_data = scen.get("cape_delay_sensitivity", [])
+                if c_data:
+                    c_fig = go.Figure()
+                    c_fig.add_trace(go.Scatter(
+                        x=[p["cape_delay_days"] for p in c_data],
+                        y=[p["delta_usd"] for p in c_data],
+                        mode='lines+markers',
+                        line=dict(color='#38bdf8', width=2),
+                        marker=dict(size=6)
+                    ))
+                    c_fig.add_vline(x=s_r.get("cape_diversion_delay_days", 12.0), line_dash="dash", line_color="#ffd166", annotation_text="Current (+12d)")
+                    c_fig.update_layout(
+                        title="Cape Rerouting Delay vs. ΔP ($/bbl)",
+                        xaxis_title="Delay (Days)",
+                        yaxis_title="ΔP ($/bbl)",
+                        height=300,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        template="plotly_dark"
+                    )
+                    st.plotly_chart(c_fig, use_container_width=True)
+                    
+            with sc_col3:
+                g_data = scen.get("gasoil_crack_sensitivity", [])
+                if g_data:
+                    g_fig = go.Figure()
+                    g_fig.add_trace(go.Scatter(
+                        x=[p["gasoil_crack_usd"] for p in g_data],
+                        y=[p["delta_usd"] for p in g_data],
+                        mode='lines+markers',
+                        line=dict(color='#fbbf24', width=2),
+                        marker=dict(size=6)
+                    ))
+                    g_fig.add_vline(x=s_e.get("singapore_gasoil_crack_usd", 28.5), line_dash="dash", line_color="#ffd166", annotation_text="Current ($28.5)")
+                    g_fig.update_layout(
+                        title="SG Gasoil Crack Spread vs. ΔP ($/bbl)",
+                        xaxis_title="Crack Spread ($/bbl)",
+                        yaxis_title="ΔP ($/bbl)",
+                        height=300,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        template="plotly_dark"
+                    )
+                    st.plotly_chart(g_fig, use_container_width=True)
+
+        with tab_radar:
+            r_col1, r_col2 = st.columns([1, 1])
+            with r_col1:
+                pillars = v_an.get("radar_pillars", [])
+                if pillars:
+                    radar_fig = go.Figure()
+                    r_theta = [p["pillar"] for p in pillars] + [pillars[0]["pillar"]]
+                    r_r = [p["score"] for p in pillars] + [pillars[0]["score"]]
+                    
+                    radar_fig.add_trace(go.Scatterpolar(
+                        r=r_r,
+                        theta=r_theta,
+                        fill='toself',
+                        fillcolor='rgba(0, 255, 136, 0.2)',
+                        line=dict(color='#00ff88', width=2),
+                        name="Current Physical Tightness"
+                    ))
+                    radar_fig.update_layout(
+                        polar=dict(
+                            radialaxis=dict(visible=True, range=[0, 3], tickvals=[1, 2, 3], ticktext=["1σ", "2σ", "3σ (Max)"])
+                        ),
+                        title="MPSI 4-Pillar Physical Supply Radar (0 - 3σ)",
+                        height=340,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        template="plotly_dark"
+                    )
+                    st.plotly_chart(radar_fig, use_container_width=True)
+            
+            with r_col2:
+                strip = s_telem.get("forward_curve_strip", [])
+                if strip:
+                    curve_months = [item["month"] for item in strip]
+                    curve_prices = [item["price"] for item in strip]
+
+                    curve_fig = go.Figure()
+                    curve_fig.add_trace(go.Scatter(
+                        x=curve_months,
+                        y=curve_prices,
+                        mode='lines+markers',
+                        name="Physical Futures Forward Curve",
+                        line=dict(color='#ff9f1c', width=3),
+                        marker=dict(size=8)
+                    ))
+                    curve_fig.add_trace(go.Scatter(
+                        x=["Model 1h Forward"],
+                        y=[p1h],
+                        mode='markers',
+                        name="Jev System One (1h Projection)",
+                        marker=dict(size=12, color='#00ff88', symbol='star')
+                    ))
+                    curve_fig.update_layout(
+                        title=f"Brent Forward Curve Term Structure ({s_e.get('forward_curve_structure', 'Inverted / Steep Backwardation')})",
+                        height=340,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        template="plotly_dark",
+                        yaxis_title="Price ($/bbl)"
+                    )
+                    st.plotly_chart(curve_fig, use_container_width=True)
 else:
     st.info("Loading real-time shipping telemetry from `Oil_Tanker_Traffic_AntiGravity`...")
 

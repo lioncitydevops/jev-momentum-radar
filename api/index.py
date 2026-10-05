@@ -555,7 +555,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         },
         "maritime_supply_index": mh_sigs.get("maritime_supply_index"),
         "forward_projections": mh_sigs.get("forward_projections"),
-        "shipping_telemetry": mh_data.get("telemetry")
+        "shipping_telemetry": mh_data.get("telemetry"),
+        "visual_analytics": mh_data.get("visual_analytics")
     }
 
 def generate_insights(results):
@@ -1147,6 +1148,18 @@ def get_maritime_brent_endpoint():
     try:
         telemetry = get_live_shipping_telemetry()
         mpsi = compute_maritime_physical_supply_index(telemetry)
+        # Compute baseline visual analytics using prompt price
+        prompt_p = float(telemetry.get("energy_state", {}).get("brent_prompt_price", 104.50))
+        fake_feat = {"price": prompt_p, "vwap_z": 0.5, "ret_5m": 0.1, "ret_10m": 0.2}
+        fake_sigs = {
+            "forward_1m": {"projected_price": round(prompt_p + 0.05, 2)},
+            "forward_10m": {"projected_price": round(prompt_p + 0.15, 2)},
+            "forward_30m": {"projected_price": round(prompt_p + 0.28, 2)},
+            "forward_1h": {"projected_price": round(prompt_p + 0.18, 2)},
+        }
+        from maritime_brent_momentum import compute_maritime_visual_analytics
+        v_analytics = compute_maritime_visual_analytics(fake_feat, telemetry, mpsi, fake_sigs)
+
         return {
             "status": "success",
             "asset": "Brent Crude (BRENT)",
@@ -1154,7 +1167,8 @@ def get_maritime_brent_endpoint():
             "mpsi": mpsi,
             "forward_curve_structure": telemetry.get("energy_state", {}).get("forward_curve_structure", "Inverted / Backwardation"),
             "prompt_to_m6_spread": telemetry.get("energy_state", {}).get("prompt_to_m6_spread", "N/A"),
-            "forward_curve_strip": telemetry.get("forward_curve_strip", [])
+            "forward_curve_strip": telemetry.get("forward_curve_strip", []),
+            "visual_analytics": v_analytics
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}

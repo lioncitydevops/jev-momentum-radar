@@ -741,12 +741,24 @@
     }
 
     /* Footer */
-    footer {
-      text-align: center;
-      font-size: 12px;
-      color: var(--text-muted);
-      padding: 20px 0;
-      border-top: 1px solid var(--border-subtle);
+    /* AIS Maritime Visual Analytics Section */
+    .ais-analytics-container {
+      background: linear-gradient(180deg, rgba(14, 27, 42, 0.7) 0%, rgba(8, 14, 24, 0.95) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 14px;
+      padding: 24px;
+      margin: 28px 0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    .ais-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 16px;
+    }
+    @media (max-width: 992px) {
+      .ais-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -827,6 +839,105 @@
           <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Fetching multi-horizon signals...</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- 🚢 Real-Time AIS Maritime Telemetry & Physical Brent Price Impact Visualizer -->
+    <div class="ais-analytics-container" id="ais-section">
+      <div class="cm-header-row">
+        <div class="cm-title-wrap">
+          <div class="cm-title">
+            <span>🚢</span> Real-Time AIS Maritime Telemetry & Brent Price Impact Visualizer
+          </div>
+          <div class="cm-subtitle">
+            Bridged from Oil_Tanker_Traffic_AntiGravity • Quantifying the Physical Disruption Premium on Brent Forward Pricing
+          </div>
+        </div>
+        <div class="cm-kpi-bar" id="ais-kpi-bar">
+          <div class="cm-kpi-chip">
+            <span class="chip-label">MPSI Index:</span>
+            <span class="chip-val" id="ais-kpi-mpsi" style="color:#38bdf8;">+2.61σ</span>
+          </div>
+          <div class="cm-kpi-chip">
+            <span class="chip-label">Hormuz Dark Rate:</span>
+            <span class="chip-val" id="ais-kpi-hormuz" style="color:var(--red-bear);">93.8%</span>
+          </div>
+          <div class="cm-kpi-chip">
+            <span class="chip-label">Cape Delay:</span>
+            <span class="chip-val" id="ais-kpi-delay" style="color:#fbbf24;">+12.0d</span>
+          </div>
+          <div class="cm-kpi-chip">
+            <span class="chip-label">SG Gasoil Crack:</span>
+            <span class="chip-val" id="ais-kpi-crack" style="color:var(--green-bull);">$28.51/bbl</span>
+          </div>
+          <div class="cm-kpi-chip">
+            <span class="chip-label">AIS Supply Wedge:</span>
+            <span class="chip-val" id="ais-kpi-wedge" style="color:var(--green-bull); font-weight:900;">+$1.35/bbl</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2-Column Analytics Grid: Trajectory Cone & Attribution Waterfall -->
+      <div class="ais-grid" style="margin-top:16px;">
+        <!-- Left: Interactive Trajectory SVG -->
+        <div class="ais-card" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="font-size:13px; font-weight:800; color:#fff;">📈 60-Minute Forward Price Trajectory & AIS Supply Wedge</span>
+            <span style="font-size:11px; color:#38bdf8; font-weight:600;">Technical vs. AIS-Conditioned</span>
+          </div>
+          <div id="ais-trajectory-chart" style="width:100%; height:200px; position:relative;">
+            <!-- Rendered by JS SVG -->
+          </div>
+          <div style="display:flex; justify-content:space-around; font-size:11px; color:var(--text-muted); margin-top:8px; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px;">
+            <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:2px; background:#60a5fa; border-top:1px dashed #60a5fa;"></span> Pure Technical Baseline</div>
+            <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:3px; background:#00ff88;"></span> Maritime AIS-Conditioned</div>
+            <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:8px; background:rgba(0,255,136,0.2); border:1px solid rgba(0,255,136,0.4);"></span> Physical Supply Wedge</div>
+          </div>
+        </div>
+
+        <!-- Right: Factor Attribution Waterfall -->
+        <div class="ais-card" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="font-size:13px; font-weight:800; color:#fff;">🌊 Factor $/bbl Price Attribution (1h Horizon)</span>
+            <span style="font-size:11px; color:var(--green-bull); font-weight:700;" id="ais-total-lift-badge">+1.84/bbl Lift</span>
+          </div>
+          <div id="ais-attribution-bars" style="display:flex; flex-direction:column; gap:10px;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Interactive What-If Scenario Simulators -->
+      <div style="margin-top:16px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px 18px;">
+        <div style="font-size:12px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">
+          🧭 Real-Time Chokepoint Elasticity & Scenario Simulator (What-If Analysis)
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:20px;">
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+              <span>Hormuz Clandestine Rate: <strong id="sim-hormuz-val" style="color:#ff4d6d;">93.8%</strong></span>
+              <span class="mono" id="sim-hormuz-delta" style="color:var(--green-bull); font-weight:700;">+$0.68/bbl</span>
+            </div>
+            <input type="range" min="10" max="100" value="94" id="sim-hormuz-range" oninput="updateScenarioSim()" style="width:100%; accent-color:#ff4d6d; cursor:pointer;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>10% (Open)</span><span>50%</span><span>100% (Crisis)</span></div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+              <span>Cape Diversion Delay: <strong id="sim-cape-val" style="color:#38bdf8;">12 Days</strong></span>
+              <span class="mono" id="sim-cape-delta" style="color:var(--green-bull); font-weight:700;">+$0.32/bbl</span>
+            </div>
+            <input type="range" min="0" max="24" value="12" id="sim-cape-range" oninput="updateScenarioSim()" style="width:100%; accent-color:#38bdf8; cursor:pointer;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>0d (Suez Clear)</span><span>12d (Current)</span><span>24d (Severe)</span></div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+              <span>SG Gasoil Crack Spread: <strong id="sim-crack-val" style="color:#fbbf24;">$28.5/bbl</strong></span>
+              <span class="mono" id="sim-crack-delta" style="color:var(--green-bull); font-weight:700;">+$0.50/bbl</span>
+            </div>
+            <input type="range" min="15" max="40" value="28" id="sim-crack-range" oninput="updateScenarioSim()" style="width:100%; accent-color:#fbbf24; cursor:pointer;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>$15 (Soft)</span><span>$28.5 (Current)</span><span>$40 (Spike)</span></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Live Multi-Horizon Confusion Matrix (Hits & Misses for 1m, 10m, 30m, 1h) -->
@@ -1450,6 +1561,118 @@
         clearInterval(autoRefreshInterval);
       }
     }
+
+    // Render AIS Visual Analytics
+    function renderAISAnalytics(brentSig) {
+      const vAn = brentSig.visual_analytics;
+      const mpsi = brentSig.maritime_supply_index;
+      const telem = brentSig.shipping_telemetry;
+      if (!vAn || !mpsi) return;
+
+      const zVal = mpsi.z_maritime || 2.61;
+      document.getElementById('ais-kpi-mpsi').innerText = `${zVal >= 0 ? '+' : ''}${zVal.toFixed(2)}σ`;
+      if (telem && telem.hormuz) {
+        document.getElementById('ais-kpi-hormuz').innerText = `${telem.hormuz.clandestine_rate_pct.toFixed(1)}%`;
+      }
+      if (telem && telem.redsea_bab_el_mandeb) {
+        document.getElementById('ais-kpi-delay').innerText = `+${telem.redsea_bab_el_mandeb.cape_diversion_delay_days.toFixed(0)}d`;
+      }
+      if (telem && telem.energy_state) {
+        document.getElementById('ais-kpi-crack').innerText = `$${telem.energy_state.singapore_gasoil_crack_usd.toFixed(2)}/bbl`;
+      }
+
+      // 1. Render Trajectory SVG
+      const traj = vAn.trajectory_comparison;
+      if (traj && traj.maritime_ais_path) {
+        const svgContainer = document.getElementById('ais-trajectory-chart');
+        const minP = Math.min(...traj.lower_band_1sigma, ...traj.pure_technical_path) - 0.10;
+        const maxP = Math.max(...traj.upper_band_1sigma, ...traj.maritime_ais_path) + 0.10;
+        const width = 500;
+        const height = 180;
+        const padX = 40;
+        const padY = 20;
+
+        const scaleX = (idx) => padX + (idx / (traj.steps_minutes.length - 1)) * (width - 2 * padX);
+        const scaleY = (p) => height - padY - ((p - minP) / (maxP - minP)) * (height - 2 * padY);
+
+        // Build path strings
+        let techPoints = traj.pure_technical_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ');
+        let marPoints = traj.maritime_ais_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ');
+
+        // Wedge polygon
+        let wedgePoly = traj.maritime_ais_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ') + ' ' +
+                        traj.pure_technical_path.slice().reverse().map((p, i) => `${scaleX(traj.steps_minutes.length - 1 - i)},${scaleY(p)}`).join(' ');
+
+        const wedge1h = traj.physical_supply_wedge_usd[traj.physical_supply_wedge_usd.length - 1];
+        document.getElementById('ais-kpi-wedge').innerText = `+$${wedge1h.toFixed(2)}/bbl`;
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:100%; overflow:visible;">
+            <polygon points="${wedgePoly}" fill="rgba(0, 255, 136, 0.18)" stroke="none" />
+            <polyline points="${techPoints}" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4,4" />
+            <polyline points="${marPoints}" fill="none" stroke="#00ff88" stroke-width="3" />
+            ${traj.steps_minutes.map((m, i) => `
+              <circle cx="${scaleX(i)}" cy="${scaleY(traj.maritime_ais_path[i])}" r="3" fill="#00ff88" />
+              <text x="${scaleX(i)}" y="${height - 4}" font-size="9" fill="#94a3b8" text-anchor="middle">${traj.time_labels[i]}</text>
+            `).join('')}
+            <text x="${scaleX(traj.steps_minutes.length - 1)}" y="${scaleY(traj.maritime_ais_path[traj.steps_minutes.length - 1]) - 10}" font-size="10" font-weight="700" fill="#00ff88" text-anchor="end">+$${wedge1h.toFixed(2)}/bbl AIS Wedge</text>
+          </svg>
+        `;
+      }
+
+      // 2. Render Attribution Bars
+      const wf = vAn.attribution_waterfall;
+      if (wf) {
+        document.getElementById('ais-total-lift-badge').innerText = `+$${wf.total_ais_physical_premium_usd.toFixed(2)}/bbl Lift`;
+        const barsContainer = document.getElementById('ais-attribution-bars');
+        const factors = [
+          { name: "Hormuz Clandestine Constriction", val: wf.hormuz_constriction_lift_usd, color: "#ff4d6d" },
+          { name: "Red Sea Cape Rerouting Lag", val: wf.redsea_cape_rerouting_lift_usd, color: "#38bdf8" },
+          { name: "Singapore Gasoil Crack Pull", val: wf.gasoil_crack_refinery_lift_usd, color: "#fbbf24" },
+          { name: "Futures Curve Backwardation Roll", val: wf.backwardation_roll_lift_usd, color: "#00ff88" },
+          { name: "Microstructure Trend Baseline", val: wf.pure_technical_drift_usd, color: "#94a3b8" }
+        ];
+
+        barsContainer.innerHTML = factors.map(f => `
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
+              <span style="color:#cbd5e1;">${f.name}</span>
+              <span class="mono" style="font-weight:700; color:${f.color};">${f.val >= 0 ? '+' : ''}$${f.val.toFixed(2)}/bbl</span>
+            </div>
+            <div style="background:rgba(255,255,255,0.08); height:6px; border-radius:3px; overflow:hidden;">
+              <div style="width:${Math.min(100, Math.max(5, (Math.abs(f.val) / 0.8) * 100))}%; height:100%; background:${f.color}; border-radius:3px;"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function updateScenarioSim() {
+      const hVal = parseFloat(document.getElementById('sim-hormuz-range').value);
+      const cVal = parseFloat(document.getElementById('sim-cape-range').value);
+      const crVal = parseFloat(document.getElementById('sim-crack-range').value);
+
+      document.getElementById('sim-hormuz-val').innerText = `${hVal}%`;
+      document.getElementById('sim-cape-val').innerText = `${cVal} Days`;
+      document.getElementById('sim-crack-val').innerText = `$${crVal}/bbl`;
+
+      const hDelta = ((hVal - 35.0) / 35.0) * 0.75;
+      const cDelta = ((cVal - 0.0) / 12.0) * 0.65;
+      const crDelta = ((crVal - 18.0) / 5.0) * 0.45;
+
+      document.getElementById('sim-hormuz-delta').innerText = `${hDelta >= 0 ? '+' : ''}$${hDelta.toFixed(2)}/bbl`;
+      document.getElementById('sim-cape-delta').innerText = `${cDelta >= 0 ? '+' : ''}$${cDelta.toFixed(2)}/bbl`;
+      document.getElementById('sim-crack-delta').innerText = `${crDelta >= 0 ? '+' : ''}$${crDelta.toFixed(2)}/bbl`;
+    }
+
+    // Call renderAISAnalytics inside renderDashboard
+    const origRenderDashboard = renderDashboard;
+    renderDashboard = function(data) {
+      origRenderDashboard(data);
+      if (data && data.results && data.results["Brent Crude (BRENT)"]) {
+        renderAISAnalytics(data.results["Brent Crude (BRENT)"]);
+      }
+    };
 
     // Initial load
     fetchRadarData();
