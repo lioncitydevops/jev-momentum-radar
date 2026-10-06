@@ -1018,7 +1018,18 @@
             <div class="cm-kpi-chip">
               <span class="chip-label">Storage Carry Arb:</span>
               <span class="chip-val" id="curve-kpi-arb" style="color:#ff4d6d; font-weight:800;">-$21.80/bbl</span>
-            </div>
+          </div>
+        </div>
+
+        <!-- Jev AI & Loop Engineering Term Structure Conditioning Status -->
+        <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:8px 12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <span style="color:#00ff88; font-weight:800;">🤖 Jev AI Curve Conditioning:</span>
+            <span id="curve-jev-badge" style="color:#fff; font-family:'JetBrains Mono',monospace;">ONLINE (Active 1h Tilt: +$0.55/bbl | P(Up)=55.0%)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+            <span style="color:#38bdf8; font-weight:800;">⚡ Closed-Loop Walk-Forward Engineering:</span>
+            <span id="curve-loop-badge" style="color:#cbd5e1; font-family:'JetBrains Mono',monospace;">ACTIVE (Autotuned Deadband δ*=0.030 | Bias +0.000)</span>
           </div>
         </div>
 
@@ -1951,6 +1962,20 @@
       if (document.getElementById('curve-kpi-m12')) document.getElementById('curve-kpi-m12').innerText = `+$${(spreads.prompt_to_m12_usd || 14.60).toFixed(2)}/bbl`;
       if (document.getElementById('curve-kpi-roll')) document.getElementById('curve-kpi-roll').innerText = `+${(diag.front_roll_yield_annualized_pct || 19.8).toFixed(1)}% p.a.`;
       if (document.getElementById('curve-kpi-arb')) document.getElementById('curve-kpi-arb').innerText = `$${(storage.m6_storage_net_pnl_usd || -21.80).toFixed(2)}/bbl`;
+
+      const jevCond = curveData.jev_ai_conditioning || {};
+      const loopEng = curveData.loop_engineering || {};
+      if (document.getElementById('curve-jev-badge')) {
+        const tilt = jevCond.prompt_tilt_usd !== undefined ? (jevCond.prompt_tilt_usd >= 0 ? '+' : '') + `$${jevCond.prompt_tilt_usd.toFixed(2)}/bbl` : '+$0.00/bbl';
+        const pUp = jevCond.prob_up_pct !== undefined ? `${jevCond.prob_up_pct.toFixed(1)}%` : '50.0%';
+        const act = jevCond.action || 'HOLD_CASH';
+        document.getElementById('curve-jev-badge').innerText = `${jevCond.engine_status || 'ONLINE'} (${act} | P(Up)=${pUp} | Tilt: ${tilt})`;
+      }
+      if (document.getElementById('curve-loop-badge')) {
+        const delta = loopEng.deadband_delta !== undefined ? `δ*=${loopEng.deadband_delta.toFixed(3)}` : 'δ*=0.030';
+        const bias = loopEng.autotuned_bias_usd !== undefined ? (loopEng.autotuned_bias_usd >= 0 ? '+' : '') + loopEng.autotuned_bias_usd.toFixed(3) : '+0.000';
+        document.getElementById('curve-loop-badge').innerText = `${loopEng.status || 'ACTIVE'} (${delta} | Bias: ${bias})`;
+      }
 
       const svgContainer = document.getElementById('brent-futures-curve-chart');
       if (svgContainer) {

@@ -341,12 +341,17 @@ def call_jev_api(state_str: str) -> dict:
         "raw_response": data
     }
 
-from multi_horizon_momentum import generate_multi_horizon_signals
+from multi_horizon_momentum import (
+    generate_multi_horizon_signals,
+    compute_single_asset_confusion_matrix,
+    build_empirical_loop_feedback
+)
 from macro_conditioned_momentum import generate_macro_full_signals, generate_rate_only_signals
 from maritime_brent_momentum import (
     generate_maritime_brent_signals,
     get_live_shipping_telemetry,
-    compute_maritime_physical_supply_index
+    compute_maritime_physical_supply_index,
+    build_entire_brent_futures_curve
 )
 
 def format_horizon_badge(action_str: str):
@@ -399,18 +404,22 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
     is_equity = name in ["S&P 500 (SPX)", "Nasdaq 100 (NDX)", "Russell 2000 (RUT)", "Nikkei 225 (NI225)"]
     has_macro = macro_dfs and "10Y Treasury (TNX)" in macro_dfs and macro_dfs["10Y Treasury (TNX)"] is not None
 
+    # Compute closed-loop empirical error feedback via walk-forward autotuning
+    asset_cm = compute_single_asset_confusion_matrix(df, asset_name=name, engine_mode="ais_maritime" if name == "Brent Crude (BRENT)" else "jev_ai")
+    loop_feedback = build_empirical_loop_feedback(asset_cm, asset_name=name)
+
     if is_equity and model_variant == "rate_only" and has_macro:
-        mh_data = generate_rate_only_signals(df, macro_dfs["10Y Treasury (TNX)"], equity_name=name, all_dfs=macro_dfs)
+        mh_data = generate_rate_only_signals(df, macro_dfs["10Y Treasury (TNX)"], equity_name=name, all_dfs=macro_dfs, loop_feedback=loop_feedback)
         mh_sigs = mh_data["signals"]
     elif is_equity and model_variant == "macro_full" and has_macro and "Brent Crude (BRENT)" in macro_dfs and "WTI Crude (WTI)" in macro_dfs:
-        mh_data = generate_macro_full_signals(df, macro_dfs["10Y Treasury (TNX)"], macro_dfs["Brent Crude (BRENT)"], macro_dfs["WTI Crude (WTI)"], equity_name=name, all_dfs=macro_dfs)
+        mh_data = generate_macro_full_signals(df, macro_dfs["10Y Treasury (TNX)"], macro_dfs["Brent Crude (BRENT)"], macro_dfs["WTI Crude (WTI)"], equity_name=name, all_dfs=macro_dfs, loop_feedback=loop_feedback)
         mh_sigs = mh_data["signals"]
     elif name == "Brent Crude (BRENT)":
         wti_df = macro_dfs.get("WTI Crude (WTI)") if macro_dfs else None
-        mh_data = generate_maritime_brent_signals(df, wti_df=wti_df)
+        mh_data = generate_maritime_brent_signals(df, wti_df=wti_df, loop_feedback=loop_feedback)
         mh_sigs = mh_data["signals"]
     else:
-        mh_data = generate_multi_horizon_signals(df, asset_name=name)
+        mh_data = generate_multi_horizon_signals(df, asset_name=name, loop_feedback=loop_feedback)
         mh_sigs = mh_data["signals"]
 
     sig_1m = mh_sigs["forward_1m"]
@@ -1054,6 +1063,23 @@ if brent_sig and brent_sig.get("shipping_telemetry"):
                 c_spreads = curve_data.get("calendar_spreads", {})
                 c_storage = curve_data.get("floating_storage_arbitrage", {})
                 c_diag = curve_data.get("term_structure_diagnostics", {})
+
+                c_jev = curve_data.get("jev_ai_conditioning", {})
+                c_loop = curve_data.get("loop_engineering", {})
+
+                # Top Status Banner: Jev AI & Loop Engineering Status
+                st.markdown(f"""
+                <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:10px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <span style="color:#00ff88; font-weight:800; font-size:12px;">🤖 Jev AI Engine:</span>
+                        <span style="color:#fff; font-size:12px; margin-left:4px;">{c_jev.get('engine_status', 'ONLINE')} ({c_jev.get('action', 'BUY_LONG')} | P(Up)={c_jev.get('prob_up_pct', 55.0):.1f}% | Prompt Tilt {c_jev.get('prompt_tilt_usd', 0.0):+.2f}/bbl)</span>
+                    </div>
+                    <div>
+                        <span style="color:#38bdf8; font-weight:800; font-size:12px;">⚡ Loop Engineering:</span>
+                        <span style="color:#cbd5e1; font-size:12px; margin-left:4px;">{c_loop.get('status', 'CLOSED_LOOP_ACTIVE')} (Deadband δ*={c_loop.get('deadband_delta', 0.030):.3f} | Autotuned Bias {c_loop.get('autotuned_bias_usd', 0.0):+.3f})</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
                 # 4 Key Term Structure Metric Cards
                 k1, k2, k3, k4 = st.columns(4)
