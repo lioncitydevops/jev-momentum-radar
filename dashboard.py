@@ -862,7 +862,7 @@ if brent_sig and brent_sig.get("shipping_telemetry"):
             "📈 AIS vs Technical Price Cone",
             "🌊 Dollar Attribution Waterfall",
             "🧭 Chokepoint Elasticity & What-If",
-            "🕸️ MPSI Pillars & Forward Strip",
+            "🕸️ Entire Brent Futures Curve & Term Structure",
             "🎯 AIS Efficacy Confusion Matrix"
         ])
         
@@ -1048,63 +1048,155 @@ if brent_sig and brent_sig.get("shipping_telemetry"):
                     st.plotly_chart(g_fig, use_container_width=True)
 
         with tab_radar:
-            r_col1, r_col2 = st.columns([1, 1])
-            with r_col1:
-                pillars = v_an.get("radar_pillars", [])
-                if pillars:
-                    radar_fig = go.Figure()
-                    r_theta = [p["pillar"] for p in pillars] + [pillars[0]["pillar"]]
-                    r_r = [p["score"] for p in pillars] + [pillars[0]["score"]]
-                    
-                    radar_fig.add_trace(go.Scatterpolar(
-                        r=r_r,
-                        theta=r_theta,
-                        fill='toself',
-                        fillcolor='rgba(0, 255, 136, 0.2)',
-                        line=dict(color='#00ff88', width=2),
-                        name="Current Physical Tightness"
-                    ))
-                    radar_fig.update_layout(
-                        polar=dict(
-                            radialaxis=dict(visible=True, range=[0, 3], tickvals=[1, 2, 3], ticktext=["1σ", "2σ", "3σ (Max)"])
-                        ),
-                        title="MPSI 4-Pillar Physical Supply Radar (0 - 3σ)",
-                        height=340,
-                        margin=dict(l=20, r=20, t=40, b=20),
-                        template="plotly_dark"
-                    )
-                    st.plotly_chart(radar_fig, use_container_width=True)
-            
-            with r_col2:
-                strip = s_telem.get("forward_curve_strip", [])
-                if strip:
-                    curve_months = [item["month"] for item in strip]
-                    curve_prices = [item["price"] for item in strip]
+            curve_data = v_an.get("entire_brent_futures_curve") or brent_sig.get("entire_brent_futures_curve", {})
+            if curve_data and "strip" in curve_data:
+                c_strip = curve_data["strip"]
+                c_spreads = curve_data.get("calendar_spreads", {})
+                c_storage = curve_data.get("floating_storage_arbitrage", {})
+                c_diag = curve_data.get("term_structure_diagnostics", {})
 
-                    curve_fig = go.Figure()
-                    curve_fig.add_trace(go.Scatter(
-                        x=curve_months,
-                        y=curve_prices,
-                        mode='lines+markers',
-                        name="Physical Futures Forward Curve",
-                        line=dict(color='#ff9f1c', width=3),
-                        marker=dict(size=8)
-                    ))
-                    curve_fig.add_trace(go.Scatter(
-                        x=["Model 1h Forward"],
-                        y=[p1h],
-                        mode='markers',
-                        name="Jev System One (1h Projection)",
-                        marker=dict(size=12, color='#00ff88', symbol='star')
-                    ))
-                    curve_fig.update_layout(
-                        title=f"Brent Forward Curve Term Structure ({s_e.get('forward_curve_structure', 'Inverted / Steep Backwardation')})",
-                        height=340,
-                        margin=dict(l=20, r=20, t=40, b=20),
-                        template="plotly_dark",
-                        yaxis_title="Price ($/bbl)"
+                # 4 Key Term Structure Metric Cards
+                k1, k2, k3, k4 = st.columns(4)
+                with k1:
+                    st.metric(
+                        label="Prompt Cash Spot (M0)",
+                        value=f"${curve_data.get('prompt_price', 104.59):.2f}",
+                        delta="Front Benchmark"
                     )
-                    st.plotly_chart(curve_fig, use_container_width=True)
+                with k2:
+                    st.metric(
+                        label="M0 to M1 Front Spread",
+                        value=f"+${c_spreads.get('prompt_to_m1_usd', 1.70):.2f}/bbl",
+                        delta="Prompt Tightness",
+                        delta_color="normal"
+                    )
+                with k3:
+                    st.metric(
+                        label="M0 to M6 Backwardation",
+                        value=f"+${c_spreads.get('prompt_to_m6_usd', 10.40):.2f}/bbl",
+                        delta=f"M0-M12: +${c_spreads.get('prompt_to_m12_usd', 14.60):.2f}",
+                        delta_color="normal"
+                    )
+                with k4:
+                    st.metric(
+                        label="Annualized Prompt Roll Yield",
+                        value=f"{c_diag.get('front_roll_yield_annualized_pct', 19.8):+.1f}% p.a.",
+                        delta="Long Roll Premium",
+                        delta_color="normal"
+                    )
+
+                # Interactive Entire Forward Curve Chart (Plotly)
+                st.markdown("##### 📈 Complete ICE Brent Futures Term Structure (M0 to M+36)")
+                c_labels = [c["label"] for c in c_strip]
+                c_prices = [c["price"] for c in c_strip]
+                c_prompts = [curve_data.get("prompt_price", 104.59)] * len(c_strip)
+
+                curve_fig = go.Figure()
+                # Shaded backwardation discount wedge
+                curve_fig.add_trace(go.Scatter(
+                    x=c_labels + c_labels[::-1],
+                    y=c_prices + c_prompts[::-1],
+                    fill='toself',
+                    fillcolor='rgba(255, 159, 28, 0.12)',
+                    line=dict(color='rgba(255,255,255,0)'),
+                    name="Physical Backwardation Wedge",
+                    hoverinfo="skip"
+                ))
+                # Prompt Cash Price Reference Line
+                curve_fig.add_trace(go.Scatter(
+                    x=c_labels,
+                    y=c_prompts,
+                    mode='lines',
+                    name="Prompt Spot Price Anchor",
+                    line=dict(color='rgba(255, 255, 255, 0.4)', dash='dash', width=1)
+                ))
+                # Entire Forward Curve
+                curve_fig.add_trace(go.Scatter(
+                    x=c_labels,
+                    y=c_prices,
+                    mode='lines+markers',
+                    name="Brent Futures Forward Strip (M0-M36)",
+                    line=dict(color='#ff9f1c', width=3),
+                    marker=dict(size=7, color='#ff9f1c'),
+                    text=[f"${p:.2f}" for p in c_prices],
+                    textposition="top right"
+                ))
+                # Jev 1h Forward Model Projection
+                curve_fig.add_trace(go.Scatter(
+                    x=["M0 (Prompt Spot)"],
+                    y=[p1h],
+                    mode='markers',
+                    name="Jev System One 1h Projection",
+                    marker=dict(size=14, color='#00ff88', symbol='star')
+                ))
+
+                curve_fig.update_layout(
+                    title="ICE Brent Crude Complete Futures Curve Term Structure (Inverted / Backwardation)",
+                    height=360,
+                    margin=dict(l=20, r=20, t=40, b=20),
+                    template="plotly_dark",
+                    yaxis_title="Futures Price ($/bbl)",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                )
+                st.plotly_chart(curve_fig, use_container_width=True)
+
+                # 2-Column Analytics: Left Radar, Right Floating Storage Arbitrage
+                r_col1, r_col2 = st.columns([1, 1])
+                with r_col1:
+                    pillars = v_an.get("radar_pillars", [])
+                    if pillars:
+                        radar_fig = go.Figure()
+                        r_theta = [p["pillar"] for p in pillars] + [pillars[0]["pillar"]]
+                        r_r = [p["score"] for p in pillars] + [pillars[0]["score"]]
+                        
+                        radar_fig.add_trace(go.Scatterpolar(
+                            r=r_r,
+                            theta=r_theta,
+                            fill='toself',
+                            fillcolor='rgba(0, 255, 136, 0.2)',
+                            line=dict(color='#00ff88', width=2),
+                            name="Physical Tightness"
+                        ))
+                        radar_fig.update_layout(
+                            polar=dict(
+                                radialaxis=dict(visible=True, range=[0, 3], tickvals=[1, 2, 3], ticktext=["1σ", "2σ", "3σ (Max)"])
+                            ),
+                            title="MPSI 4-Pillar Physical Supply Radar (0 - 3σ)",
+                            height=310,
+                            margin=dict(l=20, r=20, t=40, b=20),
+                            template="plotly_dark"
+                        )
+                        st.plotly_chart(radar_fig, use_container_width=True)
+
+                with r_col2:
+                    st.markdown("##### 🚢 Floating Storage Carry Arbitrage Economics")
+                    st.caption("Quantifying whether tanker hoarding is commercially viable vs. prompt delivery.")
+                    st.metric(
+                        label="6-Month Floating Storage Carry Arbitrage P&L",
+                        value=f"${c_storage.get('m6_storage_net_pnl_usd', -21.80):.2f}/bbl",
+                        delta="Negative Arbitrage (Storage Loss)",
+                        delta_color="inverse"
+                    )
+                    st.write(f"- **VLCC Charter Rate**: `${c_storage.get('vlcc_day_rate_usd', 85000):,.0f}/day` (`${c_storage.get('charter_cost_per_bbl_month', 1.29):.2f}/bbl/mo`)")
+                    st.write(f"- **Total Monthly Cost of Carry**: `${c_storage.get('cost_of_carry_per_bbl_month', 1.90):.2f}/bbl/mo` (Capital 5.25% + Insurance + Charter)")
+                    st.write(f"- **6-Month Cumulative Carry Cost**: `${c_storage.get('m6_carry_cost_total', 11.40):.2f}/bbl`")
+                    st.info(f"💡 **Physical Driver**: {c_storage.get('mechanism', 'Deep backwardation forces rapid physical tanker disgorgement.')}")
+
+                # Full Interactive Contracts Table
+                st.markdown("##### 📋 Complete Brent Futures Contract Strip (16 Forward Months)")
+                strip_df = pd.DataFrame(c_strip)
+                strip_df = strip_df.rename(columns={
+                    "code": "Contract",
+                    "label": "Delivery Month",
+                    "price": "Price ($/bbl)",
+                    "spread_to_prompt_usd": "Spread to Prompt ($/bbl)",
+                    "inter_month_spread_usd": "Inter-Month Spread ($)",
+                    "annualized_roll_yield_pct": "Annualized Roll Yield (%)",
+                    "description": "Classification"
+                })
+                st.dataframe(strip_df, use_container_width=True, hide_index=True)
+            else:
+                st.info("Loading Brent futures curve term structure...")
 
         with tab_confusion:
             ais_cm = v_an.get("ais_confusion_matrix") or brent_sig.get("ais_confusion_matrix", {})

@@ -864,6 +864,11 @@
           <div class="cm-subtitle">
             Bridged from Oil_Tanker_Traffic_AntiGravity • Quantifying the Physical Disruption Premium on Brent Forward Pricing
           </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+            <a href="#ais-trajectory-chart" style="text-decoration:none; background:rgba(0,255,136,0.12); border:1px solid rgba(0,255,136,0.3); color:#00ff88; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700;">📈 Price Trajectory Cone</a>
+            <a href="#brent-curve-section" style="text-decoration:none; background:rgba(255,159,28,0.15); border:1px solid rgba(255,159,28,0.4); color:#ff9f1c; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700;">🕸️ Entire Futures Curve (M0-M36)</a>
+            <a href="#ais-confusion-matrix-card" style="text-decoration:none; background:rgba(56,189,248,0.18); border:1px solid rgba(56,189,248,0.45); color:#38bdf8; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; box-shadow:0 0 10px rgba(56,189,248,0.2);">🎯 AIS Confusion Matrix</a>
+          </div>
         </div>
         <div class="cm-kpi-bar" id="ais-kpi-bar">
           <div class="cm-kpi-chip">
@@ -977,8 +982,110 @@
         </div>
       </div>
 
+      <!-- 🕸️ Entire ICE Brent Futures Curve Term Structure Explorer (M0 to M+36) -->
+      <div id="brent-curve-section" style="margin-top:16px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,159,28,0.3); border-radius:12px; padding:16px; box-shadow:0 0 16px rgba(255,159,28,0.08);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div>
+            <div style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+              <span>🕸️</span> Entire ICE Brent Futures Curve & Term Structure (M0 through M+36)
+              <span style="font-size:10px; background:rgba(255,159,28,0.15); color:#ff9f1c; border:1px solid rgba(255,159,28,0.35); border-radius:6px; padding:2px 8px; font-weight:700; text-transform:uppercase;">16 Forward Delivery Months</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+              Full 36-Month Calendar Forward Strip, Annualized Roll Yield, and Floating Storage Arbitrage Carry Economics
+            </div>
+          </div>
+          <div class="cm-kpi-bar" style="margin:0;">
+            <div class="cm-kpi-chip">
+              <span class="chip-label">Prompt Spot (M0):</span>
+              <span class="chip-val" id="curve-kpi-prompt" style="color:#fff; font-weight:800;">$104.59</span>
+            </div>
+            <div class="cm-kpi-chip">
+              <span class="chip-label">Front M0-M1:</span>
+              <span class="chip-val" id="curve-kpi-m1" style="color:#00ff88; font-weight:800;">+$1.70/bbl</span>
+            </div>
+            <div class="cm-kpi-chip">
+              <span class="chip-label">6M Inversion (M0-M6):</span>
+              <span class="chip-val" id="curve-kpi-m6" style="color:#00ff88; font-weight:900;">+$10.40/bbl</span>
+            </div>
+            <div class="cm-kpi-chip">
+              <span class="chip-label">1Y Strip (M0-M12):</span>
+              <span class="chip-val" id="curve-kpi-m12" style="color:#38bdf8; font-weight:800;">+$14.60/bbl</span>
+            </div>
+            <div class="cm-kpi-chip">
+              <span class="chip-label">Annualized Roll:</span>
+              <span class="chip-val" id="curve-kpi-roll" style="color:#00ff88; font-weight:800;">+19.8% p.a.</span>
+            </div>
+            <div class="cm-kpi-chip">
+              <span class="chip-label">Storage Carry Arb:</span>
+              <span class="chip-val" id="curve-kpi-arb" style="color:#ff4d6d; font-weight:800;">-$21.80/bbl</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive SVG Futures Curve Chart -->
+        <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px;">
+            <span style="font-weight:700; color:#fff;">📈 Futures Term Structure Curve (Inverted / Backwardation Profile)</span>
+            <div style="display:flex; align-items:center; gap:12px; font-size:10px; color:var(--text-muted); flex-wrap:wrap;">
+              <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:2px; background:#ff9f1c;"></span> Forward Curve</span>
+              <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:1px; background:#fff; border-top:1px dashed #fff;"></span> Prompt Spot</span>
+              <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:8px; height:8px; background:rgba(255,159,28,0.2); border:1px solid #ff9f1c;"></span> Scarcity Wedge</span>
+              <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:6px; height:6px; background:#00ff88; border-radius:50%;"></span> Jev 1h Target</span>
+            </div>
+          </div>
+          <div id="brent-futures-curve-chart" style="width:100%; height:220px;">
+            <!-- Rendered by JS SVG -->
+          </div>
+        </div>
+
+        <!-- 2-Column Analytics: Left Table, Right Floating Storage -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:14px;">
+          <!-- Contract Strip Table -->
+          <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; overflow-x:auto;">
+            <div style="font-size:12px; font-weight:800; color:#ff9f1c; margin-bottom:8px; text-transform:uppercase; display:flex; justify-content:space-between;">
+              <span>📋 16 Delivery Months Strip</span>
+              <span style="font-size:10px; color:var(--text-muted);">ICE Brent Contract Units</span>
+            </div>
+            <div style="max-height:220px; overflow-y:auto;">
+              <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                <thead>
+                  <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:var(--text-muted); font-size:10px;">
+                    <th style="padding:4px 8px; text-align:left;">Code</th>
+                    <th style="padding:4px 8px; text-align:left;">Tenor Month</th>
+                    <th style="padding:4px 8px; text-align:right;">Price</th>
+                    <th style="padding:4px 8px; text-align:right;">Spread</th>
+                    <th style="padding:4px 8px; text-align:right;">Roll Yield</th>
+                  </tr>
+                </thead>
+                <tbody id="brent-curve-strip-tbody">
+                  <!-- Rendered by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Floating Storage Carrying Arbitrage -->
+          <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px;">
+            <div style="font-size:12px; font-weight:800; color:#38bdf8; margin-bottom:8px; text-transform:uppercase;">
+              🚢 Floating Storage Carry Arbitrage Economics
+            </div>
+            <div style="font-size:11px; line-height:1.6; color:#cbd5e1;">
+              <div>• <strong>VLCC Charter Rate:</strong> $85,000/day (~$1.29/bbl/mo on a 2M bbl supertanker).</div>
+              <div>• <strong>Total Monthly Carry Cost:</strong> ~$1.90/bbl/mo (Financing 5.25% + Charter + Boil-off).</div>
+              <div>• <strong>6-Month Cumulative Carry:</strong> ~$11.40/bbl required forward premium to break even.</div>
+              <div style="margin-top:6px; padding:8px; background:rgba(255,77,109,0.1); border:1px solid rgba(255,77,109,0.3); border-radius:6px; color:#ff4d6d; font-weight:700;">
+                ⚡ 6M Net Storage Arbitrage P&L: -$21.80/bbl
+              </div>
+              <div style="margin-top:8px; font-size:10.5px; color:#94a3b8;" id="curve-storage-text">
+                Steep backwardation (+$10.40/bbl prompt premium) severely penalizes offshore hoarding, forcing immediate discharge of offshore tankers into prompt refining channels.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 🎯 AIS Predictive Efficacy Confusion Matrix (Pure Technical Baseline vs. AIS-Conditioned) -->
-      <div style="margin-top:16px; background:rgba(0,0,0,0.3); border:1px solid rgba(56, 189, 248, 0.25); border-radius:12px; padding:16px;">
+      <div id="ais-confusion-matrix-card" style="margin-top:16px; background:rgba(0,0,0,0.3); border:1px solid rgba(56, 189, 248, 0.35); border-radius:12px; padding:16px; box-shadow:0 0 20px rgba(56,189,248,0.12);">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <div>
             <div style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
@@ -1099,6 +1206,7 @@
             <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Decision Kernel:</span>
             <select id="cm-engine-select" onchange="updateConfusionMatrixEngine(this.value)" style="background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">
               <option value="jev_ai">🤖 Jev System One AI Engine (Active Alpha & Conviction Gated)</option>
+              <option value="ais_maritime">🚢 Maritime AIS-Conditioned Kernel (Shipping & Chokepoint Supply Prior)</option>
               <option value="baseline">📐 Raw Quant Oscillator (Unfiltered Baseline - 50% Coin-Toss)</option>
             </select>
           </div>
@@ -1819,6 +1927,83 @@
           if (t2) t2.innerHTML = `• <strong>Whipsaw Trap Prevention:</strong> ${takeaways[1]}`;
           if (t3) t3.innerHTML = `• <strong>Supply Breakout Confirmation:</strong> ${takeaways[2]}`;
         }
+      }
+
+      // 4. Render Entire Brent Futures Curve Term Structure
+      const curveData = vAn.entire_brent_futures_curve || brentSig.entire_brent_futures_curve;
+      const j1h = brentSig.forward_projections ? brentSig.forward_projections.pred_1h : (brentSig.price ? brentSig.price * 1.008 : null);
+      if (curveData) {
+        renderEntireFuturesCurve(curveData, j1h);
+      }
+    }
+
+    function renderEntireFuturesCurve(curveData, j1hPrice) {
+      if (!curveData || !curveData.strip) return;
+      const strip = curveData.strip;
+      const spreads = curveData.calendar_spreads || {};
+      const storage = curveData.floating_storage_arbitrage || {};
+      const diag = curveData.term_structure_diagnostics || {};
+      const P0 = curveData.prompt_price || 104.59;
+
+      if (document.getElementById('curve-kpi-prompt')) document.getElementById('curve-kpi-prompt').innerText = `$${P0.toFixed(2)}`;
+      if (document.getElementById('curve-kpi-m1')) document.getElementById('curve-kpi-m1').innerText = `+$${(spreads.prompt_to_m1_usd || 1.70).toFixed(2)}/bbl`;
+      if (document.getElementById('curve-kpi-m6')) document.getElementById('curve-kpi-m6').innerText = `+$${(spreads.prompt_to_m6_usd || 10.40).toFixed(2)}/bbl`;
+      if (document.getElementById('curve-kpi-m12')) document.getElementById('curve-kpi-m12').innerText = `+$${(spreads.prompt_to_m12_usd || 14.60).toFixed(2)}/bbl`;
+      if (document.getElementById('curve-kpi-roll')) document.getElementById('curve-kpi-roll').innerText = `+${(diag.front_roll_yield_annualized_pct || 19.8).toFixed(1)}% p.a.`;
+      if (document.getElementById('curve-kpi-arb')) document.getElementById('curve-kpi-arb').innerText = `$${(storage.m6_storage_net_pnl_usd || -21.80).toFixed(2)}/bbl`;
+
+      const svgContainer = document.getElementById('brent-futures-curve-chart');
+      if (svgContainer) {
+        const minP = Math.min(...strip.map(s => s.price)) - 2.0;
+        const maxP = Math.max(P0, ...strip.map(s => s.price)) + 2.0;
+        const width = 640;
+        const height = 220;
+        const padX = 45;
+        const padY = 25;
+
+        const scaleX = (idx) => padX + (idx / (strip.length - 1)) * (width - 2 * padX);
+        const scaleY = (p) => height - padY - ((p - minP) / (maxP - minP)) * (height - 2 * padY);
+
+        const curvePoints = strip.map((s, i) => `${scaleX(i)},${scaleY(s.price)}`).join(' ');
+        const wedgePoints = strip.map((s, i) => `${scaleX(i)},${scaleY(s.price)}`).join(' ') + ' ' +
+                            strip.slice().reverse().map((s, i) => `${scaleX(strip.length - 1 - i)},${scaleY(P0)}`).join(' ');
+
+        const p1hY = j1hPrice ? scaleY(j1hPrice) : scaleY(P0);
+
+        svgContainer.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:100%; overflow:visible;">
+            <line x1="${padX}" y1="${scaleY(P0)}" x2="${width - padX}" y2="${scaleY(P0)}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="4,4" stroke-width="1.5" />
+            <text x="${width - padX + 5}" y="${scaleY(P0) + 3}" font-size="9" fill="#cbd5e1">Spot $${P0.toFixed(2)}</text>
+            <polygon points="${wedgePoints}" fill="rgba(255, 159, 28, 0.12)" stroke="none" />
+            <polyline points="${curvePoints}" fill="none" stroke="#ff9f1c" stroke-width="3" stroke-linecap="round" />
+            ${strip.map((s, i) => `
+              <circle cx="${scaleX(i)}" cy="${scaleY(s.price)}" r="3.5" fill="#ff9f1c" />
+              <text x="${scaleX(i)}" y="${height - 6}" font-size="8" fill="#94a3b8" text-anchor="middle">${s.code}</text>
+              <text x="${scaleX(i)}" y="${scaleY(s.price) - 8}" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">$${s.price.toFixed(1)}</text>
+            `).join('')}
+            ${j1hPrice ? `
+              <polygon points="${scaleX(0)},${p1hY - 6} ${scaleX(0) + 5},${p1hY + 4} ${scaleX(0) - 5},${p1hY + 4}" fill="#00ff88" />
+              <text x="${scaleX(0) + 8}" y="${p1hY + 3}" font-size="9" font-weight="800" fill="#00ff88">Jev 1h: $${j1hPrice.toFixed(2)}</text>
+            ` : ''}
+          </svg>
+        `;
+      }
+
+      const tbody = document.getElementById('brent-curve-strip-tbody');
+      if (tbody) {
+        tbody.innerHTML = strip.map(s => `
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+            <td style="padding:4px 8px; font-weight:800; color:#ff9f1c;">${s.code}</td>
+            <td style="padding:4px 8px; color:#cbd5e1;">${s.label}</td>
+            <td style="padding:4px 8px; text-align:right; font-weight:800; color:#fff;">$${s.price.toFixed(2)}</td>
+            <td style="padding:4px 8px; text-align:right; color:${s.spread_to_prompt_usd < 0 ? '#fbbf24' : '#94a3b8'};">${s.spread_to_prompt_usd >= 0 ? '+' : ''}$${s.spread_to_prompt_usd.toFixed(2)}</td>
+            <td style="padding:4px 8px; text-align:right; color:#00ff88; font-weight:700;">+${s.annualized_roll_yield_pct.toFixed(1)}%</td>
+          </tr>
+        `).join('');
+      }
+
+      if (document.getElementById('curve-storage-text') && storage.mechanism) {
+        document.getElementById('curve-storage-text').innerText = storage.mechanism;
       }
     }
 
