@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from multi_horizon_momentum import compute_1m_features
+from multi_horizon_momentum import compute_1m_features, compute_indicative_prices
 
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
 
@@ -167,20 +167,23 @@ def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, b
     bear_c = sum(1 for p in probs if p < 0.47)
     alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Up)" if bull_c == 4 else ("STRONG_BEARISH_ALIGNMENT (4/4 Down)" if bear_c == 4 else ("MODERATE_BULLISH_BIAS (3/4 Up)" if bull_c >= 3 else ("MODERATE_BEARISH_BIAS (3/4 Down)" if bear_c >= 3 else "DIVERGENT_CHOP / NEUTRAL")))
 
+    ip_data = compute_indicative_prices(eq_feat, prob_1m, prob_10m, prob_30m, prob_1h)
+
     return {
         "model_type": "MODEL_A_MACRO_FULL",
         "is_live_jev": False,
         "status": "simulation_mode",
         "alignment": alignment,
         "average_prob_up": round(avg_p, 4),
+        "forward_projections": ip_data["forward_projections"],
         "macro_impacts": {
             "rate_impact_tnx": round(tnx_impact, 4),
             "energy_impact_crude": round(energy_impact, 4)
         },
-        "forward_1m": {"horizon": "1min forward", "action": get_act(prob_1m, vwap_z), "prob_up": round(prob_1m, 4), "confidence": 0.72},
-        "forward_10m": {"horizon": "10min forward", "action": get_act(prob_10m, vwap_z), "prob_up": round(prob_10m, 4), "confidence": 0.76},
-        "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m, vwap_z), "prob_up": round(prob_30m, 4), "confidence": 0.78},
-        "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h, vwap_z), "prob_up": round(prob_1h, 4), "confidence": 0.80}
+        "forward_1m": {"horizon": "1min forward", "action": get_act(prob_1m, vwap_z), "prob_up": round(prob_1m, 4), "confidence": 0.72, **ip_data["h1m"]},
+        "forward_10m": {"horizon": "10min forward", "action": get_act(prob_10m, vwap_z), "prob_up": round(prob_10m, 4), "confidence": 0.76, **ip_data["h10m"]},
+        "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m, vwap_z), "prob_up": round(prob_30m, 4), "confidence": 0.78, **ip_data["h30m"]},
+        "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h, vwap_z), "prob_up": round(prob_1h, 4), "confidence": 0.80, **ip_data["h1h"]}
     }
 
 def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict) -> dict:
@@ -230,23 +233,26 @@ def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict) ->
     bear_c = sum(1 for p in probs if p < 0.47)
     alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Up)" if bull_c == 4 else ("STRONG_BEARISH_ALIGNMENT (4/4 Down)" if bear_c == 4 else ("MODERATE_BULLISH_BIAS (3/4 Up)" if bull_c >= 3 else ("MODERATE_BEARISH_BIAS (3/4 Down)" if bear_c >= 3 else "DIVERGENT_CHOP / NEUTRAL")))
 
+    ip_data = compute_indicative_prices(eq_feat, prob_1m, prob_10m, prob_30m, prob_1h)
+
     return {
         "model_type": "MODEL_B_RATE_ONLY",
         "is_live_jev": False,
         "status": "simulation_mode",
         "alignment": alignment,
         "average_prob_up": round(avg_p, 4),
+        "forward_projections": ip_data["forward_projections"],
         "macro_impacts": {
             "rate_impact_tnx": round(tnx_impact, 4),
             "energy_impact_crude": 0.0 # Excluded by design in Model B
         },
-        "forward_1m": {"horizon": "1min forward", "action": get_act(prob_1m, vwap_z), "prob_up": round(prob_1m, 4), "confidence": 0.72},
-        "forward_10m": {"horizon": "10min forward", "action": get_act(prob_10m, vwap_z), "prob_up": round(prob_10m, 4), "confidence": 0.76},
-        "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m, vwap_z), "prob_up": round(prob_30m, 4), "confidence": 0.78},
-        "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h, vwap_z), "prob_up": round(prob_1h, 4), "confidence": 0.80}
+        "forward_1m": {"horizon": "1min forward", "action": get_act(prob_1m, vwap_z), "prob_up": round(prob_1m, 4), "confidence": 0.72, **ip_data["h1m"]},
+        "forward_10m": {"horizon": "10min forward", "action": get_act(prob_10m, vwap_z), "prob_up": round(prob_10m, 4), "confidence": 0.76, **ip_data["h10m"]},
+        "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m, vwap_z), "prob_up": round(prob_30m, 4), "confidence": 0.78, **ip_data["h30m"]},
+        "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h, vwap_z), "prob_up": round(prob_1h, 4), "confidence": 0.80, **ip_data["h1h"]}
     }
 
-def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func) -> dict:
+def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func, eq_feat: dict = None) -> dict:
     """Queries TypeSafe Jev System One API with macro-conditioned state representation."""
     api_key = os.getenv("TYPESAFE_API_KEY", "").strip()
     if not api_key:
@@ -362,16 +368,28 @@ def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func) 
         bear_c = sum(1 for p in probs if p < 0.47)
         alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Up)" if bull_c == 4 else ("STRONG_BEARISH_ALIGNMENT (4/4 Down)" if bear_c == 4 else ("MODERATE_BULLISH_BIAS (3/4 Up)" if bull_c >= 3 else ("MODERATE_BEARISH_BIAS (3/4 Down)" if bear_c >= 3 else "DIVERGENT_CHOP / NEUTRAL")))
 
+        ip_extra = {}
+        if eq_feat:
+            ip_data = compute_indicative_prices(eq_feat, float(p_1m), float(p_10m), float(p_30m), float(p_1h))
+            ip_extra["forward_projections"] = ip_data["forward_projections"]
+            h1m_ext = ip_data["h1m"]
+            h10m_ext = ip_data["h10m"]
+            h30m_ext = ip_data["h30m"]
+            h1h_ext = ip_data["h1h"]
+        else:
+            h1m_ext = h10m_ext = h30m_ext = h1h_ext = {}
+
         return {
             "model_type": model_type,
             "is_live_jev": True,
             "status": "live_jev_api",
             "alignment": alignment,
             "average_prob_up": round(avg_p, 4),
-            "forward_1m": {"horizon": "1min forward", "action": act_1m, "prob_up": round(float(p_1m), 4), "confidence": round(float(conf_1m), 4)},
-            "forward_10m": {"horizon": "10min forward", "action": act_10m, "prob_up": round(float(p_10m), 4), "confidence": round(float(conf_10m), 4)},
-            "forward_30m": {"horizon": "30min forward", "action": act_30m, "prob_up": round(float(p_30m), 4), "confidence": round(float(conf_30m), 4)},
-            "forward_1h": {"horizon": "1h forward", "action": act_1h, "prob_up": round(float(p_1h), 4), "confidence": round(float(conf_1h), 4)},
+            **ip_extra,
+            "forward_1m": {"horizon": "1min forward", "action": act_1m, "prob_up": round(float(p_1m), 4), "confidence": round(float(conf_1m), 4), **h1m_ext},
+            "forward_10m": {"horizon": "10min forward", "action": act_10m, "prob_up": round(float(p_10m), 4), "confidence": round(float(conf_10m), 4), **h10m_ext},
+            "forward_30m": {"horizon": "30min forward", "action": act_30m, "prob_up": round(float(p_30m), 4), "confidence": round(float(conf_30m), 4), **h30m_ext},
+            "forward_1h": {"horizon": "1h forward", "action": act_1h, "prob_up": round(float(p_1h), 4), "confidence": round(float(conf_1h), 4), **h1h_ext},
             "raw_response": data
         }
     except Exception as e:

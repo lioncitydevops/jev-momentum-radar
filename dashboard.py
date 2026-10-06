@@ -451,6 +451,27 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         badge_class = "card-neutral"
         color = "#ffd166"
         
+    ind_price_10m = sig_10m.get("indicative_price", round(close[-1] * (1.0 + (prob_up - 0.50) * 0.005), 2))
+    ind_delta_10m = round(ind_price_10m - close[-1], 2)
+    ind_delta_pct_10m = round(((ind_price_10m / (close[-1] + 1e-9)) - 1.0) * 100, 2)
+    ind_stop_loss_10m = sig_10m.get("indicative_stop_loss", round(close[-1] - np.sign(ind_delta_10m + 1e-9) * 0.003 * close[-1], 2))
+    ind_take_profit_10m = sig_10m.get("indicative_take_profit", ind_price_10m)
+
+    fwd_proj = mh_sigs.get("forward_projections")
+    if not fwd_proj:
+        p1 = sig_1m.get("indicative_price", close[-1])
+        p10 = sig_10m.get("indicative_price", close[-1])
+        p30 = sig_30m.get("indicative_price", close[-1])
+        p1h = sig_1h.get("indicative_price", close[-1])
+        fwd_proj = {
+            "current_price": round(close[-1], 2),
+            "pred_1m": p1,
+            "pred_10m": p10,
+            "pred_30m": p30,
+            "pred_1h": p1h,
+            "exp_1h_change_pct": round(((p1h / (close[-1] + 1e-9)) - 1.0) * 100, 2)
+        }
+
     return {
         "action": action,
         "badge_class": badge_class,
@@ -459,6 +480,11 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         "confidence": confidence,
         "is_live_jev": is_live_jev,
         "price": close[-1],
+        "indicative_price": ind_price_10m,
+        "indicative_delta": ind_delta_10m,
+        "indicative_delta_pct": ind_delta_pct_10m,
+        "indicative_stop_loss": ind_stop_loss_10m,
+        "indicative_take_profit": ind_take_profit_10m,
         "session_change": session_change,
         "vwap": vwap,
         "vwap_z": vwap_z,
@@ -480,7 +506,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "prob_up": round(sig_1m["prob_up"], 4),
                 "confidence": sig_1m["confidence"],
                 "badge_class": badge_1m,
-                "color": color_1m
+                "color": color_1m,
+                "indicative_price": sig_1m.get("indicative_price", round(close[-1], 2)),
+                "indicative_delta": sig_1m.get("indicative_delta", 0.0),
+                "indicative_delta_pct": sig_1m.get("indicative_delta_pct", 0.0)
             },
             "forward_10m": {
                 "horizon": "10min forward (10 bars)",
@@ -489,7 +518,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "prob_up": round(sig_10m["prob_up"], 4),
                 "confidence": sig_10m["confidence"],
                 "badge_class": badge_10m,
-                "color": color_10m
+                "color": color_10m,
+                "indicative_price": sig_10m.get("indicative_price", round(close[-1], 2)),
+                "indicative_delta": sig_10m.get("indicative_delta", 0.0),
+                "indicative_delta_pct": sig_10m.get("indicative_delta_pct", 0.0)
             },
             "forward_30m": {
                 "horizon": "30min forward (30 bars)",
@@ -498,7 +530,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "prob_up": round(sig_30m["prob_up"], 4),
                 "confidence": sig_30m["confidence"],
                 "badge_class": badge_30m,
-                "color": color_30m
+                "color": color_30m,
+                "indicative_price": sig_30m.get("indicative_price", round(close[-1], 2)),
+                "indicative_delta": sig_30m.get("indicative_delta", 0.0),
+                "indicative_delta_pct": sig_30m.get("indicative_delta_pct", 0.0)
             },
             "forward_1h": {
                 "horizon": "1h forward (60 bars)",
@@ -507,7 +542,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "prob_up": round(sig_1h["prob_up"], 4),
                 "confidence": sig_1h["confidence"],
                 "badge_class": badge_1h,
-                "color": color_1h
+                "color": color_1h,
+                "indicative_price": sig_1h.get("indicative_price", round(close[-1], 2)),
+                "indicative_delta": sig_1h.get("indicative_delta", 0.0),
+                "indicative_delta_pct": sig_1h.get("indicative_delta_pct", 0.0)
             },
             # Backward-compatibility aliases
             "forward_5m": {
@@ -517,7 +555,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "prob_up": round(sig_1m["prob_up"], 4),
                 "confidence": sig_1m["confidence"],
                 "badge_class": badge_1m,
-                "color": color_1m
+                "color": color_1m,
+                "indicative_price": sig_1m.get("indicative_price", round(close[-1], 2))
             },
             "forward_15m": {
                 "horizon": "30min forward (30 bars)",
@@ -526,11 +565,12 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "prob_up": round(sig_30m["prob_up"], 4),
                 "confidence": sig_30m["confidence"],
                 "badge_class": badge_30m,
-                "color": color_30m
+                "color": color_30m,
+                "indicative_price": sig_30m.get("indicative_price", round(close[-1], 2))
             }
         },
         "mpsi": mh_sigs.get("maritime_supply_index"),
-        "forward_projections": mh_sigs.get("forward_projections"),
+        "forward_projections": fwd_proj,
         "shipping_telemetry": mh_data.get("telemetry"),
         "visual_analytics": mh_data.get("visual_analytics"),
         "ais_confusion_matrix": mh_data.get("ais_confusion_matrix")
@@ -633,6 +673,7 @@ for i, name in enumerate(row1_keys):
     with cols1[i]:
         if sig:
             engine_tag = "Jev Decision" if sig["is_live_jev"] else "Quant Fallback"
+            ind_price_str = f"${sig.get('indicative_price', sig['price']):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)"
             st.markdown(f"""
             <div class="index-card {sig['badge_class']}">
                 <div style="font-size: 13px; opacity: 0.8;">{meta['flag']} {name} ({meta['symbol']})</div>
@@ -641,6 +682,7 @@ for i, name in enumerate(row1_keys):
                     {sig['session_change']:+.2f}% (Session)
                 </div>
                 <div class="metric-badge" style="color: {sig['color']};">{sig['action']}</div>
+                <div style="font-size: 13px; font-weight: 700; color: #60a5fa; margin: 2px 0;">Ind. Target: {ind_price_str}</div>
                 <div style="font-size: 13px; font-weight: 600;">Continuation Prob: {sig['prob_up']*100:.1f}%</div>
                 <div style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Confidence: {sig['confidence']*100:.0f}% | VWAP: {sig['vwap_z']:+.1f}σ</div>
                 <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">⚡ {engine_tag}</div>
@@ -657,6 +699,7 @@ for i, name in enumerate(row2_keys):
     with cols2[i]:
         if sig:
             engine_tag = "Jev Decision" if sig["is_live_jev"] else "Quant Fallback"
+            ind_price_str = f"${sig.get('indicative_price', sig['price']):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)"
             st.markdown(f"""
             <div class="index-card {sig['badge_class']}">
                 <div style="font-size: 13px; opacity: 0.8;">{meta['flag']} {name} ({meta['symbol']})</div>
@@ -665,6 +708,7 @@ for i, name in enumerate(row2_keys):
                     {sig['session_change']:+.2f}% (Session)
                 </div>
                 <div class="metric-badge" style="color: {sig['color']};">{sig['action']}</div>
+                <div style="font-size: 13px; font-weight: 700; color: #60a5fa; margin: 2px 0;">Ind. Target: {ind_price_str}</div>
                 <div style="font-size: 13px; font-weight: 600;">Continuation Prob: {sig['prob_up']*100:.1f}%</div>
                 <div style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Confidence: {sig['confidence']*100:.0f}% | VWAP: {sig['vwap_z']:+.1f}σ</div>
                 <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">⚡ {engine_tag}</div>
@@ -684,6 +728,7 @@ for name, sig in results.items():
     matrix_data.append({
         "Instrument": f"{ASSETS[name]['flag']} {name}",
         "Signal": sig["action"],
+        "Indicative Target Price": f"${sig.get('indicative_price', sig['price']):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)",
         "Continuation Prob": f"{sig['prob_up']*100:.1f}%",
         "Jev Confidence": f"{sig['confidence']*100:.0f}%",
         "3-Bar Momentum": f"{sig['ret_3']:+.2f}%",
@@ -697,7 +742,7 @@ st.dataframe(matrix_df, use_container_width=True, hide_index=True)
 
 # Multi-Horizon Forward Signal Matrix (1m, 10m, 30m, 1h Forward from 1m input)
 st.subheader("⏱️ Multi-Horizon Forward Trend Signals (1m Input Interval)")
-st.caption("Predictive directional trend classification and continuation probabilities for 1-min (1 bar), 10-min (10 bars), 30-min (30 bars), and 1-hour (60 bars) forward horizons.")
+st.caption("Predictive directional trend classification, indicative target prices, and continuation probabilities for 1-min (1 bar), 10-min (10 bars), 30-min (30 bars), and 1-hour (60 bars) forward horizons.")
 
 mh_matrix_data = []
 for name, sig in results.items():
@@ -706,12 +751,19 @@ for name, sig in results.items():
     s10 = mh.get("forward_10m", {})
     s30 = mh.get("forward_30m", mh.get("forward_15m", {}))
     s1h = mh.get("forward_1h", {})
+    
+    p0 = sig["price"]
+    p1_str = f"${s1.get('indicative_price', p0):,.2f}"
+    p10_str = f"${s10.get('indicative_price', p0):,.2f}"
+    p30_str = f"${s30.get('indicative_price', p0):,.2f}"
+    p1h_str = f"${s1h.get('indicative_price', p0):,.2f}"
+
     mh_matrix_data.append({
         "Instrument": f"{ASSETS[name]['flag']} {name}",
-        "1m Forward Signal": f"{s1.get('action', 'NEUTRAL')} ({s1.get('prob_up', 0.5)*100:.1f}%)",
-        "10m Forward Signal": f"{s10.get('action', 'NEUTRAL')} ({s10.get('prob_up', 0.5)*100:.1f}%)",
-        "30m Forward Signal": f"{s30.get('action', 'NEUTRAL')} ({s30.get('prob_up', 0.5)*100:.1f}%)",
-        "1h Forward Signal": f"{s1h.get('action', 'NEUTRAL')} ({s1h.get('prob_up', 0.5)*100:.1f}%)",
+        "1m Forward Signal": f"{s1.get('action', 'NEUTRAL')} (P={s1.get('prob_up', 0.5)*100:.1f}% | Target {p1_str})",
+        "10m Forward Signal": f"{s10.get('action', 'NEUTRAL')} (P={s10.get('prob_up', 0.5)*100:.1f}% | Target {p10_str})",
+        "30m Forward Signal": f"{s30.get('action', 'NEUTRAL')} (P={s30.get('prob_up', 0.5)*100:.1f}% | Target {p30_str})",
+        "1h Forward Signal": f"{s1h.get('action', 'NEUTRAL')} (P={s1h.get('prob_up', 0.5)*100:.1f}% | Target {p1h_str})",
         "Multi-Horizon Alignment": mh.get("alignment", "NEUTRAL"),
         "Mean Prob P(Up)": f"{mh.get('average_prob_up', 0.5)*100:.1f}%"
     })

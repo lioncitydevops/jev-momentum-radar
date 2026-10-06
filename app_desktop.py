@@ -76,12 +76,18 @@ def fetch_data_and_signal(symbol: str, timeframe="5m"):
         bg_card = "#2e240b"
         desc = "Neutral / Chop: CFD price fluctuating near VWAP."
         
+    dec = 3 if "^TNX" in symbol else 2
+    ind_price = float(np.round(close[-1] * (1.0 + (prob_up - 0.50) * 0.005), dec))
+    ind_delta_pct = float(np.round(((ind_price / (close[-1] + 1e-9)) - 1.0) * 100, 2))
+
     return {
         "action": action,
         "color": color,
         "bg_card": bg_card,
         "desc": desc,
         "price": close[-1],
+        "indicative_price": ind_price,
+        "indicative_delta_pct": ind_delta_pct,
         "vwap": vwap,
         "vwap_z": vwap_z,
         "prob_up": prob_up,

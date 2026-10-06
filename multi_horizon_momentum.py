@@ -448,35 +448,93 @@ def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: flo
     else:
         alignment = "DIVERGENT_CHOP / NEUTRAL"
 
+    ip_data = compute_indicative_prices(features, prob_1m, prob_10m, prob_30m, prob_1h)
+
     return {
         "is_live_jev": False,
         "status": "simulation_mode",
         "alignment": alignment,
         "average_prob_up": round(avg_prob, 4),
+        "forward_projections": ip_data["forward_projections"],
         "forward_1m": {
             "horizon": "1min forward (1 bar)",
             "action": action_1m,
             "prob_up": round(prob_1m, 4),
-            "confidence": 0.72
+            "confidence": 0.72,
+            **ip_data["h1m"]
         },
         "forward_10m": {
             "horizon": "10min forward (10 bars)",
             "action": action_10m,
             "prob_up": round(prob_10m, 4),
-            "confidence": 0.76
+            "confidence": 0.76,
+            **ip_data["h10m"]
         },
         "forward_30m": {
             "horizon": "30min forward (30 bars)",
             "action": action_30m,
             "prob_up": round(prob_30m, 4),
-            "confidence": 0.78
+            "confidence": 0.78,
+            **ip_data["h30m"]
         },
         "forward_1h": {
             "horizon": "1h forward (60 bars)",
             "action": action_1h,
             "prob_up": round(prob_1h, 4),
-            "confidence": 0.80
+            "confidence": 0.80,
+            **ip_data["h1h"]
         }
+    }
+
+def compute_indicative_prices(features: dict, p_1m: float, p_10m: float, p_30m: float, p_1h: float) -> dict:
+    """Computes quantitative indicative target price, price delta, and risk levels for all forward horizons."""
+    curr_price = float(features.get("price", 100.0))
+    atr = float(features.get("atr_14", curr_price * 0.002))
+    if atr <= 0:
+        atr = curr_price * 0.002
+        
+    decimals = 3 if curr_price < 10 else 2
+
+    mult_1m = max(0.40 * atr, 0.0008 * curr_price)
+    mult_10m = max(1.10 * atr, 0.0025 * curr_price)
+    mult_30m = max(2.00 * atr, 0.0050 * curr_price)
+    mult_1h = max(3.00 * atr, 0.0080 * curr_price)
+
+    d_1m = 2.0 * (p_1m - 0.50) * mult_1m
+    d_10m = 2.0 * (p_10m - 0.50) * mult_10m
+    d_30m = 2.0 * (p_30m - 0.50) * mult_30m
+    d_1h = 2.0 * (p_1h - 0.50) * mult_1h
+
+    pred_1m = round(curr_price + d_1m, decimals)
+    pred_10m = round(curr_price + d_10m, decimals)
+    pred_30m = round(curr_price + d_30m, decimals)
+    pred_1h = round(curr_price + d_1h, decimals)
+
+    def pack_horizon_details(d_val, pred_val, mult_val):
+        sgn = 1.0 if d_val >= 0 else -1.0
+        return {
+            "entry_price": round(curr_price, decimals),
+            "indicative_price": pred_val,
+            "projected_price": pred_val,
+            "indicative_delta": round(d_val, decimals),
+            "indicative_delta_pct": round((d_val / curr_price) * 100, 2),
+            "indicative_stop_loss": round(curr_price - sgn * mult_val * 0.75, decimals),
+            "indicative_take_profit": pred_val
+        }
+
+    return {
+        "forward_projections": {
+            "current_price": round(curr_price, decimals),
+            "pred_1m": pred_1m,
+            "pred_10m": pred_10m,
+            "pred_30m": pred_30m,
+            "pred_1h": pred_1h,
+            "exp_1h_change_pct": round(((pred_1h / curr_price) - 1.0) * 100, 2)
+        },
+        "h1m": pack_horizon_details(d_1m, pred_1m, mult_1m),
+        "h10m": pack_horizon_details(d_10m, pred_10m, mult_10m),
+        "h30m": pack_horizon_details(d_30m, pred_30m, mult_30m),
+        "h1h": pack_horizon_details(d_1h, pred_1h, mult_1h),
     }
 
 def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_rating_score: float = 0.0) -> dict:
@@ -608,34 +666,41 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
         else:
             alignment = "DIVERGENT_CHOP / NEUTRAL"
 
+        ip_data = compute_indicative_prices(features, float(p_1m), float(p_10m), float(p_30m), float(p_1h))
+
         return {
             "is_live_jev": True,
             "status": "live_jev_api",
             "alignment": alignment,
             "average_prob_up": round(avg_p, 4),
+            "forward_projections": ip_data["forward_projections"],
             "forward_1m": {
                 "horizon": "1min forward (1 bar)",
                 "action": act_1m,
                 "prob_up": round(float(p_1m), 4),
-                "confidence": round(float(conf_1m), 4)
+                "confidence": round(float(conf_1m), 4),
+                **ip_data["h1m"]
             },
             "forward_10m": {
                 "horizon": "10min forward (10 bars)",
                 "action": act_10m,
                 "prob_up": round(float(p_10m), 4),
-                "confidence": round(float(conf_10m), 4)
+                "confidence": round(float(conf_10m), 4),
+                **ip_data["h10m"]
             },
             "forward_30m": {
                 "horizon": "30min forward (30 bars)",
                 "action": act_30m,
                 "prob_up": round(float(p_30m), 4),
-                "confidence": round(float(conf_30m), 4)
+                "confidence": round(float(conf_30m), 4),
+                **ip_data["h30m"]
             },
             "forward_1h": {
                 "horizon": "1h forward (60 bars)",
                 "action": act_1h,
                 "prob_up": round(float(p_1h), 4),
-                "confidence": round(float(conf_1h), 4)
+                "confidence": round(float(conf_1h), 4),
+                **ip_data["h1h"]
             },
             "raw_response": data
         }

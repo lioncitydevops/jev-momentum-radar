@@ -467,6 +467,27 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
             "v": int(row["Volume"]) if not np.isnan(row["Volume"]) else 0
         })
 
+    ind_price_10m = sig_10m.get("indicative_price", round(price * (1.0 + (prob_up - 0.50) * 0.005), decimals))
+    ind_delta_10m = round(ind_price_10m - price, decimals)
+    ind_delta_pct_10m = round(((ind_price_10m / (price + 1e-9)) - 1.0) * 100, 2)
+    ind_stop_loss_10m = sig_10m.get("indicative_stop_loss", round(price - np.sign(ind_delta_10m + 1e-9) * 0.003 * price, decimals))
+    ind_take_profit_10m = sig_10m.get("indicative_take_profit", ind_price_10m)
+
+    fwd_proj = mh_sigs.get("forward_projections")
+    if not fwd_proj:
+        p1 = sig_1m.get("indicative_price", price)
+        p10 = sig_10m.get("indicative_price", price)
+        p30 = sig_30m.get("indicative_price", price)
+        p1h = sig_1h.get("indicative_price", price)
+        fwd_proj = {
+            "current_price": round(price, decimals),
+            "pred_1m": p1,
+            "pred_10m": p10,
+            "pred_30m": p30,
+            "pred_1h": p1h,
+            "exp_1h_change_pct": round(((p1h / (price + 1e-9)) - 1.0) * 100, 2)
+        }
+
     return {
         "name": name,
         "symbol": ASSETS[name]["symbol"],
@@ -483,6 +504,11 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         "is_live_jev": is_live_jev,
         "price": round(price, decimals),
         "session_change": round(session_change, 2),
+        "indicative_price": ind_price_10m,
+        "indicative_delta": ind_delta_10m,
+        "indicative_delta_pct": ind_delta_pct_10m,
+        "indicative_stop_loss": ind_stop_loss_10m,
+        "indicative_take_profit": ind_take_profit_10m,
         "vwap": round(vwap, decimals),
         "vwap_z": round(vwap_z, 2),
         "rsi": round(rsi_14, 1),
@@ -504,7 +530,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
                 "prob_up": round(sig_1m["prob_up"], 4),
                 "confidence": sig_1m["confidence"],
                 "badge_class": badge_1m,
-                "color": color_1m
+                "color": color_1m,
+                "indicative_price": sig_1m.get("indicative_price", round(price, decimals)),
+                "indicative_delta": sig_1m.get("indicative_delta", 0.0),
+                "indicative_delta_pct": sig_1m.get("indicative_delta_pct", 0.0)
             },
             "forward_10m": {
                 "horizon": "10min forward (10 bars)",
@@ -513,7 +542,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
                 "prob_up": round(sig_10m["prob_up"], 4),
                 "confidence": sig_10m["confidence"],
                 "badge_class": badge_10m,
-                "color": color_10m
+                "color": color_10m,
+                "indicative_price": sig_10m.get("indicative_price", round(price, decimals)),
+                "indicative_delta": sig_10m.get("indicative_delta", 0.0),
+                "indicative_delta_pct": sig_10m.get("indicative_delta_pct", 0.0)
             },
             "forward_30m": {
                 "horizon": "30min forward (30 bars)",
@@ -522,7 +554,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
                 "prob_up": round(sig_30m["prob_up"], 4),
                 "confidence": sig_30m["confidence"],
                 "badge_class": badge_30m,
-                "color": color_30m
+                "color": color_30m,
+                "indicative_price": sig_30m.get("indicative_price", round(price, decimals)),
+                "indicative_delta": sig_30m.get("indicative_delta", 0.0),
+                "indicative_delta_pct": sig_30m.get("indicative_delta_pct", 0.0)
             },
             "forward_1h": {
                 "horizon": "1h forward (60 bars)",
@@ -531,7 +566,10 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
                 "prob_up": round(sig_1h["prob_up"], 4),
                 "confidence": sig_1h["confidence"],
                 "badge_class": badge_1h,
-                "color": color_1h
+                "color": color_1h,
+                "indicative_price": sig_1h.get("indicative_price", round(price, decimals)),
+                "indicative_delta": sig_1h.get("indicative_delta", 0.0),
+                "indicative_delta_pct": sig_1h.get("indicative_delta_pct", 0.0)
             },
             # Backward-compatibility aliases
             "forward_5m": {
@@ -541,7 +579,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
                 "prob_up": round(sig_1m["prob_up"], 4),
                 "confidence": sig_1m["confidence"],
                 "badge_class": badge_1m,
-                "color": color_1m
+                "color": color_1m,
+                "indicative_price": sig_1m.get("indicative_price", round(price, decimals))
             },
             "forward_15m": {
                 "horizon": "30min forward (30 bars)",
@@ -550,11 +589,12 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
                 "prob_up": round(sig_30m["prob_up"], 4),
                 "confidence": sig_30m["confidence"],
                 "badge_class": badge_30m,
-                "color": color_30m
+                "color": color_30m,
+                "indicative_price": sig_30m.get("indicative_price", round(price, decimals))
             }
         },
         "maritime_supply_index": mh_sigs.get("maritime_supply_index"),
-        "forward_projections": mh_sigs.get("forward_projections"),
+        "forward_projections": fwd_proj,
         "shipping_telemetry": mh_data.get("telemetry"),
         "visual_analytics": mh_data.get("visual_analytics"),
         "ais_confusion_matrix": mh_data.get("ais_confusion_matrix"),
