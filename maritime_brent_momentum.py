@@ -34,6 +34,7 @@ if os.path.exists(SHIPPING_APP_DIR) and SHIPPING_APP_DIR not in sys.path:
 from multi_horizon_momentum import (
     compute_1m_features,
     compute_wave_oscillator_dynamics,
+    compute_indicative_prices,
     _matrix_expm
 )
 
@@ -566,10 +567,7 @@ def simulate_calibrated_maritime_brent_prior(
     drift_30m = (p_30m - 0.50) * 0.015
     drift_1h = (p_1h - 0.50) * 0.025
 
-    pred_1m = round(curr_price * (1.0 + drift_1m), 2)
-    pred_10m = round(curr_price * (1.0 + drift_10m), 2)
-    pred_30m = round(curr_price * (1.0 + drift_30m), 2)
-    pred_1h = round(curr_price * (1.0 + drift_1h), 2)
+    ip_data = compute_indicative_prices(brent_feat, p_1m, p_10m, p_30m, p_1h)
 
     return {
         "is_live_jev": False,
@@ -578,41 +576,34 @@ def simulate_calibrated_maritime_brent_prior(
         "alignment": alignment,
         "average_prob_up": round(avg_p, 4),
         "maritime_supply_index": mpsi,
-        "forward_projections": {
-            "current_price": curr_price,
-            "pred_1m": pred_1m,
-            "pred_10m": pred_10m,
-            "pred_30m": pred_30m,
-            "pred_1h": pred_1h,
-            "exp_1h_change_pct": round(((pred_1h / curr_price) - 1.0) * 100, 2)
-        },
+        "forward_projections": ip_data["forward_projections"],
         "forward_1m": {
             "horizon": "1min forward (1 bar)",
             "action": act_1m,
             "prob_up": p_1m,
             "confidence": conf_1m,
-            "projected_price": pred_1m
+            **ip_data["h1m"]
         },
         "forward_10m": {
             "horizon": "10min forward (10 bars)",
             "action": act_10m,
             "prob_up": p_10m,
             "confidence": conf_10m,
-            "projected_price": pred_10m
+            **ip_data["h10m"]
         },
         "forward_30m": {
             "horizon": "30min forward (30 bars)",
             "action": act_30m,
             "prob_up": p_30m,
             "confidence": conf_30m,
-            "projected_price": pred_30m
+            **ip_data["h30m"]
         },
         "forward_1h": {
             "horizon": "1h forward (60 bars)",
             "action": act_1h,
             "prob_up": p_1h,
             "confidence": conf_1h,
-            "projected_price": pred_1h
+            **ip_data["h1h"]
         }
     }
 
@@ -752,11 +743,7 @@ def query_typesafe_jev_maritime_brent(
         else:
             alignment = "DIVERGENT_CHOP / NEUTRAL"
 
-        curr_price = float(brent_feat["price"])
-        pred_1m = round(curr_price * (1.0 + (p_1m - 0.50) * 0.003), 2)
-        pred_10m = round(curr_price * (1.0 + (p_10m - 0.50) * 0.008), 2)
-        pred_30m = round(curr_price * (1.0 + (p_30m - 0.50) * 0.015), 2)
-        pred_1h = round(curr_price * (1.0 + (p_1h - 0.50) * 0.025), 2)
+        ip_data = compute_indicative_prices(brent_feat, float(p_1m), float(p_10m), float(p_30m), float(p_1h))
 
         return {
             "is_live_jev": True,
@@ -765,41 +752,34 @@ def query_typesafe_jev_maritime_brent(
             "alignment": alignment,
             "average_prob_up": round(avg_p, 4),
             "maritime_supply_index": mpsi,
-            "forward_projections": {
-                "current_price": curr_price,
-                "pred_1m": pred_1m,
-                "pred_10m": pred_10m,
-                "pred_30m": pred_30m,
-                "pred_1h": pred_1h,
-                "exp_1h_change_pct": round(((pred_1h / curr_price) - 1.0) * 100, 2)
-            },
+            "forward_projections": ip_data["forward_projections"],
             "forward_1m": {
                 "horizon": "1min forward (1 bar)",
                 "action": act_1m,
                 "prob_up": round(float(p_1m), 4),
                 "confidence": round(float(conf_1m), 4),
-                "projected_price": pred_1m
+                **ip_data["h1m"]
             },
             "forward_10m": {
                 "horizon": "10min forward (10 bars)",
                 "action": act_10m,
                 "prob_up": round(float(p_10m), 4),
                 "confidence": round(float(conf_10m), 4),
-                "projected_price": pred_10m
+                **ip_data["h10m"]
             },
             "forward_30m": {
                 "horizon": "30min forward (30 bars)",
                 "action": act_30m,
                 "prob_up": round(float(p_30m), 4),
                 "confidence": round(float(conf_30m), 4),
-                "projected_price": pred_30m
+                **ip_data["h30m"]
             },
             "forward_1h": {
                 "horizon": "1h forward (60 bars)",
                 "action": act_1h,
                 "prob_up": round(float(p_1h), 4),
                 "confidence": round(float(conf_1h), 4),
-                "projected_price": pred_1h
+                **ip_data["h1h"]
             },
             "raw_response": data
         }

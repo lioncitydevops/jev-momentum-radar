@@ -467,18 +467,50 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
             "v": int(row["Volume"]) if not np.isnan(row["Volume"]) else 0
         })
 
-    ind_price_10m = sig_10m.get("indicative_price", round(price * (1.0 + (prob_up - 0.50) * 0.005), decimals))
-    ind_delta_10m = round(ind_price_10m - price, decimals)
-    ind_delta_pct_10m = round(((ind_price_10m / (price + 1e-9)) - 1.0) * 100, 2)
-    ind_stop_loss_10m = sig_10m.get("indicative_stop_loss", round(price - np.sign(ind_delta_10m + 1e-9) * 0.003 * price, decimals))
-    ind_take_profit_10m = sig_10m.get("indicative_take_profit", ind_price_10m)
+    ind_price_10m = sig_10m.get("indicative_price") or round(price * (1.0 + (prob_up - 0.50) * 0.005), decimals)
+    ind_delta_10m = sig_10m.get("indicative_delta")
+    if ind_delta_10m is None:
+        ind_delta_10m = round(ind_price_10m - price, decimals)
+    ind_delta_pct_10m = sig_10m.get("indicative_delta_pct")
+    if ind_delta_pct_10m is None:
+        ind_delta_pct_10m = round(((ind_price_10m / (price + 1e-9)) - 1.0) * 100, 2)
+    sgn = 1.0 if ind_delta_10m >= 0 else -1.0
+    ind_stop_loss_10m = sig_10m.get("indicative_stop_loss") or round(price - sgn * 0.003 * price, decimals)
+    ind_take_profit_10m = sig_10m.get("indicative_take_profit") or ind_price_10m
+
+    def _pack_h(sig_h, badge_h, color_h, act_h, default_h_str):
+        p_ind = sig_h.get("indicative_price") or round(price, decimals)
+        d_ind = sig_h.get("indicative_delta")
+        if d_ind is None:
+            d_ind = round(p_ind - price, decimals)
+        dp_ind = sig_h.get("indicative_delta_pct")
+        if dp_ind is None:
+            dp_ind = round(((p_ind / (price + 1e-9)) - 1.0) * 100, 2)
+        h_sgn = 1.0 if d_ind >= 0 else -1.0
+        sl_ind = sig_h.get("indicative_stop_loss") or round(price - h_sgn * 0.003 * price, decimals)
+        tp_ind = sig_h.get("indicative_take_profit") or p_ind
+        return {
+            "horizon": sig_h.get("horizon", default_h_str),
+            "action": act_h,
+            "raw_action": sig_h["action"],
+            "prob_up": round(sig_h["prob_up"], 4),
+            "confidence": sig_h["confidence"],
+            "badge_class": badge_h,
+            "color": color_h,
+            "indicative_price": p_ind,
+            "indicative_delta": d_ind,
+            "indicative_delta_pct": dp_ind,
+            "indicative_stop_loss": sl_ind,
+            "indicative_take_profit": tp_ind,
+            "indicative_close_target": tp_ind
+        }
 
     fwd_proj = mh_sigs.get("forward_projections")
     if not fwd_proj:
-        p1 = sig_1m.get("indicative_price", price)
-        p10 = sig_10m.get("indicative_price", price)
-        p30 = sig_30m.get("indicative_price", price)
-        p1h = sig_1h.get("indicative_price", price)
+        p1 = sig_1m.get("indicative_price") or round(price, decimals)
+        p10 = sig_10m.get("indicative_price") or round(price, decimals)
+        p30 = sig_30m.get("indicative_price") or round(price, decimals)
+        p1h = sig_1h.get("indicative_price") or round(price, decimals)
         fwd_proj = {
             "current_price": round(price, decimals),
             "pred_1m": p1,
@@ -509,6 +541,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         "indicative_delta_pct": ind_delta_pct_10m,
         "indicative_stop_loss": ind_stop_loss_10m,
         "indicative_take_profit": ind_take_profit_10m,
+        "indicative_close_target": ind_take_profit_10m,
         "vwap": round(vwap, decimals),
         "vwap_z": round(vwap_z, 2),
         "rsi": round(rsi_14, 1),
@@ -523,75 +556,13 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
             "model_type": mh_sigs.get("model_type", "STANDALONE"),
             "alignment": mh_sigs.get("alignment", "NEUTRAL"),
             "average_prob_up": mh_sigs.get("average_prob_up", round(prob_up, 4)),
-            "forward_1m": {
-                "horizon": "1min forward (1 bar)",
-                "action": act_1m,
-                "raw_action": sig_1m["action"],
-                "prob_up": round(sig_1m["prob_up"], 4),
-                "confidence": sig_1m["confidence"],
-                "badge_class": badge_1m,
-                "color": color_1m,
-                "indicative_price": sig_1m.get("indicative_price", round(price, decimals)),
-                "indicative_delta": sig_1m.get("indicative_delta", 0.0),
-                "indicative_delta_pct": sig_1m.get("indicative_delta_pct", 0.0)
-            },
-            "forward_10m": {
-                "horizon": "10min forward (10 bars)",
-                "action": act_10m,
-                "raw_action": sig_10m["action"],
-                "prob_up": round(sig_10m["prob_up"], 4),
-                "confidence": sig_10m["confidence"],
-                "badge_class": badge_10m,
-                "color": color_10m,
-                "indicative_price": sig_10m.get("indicative_price", round(price, decimals)),
-                "indicative_delta": sig_10m.get("indicative_delta", 0.0),
-                "indicative_delta_pct": sig_10m.get("indicative_delta_pct", 0.0)
-            },
-            "forward_30m": {
-                "horizon": "30min forward (30 bars)",
-                "action": act_30m,
-                "raw_action": sig_30m["action"],
-                "prob_up": round(sig_30m["prob_up"], 4),
-                "confidence": sig_30m["confidence"],
-                "badge_class": badge_30m,
-                "color": color_30m,
-                "indicative_price": sig_30m.get("indicative_price", round(price, decimals)),
-                "indicative_delta": sig_30m.get("indicative_delta", 0.0),
-                "indicative_delta_pct": sig_30m.get("indicative_delta_pct", 0.0)
-            },
-            "forward_1h": {
-                "horizon": "1h forward (60 bars)",
-                "action": act_1h,
-                "raw_action": sig_1h["action"],
-                "prob_up": round(sig_1h["prob_up"], 4),
-                "confidence": sig_1h["confidence"],
-                "badge_class": badge_1h,
-                "color": color_1h,
-                "indicative_price": sig_1h.get("indicative_price", round(price, decimals)),
-                "indicative_delta": sig_1h.get("indicative_delta", 0.0),
-                "indicative_delta_pct": sig_1h.get("indicative_delta_pct", 0.0)
-            },
+            "forward_1m": _pack_h(sig_1m, badge_1m, color_1m, act_1m, "1min forward (1 bar)"),
+            "forward_10m": _pack_h(sig_10m, badge_10m, color_10m, act_10m, "10min forward (10 bars)"),
+            "forward_30m": _pack_h(sig_30m, badge_30m, color_30m, act_30m, "30min forward (30 bars)"),
+            "forward_1h": _pack_h(sig_1h, badge_1h, color_1h, act_1h, "1h forward (60 bars)"),
             # Backward-compatibility aliases
-            "forward_5m": {
-                "horizon": "1min forward (1 bar)",
-                "action": act_1m,
-                "raw_action": sig_1m["action"],
-                "prob_up": round(sig_1m["prob_up"], 4),
-                "confidence": sig_1m["confidence"],
-                "badge_class": badge_1m,
-                "color": color_1m,
-                "indicative_price": sig_1m.get("indicative_price", round(price, decimals))
-            },
-            "forward_15m": {
-                "horizon": "30min forward (30 bars)",
-                "action": act_30m,
-                "raw_action": sig_30m["action"],
-                "prob_up": round(sig_30m["prob_up"], 4),
-                "confidence": sig_30m["confidence"],
-                "badge_class": badge_30m,
-                "color": color_30m,
-                "indicative_price": sig_30m.get("indicative_price", round(price, decimals))
-            }
+            "forward_5m": _pack_h(sig_1m, badge_1m, color_1m, act_1m, "1min forward (1 bar)"),
+            "forward_15m": _pack_h(sig_30m, badge_30m, color_30m, act_30m, "30min forward (30 bars)")
         },
         "maritime_supply_index": mh_sigs.get("maritime_supply_index"),
         "forward_projections": fwd_proj,

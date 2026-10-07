@@ -816,9 +816,11 @@
     <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 16px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-muted);">
       <div>
         <span style="font-weight: 700; color: #fff;">💡 Reading Signals:</span>
-        <span style="color: #00ff88; font-weight: 700; margin-left: 8px;">BUY/LONG</span> (P &gt; 53% continuation) &bull;
-        <span style="color: #ffd166; font-weight: 700;">HOLD CASH</span> (47% &le; P &le; 53% chop/whipsaw defense) &bull;
-        <span style="color: #ff4d6d; font-weight: 700;">SELL/SHORT</span> (P &lt; 47% downward breakdown)
+        <span style="color: #00ff88; font-weight: 700; margin-left: 8px;">BUY/LONG</span> (P &gt; 53%) &bull;
+        <span style="color: #ffd166; font-weight: 700;">HOLD CASH</span> (47% &le; P &le; 53% chop filter) &bull;
+        <span style="color: #ff4d6d; font-weight: 700;">SELL/SHORT</span> (P &lt; 47%) &bull;
+        <span style="color: #38bdf8; font-weight: 700;">🎯 Close Target (TP)</span>: Indicative price to close long/short &bull;
+        <span style="color: #f87171; font-weight: 700;">🛡️ Stop-Loss</span>: Invalidation exit level
       </div>
       <div>
         <span style="font-weight: 700; color: #fff;">Horizons:</span> 1m (1 bar) &bull; 10m (10 bars) &bull; 30m (30 bars) &bull; 1h (60 bars forward)
@@ -1302,7 +1304,8 @@
           <tr>
             <th>Instrument</th>
             <th>Signal</th>
-            <th>Indicative Target</th>
+            <th>Indicative Close Target (TP)</th>
+            <th>Protective Stop Loss</th>
             <th>Continuation Prob</th>
             <th>Jev Confidence</th>
             <th>3-Bar Momentum</th>
@@ -1312,7 +1315,7 @@
           </tr>
         </thead>
         <tbody id="matrix-tbody">
-          <tr><td colspan="9" style="text-align: center; color: var(--text-muted);">Fetching live feeds...</td></tr>
+          <tr><td colspan="10" style="text-align: center; color: var(--text-muted);">Fetching live feeds...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1401,9 +1404,16 @@
         const priceFormatted = sig.price.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
         const vwapFormatted = sig.vwap.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
 
-        const indPrice = sig.indicative_price !== undefined ? sig.indicative_price : sig.price;
-        const indDeltaPct = sig.indicative_delta_pct !== undefined ? sig.indicative_delta_pct : 0.0;
+        const indPrice = sig.indicative_price !== undefined && sig.indicative_price !== null ? sig.indicative_price : (sig.indicative_take_profit !== undefined && sig.indicative_take_profit !== null ? sig.indicative_take_profit : sig.price);
+        const indDeltaPct = sig.indicative_delta_pct !== undefined && sig.indicative_delta_pct !== null ? sig.indicative_delta_pct : (((indPrice / (sig.price + 1e-9)) - 1.0) * 100);
         const indPriceFormatted = indPrice.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+
+        const defaultStop = sig.action.includes('SELL') ? (sig.price * 1.003) : (sig.price * 0.997);
+        const stopLoss = sig.indicative_stop_loss !== undefined && sig.indicative_stop_loss !== null ? sig.indicative_stop_loss : defaultStop;
+        const stopLossFormatted = stopLoss.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+
+        const closeTargetLabel = sig.action.includes('BUY') ? 'Close Long Target (TP)' : (sig.action.includes('SELL') ? 'Close Short Target (TP)' : 'Equilibrium Exit Target');
+        const stopLossLabel = 'Protective Stop Loss';
 
         const mh = sig.multi_horizon || {};
         const s1 = mh.forward_1m || mh.forward_5m || {};
@@ -1436,7 +1446,16 @@
           </div>
 
           <div class="card-action-badge ${actionClass}">${sig.action}</div>
-          <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-align: center; margin-top: 4px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 4px; padding: 3px 6px;">Indicative Target: $${indPriceFormatted} (${indDeltaPct >= 0 ? '+' : ''}${indDeltaPct.toFixed(2)}%)</div>
+          <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; padding: 6px 8px; margin-top: 5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size: 11px;">
+              <span style="color: #38bdf8; font-weight: 700;">🎯 ${closeTargetLabel}:</span>
+              <span class="mono" style="color: #38bdf8; font-weight: 800;">$${indPriceFormatted} (${indDeltaPct >= 0 ? '+' : ''}${indDeltaPct.toFixed(2)}%)</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size: 11px; margin-top: 3px;">
+              <span style="color: #f87171; font-weight: 700;">🛡️ ${stopLossLabel}:</span>
+              <span class="mono" style="color: #fca5a5; font-weight: 700;">$${stopLossFormatted}</span>
+            </div>
+          </div>
           
           <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:600; margin-top: 6px;">
             <span style="color: var(--text-muted);">1m / 10m / 30m / 1h Alignment</span>
@@ -1504,6 +1523,7 @@
           <td><strong>${sig.flag} ${name}</strong></td>
           <td><span style="color: ${sig.color}; font-weight: 700;">${sig.action}</span></td>
           <td class="mono" style="color: #60a5fa; font-weight:700;">$${indPriceFormatted} (${indDeltaPct >= 0 ? '+' : ''}${indDeltaPct.toFixed(2)}%)</td>
+          <td class="mono" style="color: #fca5a5; font-weight:700;">$${stopLossFormatted}</td>
           <td class="mono" style="color: ${probColor}; font-weight:700;">${probPct}%</td>
           <td class="mono">${(sig.confidence * 100).toFixed(0)}%</td>
           <td class="mono" style="color: ${sig.ret_3 >= 0 ? '#00ff88' : '#ff4d6d'}; font-weight:600;">${sig.ret_3 >= 0 ? '+' : ''}${sig.ret_3.toFixed(2)}%</td>

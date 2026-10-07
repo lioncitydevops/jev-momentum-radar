@@ -451,11 +451,16 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         badge_class = "card-neutral"
         color = "#ffd166"
         
-    ind_price_10m = sig_10m.get("indicative_price", round(close[-1] * (1.0 + (prob_up - 0.50) * 0.005), 2))
-    ind_delta_10m = round(ind_price_10m - close[-1], 2)
-    ind_delta_pct_10m = round(((ind_price_10m / (close[-1] + 1e-9)) - 1.0) * 100, 2)
-    ind_stop_loss_10m = sig_10m.get("indicative_stop_loss", round(close[-1] - np.sign(ind_delta_10m + 1e-9) * 0.003 * close[-1], 2))
-    ind_take_profit_10m = sig_10m.get("indicative_take_profit", ind_price_10m)
+    ind_price_10m = sig_10m.get("indicative_price") or round(close[-1] * (1.0 + (prob_up - 0.50) * 0.005), 2)
+    ind_delta_10m = sig_10m.get("indicative_delta")
+    if ind_delta_10m is None:
+        ind_delta_10m = round(ind_price_10m - close[-1], 2)
+    ind_delta_pct_10m = sig_10m.get("indicative_delta_pct")
+    if ind_delta_pct_10m is None:
+        ind_delta_pct_10m = round(((ind_price_10m / (close[-1] + 1e-9)) - 1.0) * 100, 2)
+    sgn = 1.0 if ind_delta_10m >= 0 else -1.0
+    ind_stop_loss_10m = sig_10m.get("indicative_stop_loss") or round(close[-1] - sgn * 0.003 * close[-1], 2)
+    ind_take_profit_10m = sig_10m.get("indicative_take_profit") or ind_price_10m
 
     fwd_proj = mh_sigs.get("forward_projections")
     if not fwd_proj:
