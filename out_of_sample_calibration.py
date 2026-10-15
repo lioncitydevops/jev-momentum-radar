@@ -103,11 +103,12 @@ def run_out_of_sample_calibration():
     print("=" * 70)
     
     def compute_composite_score(sub_df):
+        # Microstructure Short-Term Reversal Prior:
+        # Fades overextended 1d-5d momentum bursts; buys sharp pullbacks toward fair value
         return (
-            0.20 * sub_df["z_mom_1d"] +
-            0.40 * sub_df["z_mom_3d"] +
-            0.30 * sub_df["z_mom_5d"] +
-            0.10 * sub_df["z_mom_10d"]
+            - 0.25 * sub_df["z_mom_1d"] -
+            0.35 * sub_df["z_mom_3d"] -
+            0.40 * sub_df["z_mom_5d"]
         )
     
     train_df["score"] = compute_composite_score(train_df)
@@ -123,11 +124,15 @@ def run_out_of_sample_calibration():
     
     res = minimize(log_loss_fn, [0.1, 0.2], method="Nelder-Mead")
     alpha_fit, beta_fit = res.x
+    p_baseline = float(1.0 / (1.0 + np.exp(-alpha_fit)))
     print(f"Calibrated Sigmoid Parameters: alpha={alpha_fit:.4f}, beta={beta_fit:.4f}")
+    print(f"Unconditional In-Sample Base Probability (Market Drift Anchor): {p_baseline*100:.2f}%")
     
-    # Evaluate Long/Flat/Short thresholds
-    best_thresh_long = 0.53
-    best_thresh_short = 0.47
+    # Active Excess Probability Thresholds centered on baseline drift
+    delta_gate = 0.012
+    best_thresh_long = p_baseline + delta_gate
+    best_thresh_short = p_baseline - delta_gate
+    print(f"Calibrated Thresholds: LONG when p > {best_thresh_long*100:.2f}%, SHORT when p < {best_thresh_short*100:.2f}%, CASH when in-between")
     
     # -------------------------------------------------------------
     # 3. OUT-OF-SAMPLE VERIFICATION (Strictly Unseen Data)
@@ -139,10 +144,10 @@ def run_out_of_sample_calibration():
     test_df["score"] = compute_composite_score(test_df)
     test_df["p_model"] = 1.0 / (1.0 + np.exp(-(alpha_fit + beta_fit * test_df["score"])))
     
-    # Tactical Positioning: +1 if p > 0.525, -1 if p < 0.475, else 0 (Cash)
+    # Tactical Positioning centered around baseline drift anchor
     pos = np.zeros(len(test_df))
-    pos[test_df["p_model"].values > 0.525] = 1.0
-    pos[test_df["p_model"].values < 0.475] = -1.0
+    pos[test_df["p_model"].values > best_thresh_long] = 1.0
+    pos[test_df["p_model"].values < best_thresh_short] = -1.0
     test_df["position"] = pos
     
     # Strategy returns (holding 3-day return averaged daily)

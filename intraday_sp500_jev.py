@@ -160,6 +160,22 @@ if __name__ == "__main__":
     print("=" * 65)
 
     from multi_horizon_momentum import generate_multi_horizon_signals
-    print("\n=== Multi-Horizon Trend Signals (5m, 10m, 15m Forward) ===")
+    print("\n=== Multi-Horizon Trend Signals (1m, 10m, 30m, 1h Forward) ===")
     mh_res = generate_multi_horizon_signals(df, asset_name="S&P 500 (SPX)")
     print(json.dumps(mh_res["signals"], indent=2))
+
+    print("\n" + "=" * 90)
+    print(">>> S&P 500 MULTI-HORIZON TRADE TARGETS & PROTECTIVE STOP LEVELS:")
+    print("=" * 90)
+    print(f"{'Horizon':<12} | {'Action':<13} | {'P(Up)':<7} | {'Entry':<9} | {'Close Target (TP)':<20} | {'Stop-Loss':<10}")
+    print("-" * 90)
+    for h_key in ["forward_1m", "forward_10m", "forward_30m", "forward_1h"]:
+        h_data = mh_res["signals"].get(h_key, {})
+        lbl = h_data.get("horizon", h_key).split(" ")[0]
+        act = h_data.get("action", "HOLD")
+        p_up = f"{h_data.get('prob_up', 0.5)*100:.1f}%"
+        entry_s = f"${h_data.get('entry_price', 0):,.2f}"
+        tp_s = f"${h_data.get('indicative_take_profit', h_data.get('indicative_price', 0)):,.2f} ({h_data.get('indicative_delta_pct', 0):+.2f}%)"
+        sl_s = f"${h_data.get('indicative_stop_loss', 0):,.2f}"
+        print(f"{lbl:<12} | {act:<13} | {p_up:<7} | {entry_s:<9} | {tp_s:<20} | {sl_s:<10}")
+    print("=" * 90)

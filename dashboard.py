@@ -678,7 +678,9 @@ for i, name in enumerate(row1_keys):
     with cols1[i]:
         if sig:
             engine_tag = "Jev Decision" if sig["is_live_jev"] else "Quant Fallback"
-            ind_price_str = f"${sig.get('indicative_price', sig['price']):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)"
+            close_label = "🎯 Close Long (TP)" if "BUY" in sig['action'] or "LONG" in sig['action'] else ("🎯 Close Short (TP)" if "SELL" in sig['action'] or "SHORT" in sig['action'] else "🎯 Equilibrium Target")
+            ind_price_str = f"${sig.get('indicative_take_profit', sig.get('indicative_price', sig['price'])):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)"
+            ind_sl_str = f"${sig.get('indicative_stop_loss', sig['price'] * 0.997):,.2f}"
             st.markdown(f"""
             <div class="index-card {sig['badge_class']}">
                 <div style="font-size: 13px; opacity: 0.8;">{meta['flag']} {name} ({meta['symbol']})</div>
@@ -687,7 +689,10 @@ for i, name in enumerate(row1_keys):
                     {sig['session_change']:+.2f}% (Session)
                 </div>
                 <div class="metric-badge" style="color: {sig['color']};">{sig['action']}</div>
-                <div style="font-size: 13px; font-weight: 700; color: #60a5fa; margin: 2px 0;">Ind. Target: {ind_price_str}</div>
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 8px; margin: 6px 0;">
+                    <div style="font-size: 12px; font-weight: 700; color: #38bdf8;">{close_label}: {ind_price_str}</div>
+                    <div style="font-size: 12px; font-weight: 700; color: #f87171; margin-top: 2px;">🛡️ Protective Stop: {ind_sl_str}</div>
+                </div>
                 <div style="font-size: 13px; font-weight: 600;">Continuation Prob: {sig['prob_up']*100:.1f}%</div>
                 <div style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Confidence: {sig['confidence']*100:.0f}% | VWAP: {sig['vwap_z']:+.1f}σ</div>
                 <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">⚡ {engine_tag}</div>
@@ -704,7 +709,9 @@ for i, name in enumerate(row2_keys):
     with cols2[i]:
         if sig:
             engine_tag = "Jev Decision" if sig["is_live_jev"] else "Quant Fallback"
-            ind_price_str = f"${sig.get('indicative_price', sig['price']):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)"
+            close_label = "🎯 Close Long (TP)" if "BUY" in sig['action'] or "LONG" in sig['action'] else ("🎯 Close Short (TP)" if "SELL" in sig['action'] or "SHORT" in sig['action'] else "🎯 Equilibrium Target")
+            ind_price_str = f"${sig.get('indicative_take_profit', sig.get('indicative_price', sig['price'])):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)"
+            ind_sl_str = f"${sig.get('indicative_stop_loss', sig['price'] * 0.997):,.2f}"
             st.markdown(f"""
             <div class="index-card {sig['badge_class']}">
                 <div style="font-size: 13px; opacity: 0.8;">{meta['flag']} {name} ({meta['symbol']})</div>
@@ -713,7 +720,10 @@ for i, name in enumerate(row2_keys):
                     {sig['session_change']:+.2f}% (Session)
                 </div>
                 <div class="metric-badge" style="color: {sig['color']};">{sig['action']}</div>
-                <div style="font-size: 13px; font-weight: 700; color: #60a5fa; margin: 2px 0;">Ind. Target: {ind_price_str}</div>
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 6px 8px; margin: 6px 0;">
+                    <div style="font-size: 12px; font-weight: 700; color: #38bdf8;">{close_label}: {ind_price_str}</div>
+                    <div style="font-size: 12px; font-weight: 700; color: #f87171; margin-top: 2px;">🛡️ Protective Stop: {ind_sl_str}</div>
+                </div>
                 <div style="font-size: 13px; font-weight: 600;">Continuation Prob: {sig['prob_up']*100:.1f}%</div>
                 <div style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Confidence: {sig['confidence']*100:.0f}% | VWAP: {sig['vwap_z']:+.1f}σ</div>
                 <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">⚡ {engine_tag}</div>
@@ -733,7 +743,8 @@ for name, sig in results.items():
     matrix_data.append({
         "Instrument": f"{ASSETS[name]['flag']} {name}",
         "Signal": sig["action"],
-        "Indicative Target Price": f"${sig.get('indicative_price', sig['price']):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)",
+        "Indicative Close Target (TP)": f"${sig.get('indicative_take_profit', sig.get('indicative_price', sig['price'])):,.2f} ({sig.get('indicative_delta_pct', 0.0):+.2f}%)",
+        "Protective Stop-Loss": f"${sig.get('indicative_stop_loss', sig['price'] * 0.997):,.2f}",
         "Continuation Prob": f"{sig['prob_up']*100:.1f}%",
         "Jev Confidence": f"{sig['confidence']*100:.0f}%",
         "3-Bar Momentum": f"{sig['ret_3']:+.2f}%",
@@ -758,19 +769,23 @@ for name, sig in results.items():
     s1h = mh.get("forward_1h", {})
     
     p0 = sig["price"]
-    p1_str = f"${s1.get('indicative_price', p0):,.2f}"
-    p10_str = f"${s10.get('indicative_price', p0):,.2f}"
-    p30_str = f"${s30.get('indicative_price', p0):,.2f}"
-    p1h_str = f"${s1h.get('indicative_price', p0):,.2f}"
+    p1_tp = f"${s1.get('indicative_take_profit', s1.get('indicative_price', p0)):,.2f}"
+    p1_sl = f"${s1.get('indicative_stop_loss', p0 * 0.997):,.2f}"
+    p10_tp = f"${s10.get('indicative_take_profit', s10.get('indicative_price', p0)):,.2f}"
+    p10_sl = f"${s10.get('indicative_stop_loss', p0 * 0.997):,.2f}"
+    p30_tp = f"${s30.get('indicative_take_profit', s30.get('indicative_price', p0)):,.2f}"
+    p30_sl = f"${s30.get('indicative_stop_loss', p0 * 0.997):,.2f}"
+    p1h_tp = f"${s1h.get('indicative_take_profit', s1h.get('indicative_price', p0)):,.2f}"
+    p1h_sl = f"${s1h.get('indicative_stop_loss', p0 * 0.997):,.2f}"
 
     mh_matrix_data.append({
         "Instrument": f"{ASSETS[name]['flag']} {name}",
-        "1m Forward Signal": f"{s1.get('action', 'NEUTRAL')} (P={s1.get('prob_up', 0.5)*100:.1f}% | Target {p1_str})",
-        "10m Forward Signal": f"{s10.get('action', 'NEUTRAL')} (P={s10.get('prob_up', 0.5)*100:.1f}% | Target {p10_str})",
-        "30m Forward Signal": f"{s30.get('action', 'NEUTRAL')} (P={s30.get('prob_up', 0.5)*100:.1f}% | Target {p30_str})",
-        "1h Forward Signal": f"{s1h.get('action', 'NEUTRAL')} (P={s1h.get('prob_up', 0.5)*100:.1f}% | Target {p1h_str})",
-        "Multi-Horizon Alignment": mh.get("alignment", "NEUTRAL"),
-        "Mean Prob P(Up)": f"{mh.get('average_prob_up', 0.5)*100:.1f}%"
+        "1m Forward Signal": f"{s1.get('action', 'NEUTRAL')} (TP: {p1_tp} | SL: {p1_sl})",
+        "10m Forward Signal": f"{s10.get('action', 'NEUTRAL')} (TP: {p10_tp} | SL: {p10_sl})",
+        "30m Forward Signal": f"{s30.get('action', 'NEUTRAL')} (TP: {p30_tp} | SL: {p30_sl})",
+        "1h Forward Signal": f"{s1h.get('action', 'NEUTRAL')} (TP: {p1h_tp} | SL: {p1h_sl})",
+        "Horizon Alignment": mh.get("alignment", "NEUTRAL").split(" ")[0],
+        "Mean Prob P(Up)": f"{mh.get('average_prob_up', 0.50)*100:.1f}%"
     })
 mh_matrix_df = pd.DataFrame(mh_matrix_data)
 st.dataframe(mh_matrix_df, use_container_width=True, hide_index=True)

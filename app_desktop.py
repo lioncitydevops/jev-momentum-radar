@@ -15,7 +15,9 @@ ASSETS = {
     "Nasdaq 100 (NDX)": "^NDX",
     "Russell 2000 (RUT)": "^RUT",
     "Nikkei 225 (NI225)": "^N225",
-    "10Y Treasury (TNX)": "^TNX"
+    "10Y Treasury (TNX)": "^TNX",
+    "WTI Crude (WTI)": "CL=F",
+    "Brent Crude (BRENT)": "BZ=F"
 }
 
 def fetch_data_and_signal(symbol: str, timeframe="5m"):
@@ -77,8 +79,22 @@ def fetch_data_and_signal(symbol: str, timeframe="5m"):
         desc = "Neutral / Chop: CFD price fluctuating near VWAP."
         
     dec = 3 if "^TNX" in symbol else 2
-    ind_price = float(np.round(close[-1] * (1.0 + (prob_up - 0.50) * 0.005), dec))
-    ind_delta_pct = float(np.round(((ind_price / (close[-1] + 1e-9)) - 1.0) * 100, 2))
+    mult_tp = max(1.5 * atr_14, 0.0030 * close[-1])
+    mult_sl = max(1.0 * atr_14, 0.0025 * close[-1])
+
+    if "BUY" in action or "LONG" in action:
+        delta_val = max(0.5 * mult_tp, 2.0 * (prob_up - 0.50) * mult_tp * 2.0)
+        ind_tp = round(close[-1] + delta_val, dec)
+        ind_sl = round(close[-1] - mult_sl * 1.15, dec)
+    elif "SELL" in action or "SHORT" in action:
+        delta_val = max(0.5 * mult_tp, 2.0 * (0.50 - prob_up) * mult_tp * 2.0)
+        ind_tp = round(close[-1] - delta_val, dec)
+        ind_sl = round(close[-1] + mult_sl * 1.15, dec)
+    else:
+        ind_tp = round(close[-1] + (prob_up - 0.50) * mult_tp, dec)
+        ind_sl = round(close[-1] - mult_sl * 0.75, dec)
+
+    ind_delta_pct = float(np.round(((ind_tp / (close[-1] + 1e-9)) - 1.0) * 100, 2))
 
     return {
         "action": action,
@@ -86,7 +102,9 @@ def fetch_data_and_signal(symbol: str, timeframe="5m"):
         "bg_card": bg_card,
         "desc": desc,
         "price": close[-1],
-        "indicative_price": ind_price,
+        "indicative_price": ind_tp,
+        "indicative_take_profit": ind_tp,
+        "indicative_stop_loss": ind_sl,
         "indicative_delta_pct": ind_delta_pct,
         "vwap": vwap,
         "vwap_z": vwap_z,
@@ -100,7 +118,7 @@ class MultiIndexApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Global Multi-CFD Momentum Radar")
-        self.geometry("500x600")
+        self.geometry("500x670")
         self.configure(bg="#121214")
         self.resizable(False, False)
         
@@ -152,6 +170,8 @@ class MultiIndexApp(tk.Tk):
         self.val_prob = self.add_metric(frame_metrics, "Win Probability", "0.0%", 0, 1)
         self.val_conviction = self.add_metric(frame_metrics, "Conviction", "+0", 1, 0)
         self.val_vwap = self.add_metric(frame_metrics, "Session VWAP", "$0.00", 1, 1)
+        self.val_tp = self.add_metric(frame_metrics, "🎯 Close Target (TP)", "$0.00", 2, 0)
+        self.val_sl = self.add_metric(frame_metrics, "🛡️ Protective Stop", "$0.00", 2, 1)
 
         self.lbl_time = tk.Label(self, text="", font=("Helvetica", 9), fg="#636366", bg="#121214")
         self.lbl_time.pack(side="bottom", pady=12)
@@ -186,10 +206,13 @@ class MultiIndexApp(tk.Tk):
         self.lbl_sig_header.config(bg=res["bg_card"])
         self.lbl_desc.config(text=res["desc"], bg=res["bg_card"])
         
-        self.val_price.config(text=f"${res['price']:,.2f}")
+        dec = 3 if "^TNX" in ASSETS[self.asset_var.get()] else 2
+        self.val_price.config(text=f"${res['price']:,.{dec}f}")
         self.val_prob.config(text=f"{res['prob_up']*100:.1f}%")
         self.val_conviction.config(text=f"{res['conviction']:+d} / 100")
-        self.val_vwap.config(text=f"${res['vwap']:,.2f} ({res['vwap_z']:+.1f}σ)")
+        self.val_vwap.config(text=f"${res['vwap']:,.{dec}f} ({res['vwap_z']:+.1f}σ)")
+        self.val_tp.config(text=f"${res['indicative_take_profit']:,.{dec}f} ({res['indicative_delta_pct']:+.2f}%)", fg="#38bdf8")
+        self.val_sl.config(text=f"${res['indicative_stop_loss']:,.{dec}f}", fg="#f87171")
         self.lbl_time.config(text=f"Last updated: {res['time']}")
 
 if __name__ == "__main__":

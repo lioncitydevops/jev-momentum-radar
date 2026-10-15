@@ -171,6 +171,48 @@ class TypeSafeJevMomentumSignal:
             }
         }
 
+def compute_trade_risk_parameters(entry_price: float, daily_vol_pct: float, action: str, prob_positive: float) -> dict:
+    """
+    Computes exact quantitative indicative target price to close, expected delta,
+    and protective stop-loss based on realized Garman-Klass volatility and directional probability.
+    """
+    vol_usd = entry_price * (daily_vol_pct / 100.0)
+    is_long = "LONG" in action or prob_positive >= 0.52
+    is_short = "SHORT" in action or prob_positive <= 0.48
+    
+    mult_tp = max(1.5 * vol_usd, 0.005 * entry_price)
+    mult_sl = max(1.0 * vol_usd, 0.0035 * entry_price)
+
+    if is_long:
+        delta = 2.0 * (prob_positive - 0.50) * mult_tp
+        close_tp = round(entry_price + max(0.5 * mult_tp, delta), 2)
+        stop_loss = round(entry_price - mult_sl * 0.75, 2)
+    elif is_short:
+        delta = 2.0 * (prob_positive - 0.50) * mult_tp
+        close_tp = round(entry_price + min(-0.5 * mult_tp, delta), 2)
+        stop_loss = round(entry_price + mult_sl * 0.75, 2)
+    else:
+        close_tp = round(entry_price, 2)
+        stop_loss = round(entry_price - mult_sl * 0.50, 2)
+        
+    delta_val = round(close_tp - entry_price, 2)
+    delta_pct = round((delta_val / (entry_price + 1e-9)) * 100, 2)
+    sl_dist = round(abs(entry_price - stop_loss), 2)
+    sl_pct = round((sl_dist / (entry_price + 1e-9)) * 100, 2)
+    rr_ratio = round(abs(delta_val) / (sl_dist + 1e-9), 2)
+
+    return {
+        "entry_price": round(entry_price, 2),
+        "indicative_close_target": close_tp,
+        "indicative_delta": delta_val,
+        "indicative_delta_pct": delta_pct,
+        "indicative_stop_loss": stop_loss,
+        "stop_loss_distance": sl_dist,
+        "stop_loss_pct": sl_pct,
+        "risk_reward_ratio": rr_ratio
+    }
+
+
 # -------------------------------------------------------------------------
 # 3. Execution / Demonstration
 # -------------------------------------------------------------------------
@@ -206,3 +248,23 @@ if __name__ == "__main__":
     client = TypeSafeJevMomentumSignal()
     signal_output = client.generate_signal(momentum_state["state_str"])
     print(json.dumps(signal_output, indent=2))
+
+    # Extract decision outputs for trade execution
+    entry_p = synthetic_data["Close"].iloc[-1]
+    daily_vol = momentum_state["metrics"]["daily_vol_pct"]
+    results_map = signal_output.get("results", signal_output.get("answers", {}))
+    sig_action = results_map.get("signal_action", {}).get("value", results_map.get("signal_action", {}).get("choice", "LEAN_LONG"))
+    prob_ret = results_map.get("prob_positive_3d_return", {}).get("probability", results_map.get("prob_positive_3d_return", {}).get("noul", 0.63))
+
+    risk_mgmt = compute_trade_risk_parameters(entry_p, daily_vol, sig_action, prob_ret)
+
+    print("\n" + "=" * 75)
+    print(">>> TYPE-SAFE JEV TRADE EXECUTION & RISK MANAGEMENT PARAMETERS:")
+    print("=" * 75)
+    print(f"  Instrument                    : S&P 500 Index CFD (SPX)")
+    print(f"  Signal Action                 : {sig_action}")
+    print(f"  Entry Price                   : ${risk_mgmt['entry_price']:,.2f}")
+    print(f"  Indicative Close Target (TP)  : ${risk_mgmt['indicative_close_target']:,.2f} ({risk_mgmt['indicative_delta']:+,.2f} | {risk_mgmt['indicative_delta_pct']:+.2f}%)")
+    print(f"  Indicative Protective Stop    : ${risk_mgmt['indicative_stop_loss']:,.2f} (-{risk_mgmt['stop_loss_distance']:,.2f} | -{risk_mgmt['stop_loss_pct']:.2f}%)")
+    print(f"  Risk / Reward Ratio           : 1 : {risk_mgmt['risk_reward_ratio']:.2f}")
+    print("=" * 75)

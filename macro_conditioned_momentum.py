@@ -59,6 +59,8 @@ def format_macro_full_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, br
         f"Latest Close Price: ${eq_feat['price']:,.2f}\n"
         f"VWAP Z-Score: {eq_feat['vwap_z']:+.2f} ATRs, RSI(14): {eq_feat['rsi_14']:.1f}, RVOL: {eq_feat['rvol']:.2f}x\n"
         f"Micro-Returns Curve: 1m={eq_feat['ret_1m']:+.2f}%, 3m={eq_feat['ret_3m']:+.2f}%, 5m={eq_feat['ret_5m']:+.2f}%, 10m={eq_feat['ret_10m']:+.2f}%, 30m={eq_feat['ret_30m']:+.2f}%, 60m={eq_feat.get('ret_60m', eq_feat['ret_30m']):+.2f}%\n"
+        f"Realized 1-Min Autocorrelation: ρ_1 = {eq_feat.get('autocorr_1m', 0.0):+.2f}\n"
+        f"Microstructure Dynamic Regime: {eq_feat.get('micro_regime', 'EQUILIBRIUM')}\n"
         f"Temporal Slopes: Micro-vs-Mid={eq_feat.get('slope_micro_vs_mid', 0.0):+.3f}%, Mid-vs-Macro={eq_feat.get('slope_mid_vs_macro', 0.0):+.3f}%\n"
         f"Temporal Term Structure Regime: {eq_feat.get('term_structure_type', 'N/A')}\n"
         f"{cs_block}"
@@ -67,7 +69,7 @@ def format_macro_full_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, br
         f"10Y Treasury Yield (TNX): ${tnx_feat['price']:.3f} | 5m Ret={tnx_feat['ret_5m']:+.2f}%, 10m Ret={tnx_feat['ret_10m']:+.2f}%, VWAP Z={tnx_feat['vwap_z']:+.2f}σ\n"
         f"Brent Crude Oil (BRENT): ${brent_feat['price']:.2f} | 5m Ret={brent_feat['ret_5m']:+.2f}%, 10m Ret={brent_feat['ret_10m']:+.2f}%, VWAP Z={brent_feat['vwap_z']:+.2f}σ\n"
         f"WTI Crude Oil (WTI): ${wti_feat['price']:.2f} | 5m Ret={wti_feat['ret_5m']:+.2f}%, 10m Ret={wti_feat['ret_10m']:+.2f}%, VWAP Z={wti_feat['vwap_z']:+.2f}σ\n"
-        f"Macro Guidance: Rising yields (TNX) compress duration equity multiples. Surging crude oil (Brent/WTI) increases inflation drag and margin pressure."
+        f"Macro Guidance: Rising yields (TNX) compress duration equity multiples. Surging crude oil (Brent/WTI) increases inflation drag. In Mean-Reversion regimes, fade micro-bursts back to VWAP."
     )
 
 def format_rate_only_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, cs_context: dict = None) -> str:
@@ -105,19 +107,22 @@ def format_rate_only_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, cs_
         f"Latest Close Price: ${eq_feat['price']:,.2f}\n"
         f"VWAP Z-Score: {eq_feat['vwap_z']:+.2f} ATRs, RSI(14): {eq_feat['rsi_14']:.1f}, RVOL: {eq_feat['rvol']:.2f}x\n"
         f"Micro-Returns Curve: 1m={eq_feat['ret_1m']:+.2f}%, 3m={eq_feat['ret_3m']:+.2f}%, 5m={eq_feat['ret_5m']:+.2f}%, 10m={eq_feat['ret_10m']:+.2f}%, 30m={eq_feat['ret_30m']:+.2f}%, 60m={eq_feat.get('ret_60m', eq_feat['ret_30m']):+.2f}%\n"
+        f"Realized 1-Min Autocorrelation: ρ_1 = {eq_feat.get('autocorr_1m', 0.0):+.2f}\n"
+        f"Microstructure Dynamic Regime: {eq_feat.get('micro_regime', 'EQUILIBRIUM')}\n"
         f"Temporal Slopes: Micro-vs-Mid={eq_feat.get('slope_micro_vs_mid', 0.0):+.3f}%, Mid-vs-Macro={eq_feat.get('slope_mid_vs_macro', 0.0):+.3f}%\n"
         f"Temporal Term Structure Regime: {eq_feat.get('term_structure_type', 'N/A')}\n"
         f"{cs_block}"
         f"{w_block}"
         f"--- Rate Input (TNX Only) ---\n"
         f"10Y Treasury Yield (TNX): ${tnx_feat['price']:.3f} | 5m Ret={tnx_feat['ret_5m']:+.2f}%, 10m Ret={tnx_feat['ret_10m']:+.2f}%, VWAP Z={tnx_feat['vwap_z']:+.2f}σ\n"
-        f"Macro Guidance: Evaluate equity forward trend strictly against interest rate duration sensitivity (10Y yield direction and volatility)."
+        f"Macro Guidance: Evaluate equity forward trend strictly against interest rate duration sensitivity (10Y yield direction and volatility). In Mean-Reversion regimes, fade micro-bursts back to VWAP."
     )
 
 def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, brent_feat: dict, wti_feat: dict) -> dict:
     """
     Model A Calibrated Fallback Prior:
     Adjusts equity base score using 10Y Yield sensitivity + Brent/WTI Crude sensitivity + nanoHUB Wave Matrix Exp predictions.
+    Dynamically conditions on microstructure autocorrelation (mean-reversion vs momentum persistence).
     """
     ret_1m = eq_feat["ret_1m"]
     ret_3m = eq_feat["ret_3m"]
@@ -126,6 +131,7 @@ def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, b
     ret_30m = eq_feat["ret_30m"]
     ret_60m = eq_feat.get("ret_60m", ret_30m)
     vwap_z = eq_feat["vwap_z"]
+    autocorr = eq_feat.get("autocorr_1m", 0.0)
 
     w_dyn = eq_feat.get("wave_dynamics", {})
     z_w_1m = w_dyn.get("z_pred_1m", 0.0)
@@ -134,7 +140,10 @@ def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, b
     z_w_1h = w_dyn.get("z_pred_1h", 0.0)
 
     # Base equity score incorporating wave exponential projections
-    base_score = 0.20 * ret_1m + 0.25 * ret_3m + 0.25 * ret_5m + 0.20 * ret_10m + 0.25 * (vwap_z * 0.4) + 0.25 * (z_w_10m * 0.3)
+    if autocorr < -0.05:
+        base_score = -0.35 * ret_3m - 0.35 * ret_5m - 0.25 * vwap_z + 0.20 * (z_w_10m * 0.3)
+    else:
+        base_score = 0.20 * ret_1m + 0.25 * ret_3m + 0.25 * ret_5m + 0.20 * ret_10m + 0.25 * (vwap_z * 0.4) + 0.25 * (z_w_10m * 0.3)
 
     # 10Y Yield Sensitivity Factor
     rate_sens = 0.45 if "NDX" in equity_name else (0.40 if "RUT" in equity_name else 0.30)
@@ -149,22 +158,23 @@ def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, b
     adjusted_score = base_score + tnx_impact + energy_impact
 
     # Probabilities for 1m, 10m, 30m, 1h incorporating specific wave horizon projections
-    prob_1m = float(np.clip(1.0 / (1.0 + np.exp(-(0.03 + 0.50 * (0.4 * ret_1m + 0.3 * (z_w_1m * 0.3) + 0.1 * tnx_impact)))), 0.05, 0.95))
-    prob_10m = float(np.clip(1.0 / (1.0 + np.exp(-(0.08 + 0.40 * (adjusted_score + 0.15 * z_w_10m + 0.05 * (tnx_impact + energy_impact))))), 0.05, 0.95))
-    prob_30m = float(np.clip(1.0 / (1.0 + np.exp(-(0.09 + 0.38 * (0.25 * ret_10m + 0.35 * ret_30m + 0.15 * z_w_30m + 0.10 * (tnx_impact + energy_impact))))), 0.05, 0.95))
-    prob_1h = float(np.clip(1.0 / (1.0 + np.exp(-(0.10 + 0.35 * (0.20 * ret_30m + 0.35 * ret_60m + 0.15 * z_w_1h + 0.15 * (tnx_impact + energy_impact))))), 0.05, 0.95))
+    p_1m_input = -0.40 * ret_1m - 0.30 * vwap_z if autocorr < -0.05 else (0.40 * ret_1m + 0.30 * (z_w_1m * 0.3) + 0.10 * tnx_impact)
+    prob_1m = float(np.clip(1.0 / (1.0 + np.exp(-(0.03 + 0.50 * p_1m_input))), 0.05, 0.95))
+    prob_10m = float(np.clip(1.0 / (1.0 + np.exp(-(0.05 + 0.45 * (adjusted_score + 0.15 * z_w_10m + 0.05 * (tnx_impact + energy_impact))))), 0.05, 0.95))
+    prob_30m = float(np.clip(1.0 / (1.0 + np.exp(-(0.06 + 0.40 * (0.25 * ret_10m + 0.35 * ret_30m + 0.15 * z_w_30m + 0.10 * (tnx_impact + energy_impact))))), 0.05, 0.95))
+    prob_1h = float(np.clip(1.0 / (1.0 + np.exp(-(0.08 + 0.38 * (0.20 * ret_30m + 0.35 * ret_60m + 0.15 * z_w_1h + 0.15 * (tnx_impact + energy_impact))))), 0.05, 0.95))
 
-    def get_act(p, z):
-        if p >= 0.60 and z > 0.10: return "STRONG_LONG"
-        elif p >= 0.53: return "LEAN_LONG"
-        elif p <= 0.40 and z < -0.10: return "STRONG_SHORT"
-        elif p <= 0.47: return "LEAN_SHORT"
+    def get_act(p):
+        if p >= 0.56: return "STRONG_LONG"
+        elif p >= 0.52: return "LEAN_LONG"
+        elif p <= 0.44: return "STRONG_SHORT"
+        elif p <= 0.48: return "LEAN_SHORT"
         return "NEUTRAL"
 
     probs = [prob_1m, prob_10m, prob_30m, prob_1h]
     avg_p = float(np.mean(probs))
-    bull_c = sum(1 for p in probs if p > 0.53)
-    bear_c = sum(1 for p in probs if p < 0.47)
+    bull_c = sum(1 for p in probs if p > 0.52)
+    bear_c = sum(1 for p in probs if p < 0.48)
     alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Up)" if bull_c == 4 else ("STRONG_BEARISH_ALIGNMENT (4/4 Down)" if bear_c == 4 else ("MODERATE_BULLISH_BIAS (3/4 Up)" if bull_c >= 3 else ("MODERATE_BEARISH_BIAS (3/4 Down)" if bear_c >= 3 else "DIVERGENT_CHOP / NEUTRAL")))
 
     ip_data = compute_indicative_prices(eq_feat, prob_1m, prob_10m, prob_30m, prob_1h)
@@ -180,16 +190,17 @@ def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, b
             "rate_impact_tnx": round(tnx_impact, 4),
             "energy_impact_crude": round(energy_impact, 4)
         },
-        "forward_1m": {"horizon": "1min forward", "action": get_act(prob_1m, vwap_z), "prob_up": round(prob_1m, 4), "confidence": 0.72, **ip_data["h1m"]},
-        "forward_10m": {"horizon": "10min forward", "action": get_act(prob_10m, vwap_z), "prob_up": round(prob_10m, 4), "confidence": 0.76, **ip_data["h10m"]},
-        "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m, vwap_z), "prob_up": round(prob_30m, 4), "confidence": 0.78, **ip_data["h30m"]},
-        "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h, vwap_z), "prob_up": round(prob_1h, 4), "confidence": 0.80, **ip_data["h1h"]}
+        "forward_1m": {"horizon": "1min forward", "action": get_act(prob_1m), "prob_up": round(prob_1m, 4), "confidence": 0.72, **ip_data["h1m"]},
+        "forward_10m": {"horizon": "10min forward", "action": get_act(prob_10m), "prob_up": round(prob_10m, 4), "confidence": 0.76, **ip_data["h10m"]},
+        "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m), "prob_up": round(prob_30m, 4), "confidence": 0.78, **ip_data["h30m"]},
+        "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h), "prob_up": round(prob_1h, 4), "confidence": 0.80, **ip_data["h1h"]}
     }
 
 def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict) -> dict:
     """
     Model B Calibrated Fallback Prior:
     Adjusts equity base score using 10Y Yield sensitivity ONLY (excluding Brent & WTI).
+    Dynamically conditions on microstructure autocorrelation.
     """
     ret_1m = eq_feat["ret_1m"]
     ret_3m = eq_feat["ret_3m"]
@@ -198,6 +209,7 @@ def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict) ->
     ret_30m = eq_feat["ret_30m"]
     ret_60m = eq_feat.get("ret_60m", ret_30m)
     vwap_z = eq_feat["vwap_z"]
+    autocorr = eq_feat.get("autocorr_1m", 0.0)
 
     w_dyn = eq_feat.get("wave_dynamics", {})
     z_w_1m = w_dyn.get("z_pred_1m", 0.0)
@@ -206,7 +218,10 @@ def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict) ->
     z_w_1h = w_dyn.get("z_pred_1h", 0.0)
 
     # Base equity score incorporating wave exponential projections
-    base_score = 0.20 * ret_1m + 0.25 * ret_3m + 0.25 * ret_5m + 0.20 * ret_10m + 0.25 * (vwap_z * 0.4) + 0.25 * (z_w_10m * 0.3)
+    if autocorr < -0.05:
+        base_score = -0.35 * ret_3m - 0.35 * ret_5m - 0.25 * vwap_z + 0.20 * (z_w_10m * 0.3)
+    else:
+        base_score = 0.20 * ret_1m + 0.25 * ret_3m + 0.25 * ret_5m + 0.20 * ret_10m + 0.25 * (vwap_z * 0.4) + 0.25 * (z_w_10m * 0.3)
 
     # 10Y Yield Sensitivity Factor ONLY
     rate_sens = 0.50 if "NDX" in equity_name else (0.45 if "RUT" in equity_name else 0.35)
@@ -215,22 +230,23 @@ def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict) ->
     adjusted_score = base_score + tnx_impact
 
     # Probabilities for 1m, 10m, 30m, 1h incorporating specific wave horizon projections
-    prob_1m = float(np.clip(1.0 / (1.0 + np.exp(-(0.03 + 0.50 * (0.4 * ret_1m + 0.3 * (z_w_1m * 0.3) + 0.1 * tnx_impact)))), 0.05, 0.95))
-    prob_10m = float(np.clip(1.0 / (1.0 + np.exp(-(0.08 + 0.40 * (adjusted_score + 0.15 * z_w_10m)))), 0.05, 0.95))
-    prob_30m = float(np.clip(1.0 / (1.0 + np.exp(-(0.09 + 0.38 * (0.25 * ret_10m + 0.35 * ret_30m + 0.15 * z_w_30m + 0.10 * tnx_impact)))), 0.05, 0.95))
-    prob_1h = float(np.clip(1.0 / (1.0 + np.exp(-(0.10 + 0.35 * (0.20 * ret_30m + 0.35 * ret_60m + 0.15 * z_w_1h + 0.15 * tnx_impact)))), 0.05, 0.95))
+    p_1m_input = -0.40 * ret_1m - 0.30 * vwap_z if autocorr < -0.05 else (0.40 * ret_1m + 0.30 * (z_w_1m * 0.3) + 0.10 * tnx_impact)
+    prob_1m = float(np.clip(1.0 / (1.0 + np.exp(-(0.03 + 0.50 * p_1m_input))), 0.05, 0.95))
+    prob_10m = float(np.clip(1.0 / (1.0 + np.exp(-(0.05 + 0.45 * (adjusted_score + 0.15 * z_w_10m)))), 0.05, 0.95))
+    prob_30m = float(np.clip(1.0 / (1.0 + np.exp(-(0.06 + 0.40 * (0.25 * ret_10m + 0.35 * ret_30m + 0.15 * z_w_30m + 0.10 * tnx_impact)))), 0.05, 0.95))
+    prob_1h = float(np.clip(1.0 / (1.0 + np.exp(-(0.08 + 0.38 * (0.20 * ret_30m + 0.35 * ret_60m + 0.15 * z_w_1h + 0.15 * tnx_impact)))), 0.05, 0.95))
 
-    def get_act(p, z):
-        if p >= 0.60 and z > 0.10: return "STRONG_LONG"
-        elif p >= 0.53: return "LEAN_LONG"
-        elif p <= 0.40 and z < -0.10: return "STRONG_SHORT"
-        elif p <= 0.47: return "LEAN_SHORT"
+    def get_act(p):
+        if p >= 0.56: return "STRONG_LONG"
+        elif p >= 0.52: return "LEAN_LONG"
+        elif p <= 0.44: return "STRONG_SHORT"
+        elif p <= 0.48: return "LEAN_SHORT"
         return "NEUTRAL"
 
     probs = [prob_1m, prob_10m, prob_30m, prob_1h]
     avg_p = float(np.mean(probs))
-    bull_c = sum(1 for p in probs if p > 0.53)
-    bear_c = sum(1 for p in probs if p < 0.47)
+    bull_c = sum(1 for p in probs if p > 0.52)
+    bear_c = sum(1 for p in probs if p < 0.48)
     alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Up)" if bull_c == 4 else ("STRONG_BEARISH_ALIGNMENT (4/4 Down)" if bear_c == 4 else ("MODERATE_BULLISH_BIAS (3/4 Up)" if bull_c >= 3 else ("MODERATE_BEARISH_BIAS (3/4 Down)" if bear_c >= 3 else "DIVERGENT_CHOP / NEUTRAL")))
 
     ip_data = compute_indicative_prices(eq_feat, prob_1m, prob_10m, prob_30m, prob_1h)
@@ -244,12 +260,12 @@ def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict) ->
         "forward_projections": ip_data["forward_projections"],
         "macro_impacts": {
             "rate_impact_tnx": round(tnx_impact, 4),
-            "energy_impact_crude": 0.0 # Excluded by design in Model B
+            "energy_impact_crude": 0.0  # Excluded by design in Model B
         },
-        "forward_1m": {"horizon": "1min forward", "action": get_act(prob_1m, vwap_z), "prob_up": round(prob_1m, 4), "confidence": 0.72, **ip_data["h1m"]},
-        "forward_10m": {"horizon": "10min forward", "action": get_act(prob_10m, vwap_z), "prob_up": round(prob_10m, 4), "confidence": 0.76, **ip_data["h10m"]},
-        "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m, vwap_z), "prob_up": round(prob_30m, 4), "confidence": 0.78, **ip_data["h30m"]},
-        "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h, vwap_z), "prob_up": round(prob_1h, 4), "confidence": 0.80, **ip_data["h1h"]}
+        "forward_1m": {"horizon": "1min forward", "action": get_act(prob_1m), "prob_up": round(prob_1m, 4), "confidence": 0.72, **ip_data["h1m"]},
+        "forward_10m": {"horizon": "10min forward", "action": get_act(prob_10m), "prob_up": round(prob_10m, 4), "confidence": 0.76, **ip_data["h10m"]},
+        "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m), "prob_up": round(prob_30m, 4), "confidence": 0.78, **ip_data["h30m"]},
+        "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h), "prob_up": round(prob_1h, 4), "confidence": 0.80, **ip_data["h1h"]}
     }
 
 def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func, eq_feat: dict = None) -> dict:
@@ -346,26 +362,45 @@ def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func, 
         data = resp.json()
         answers = data.get("answers", {})
 
-        act_1m = answers.get("signal_1m_action", {}).get("choice", "NEUTRAL")
+        # Compute empirical macro fallback prior for Bayesian calibration
+        fb_res = fallback_func()
+
+        raw_act_1m = answers.get("signal_1m_action", {}).get("choice", "NEUTRAL")
         conf_1m = answers.get("signal_1m_action", {}).get("confidence", 0.70)
-        p_1m = answers.get("prob_up_1m", {}).get("noul", 0.50)
+        raw_p_1m = answers.get("prob_up_1m", {}).get("noul", 0.50)
+        p_1m = float(np.clip(0.40 * float(raw_p_1m) + 0.60 * float(fb_res["forward_1m"]["prob_up"]), 0.05, 0.95))
 
-        act_10m = answers.get("signal_10m_action", {}).get("choice", "NEUTRAL")
+        raw_act_10m = answers.get("signal_10m_action", {}).get("choice", "NEUTRAL")
         conf_10m = answers.get("signal_10m_action", {}).get("confidence", 0.72)
-        p_10m = answers.get("prob_up_10m", {}).get("noul", 0.50)
+        raw_p_10m = answers.get("prob_up_10m", {}).get("noul", 0.50)
+        p_10m = float(np.clip(0.40 * float(raw_p_10m) + 0.60 * float(fb_res["forward_10m"]["prob_up"]), 0.05, 0.95))
 
-        act_30m = answers.get("signal_30m_action", {}).get("choice", "NEUTRAL")
+        raw_act_30m = answers.get("signal_30m_action", {}).get("choice", "NEUTRAL")
         conf_30m = answers.get("signal_30m_action", {}).get("confidence", 0.75)
-        p_30m = answers.get("prob_up_30m", {}).get("noul", 0.50)
+        raw_p_30m = answers.get("prob_up_30m", {}).get("noul", 0.50)
+        p_30m = float(np.clip(0.40 * float(raw_p_30m) + 0.60 * float(fb_res["forward_30m"]["prob_up"]), 0.05, 0.95))
 
-        act_1h = answers.get("signal_1h_action", {}).get("choice", "NEUTRAL")
+        raw_act_1h = answers.get("signal_1h_action", {}).get("choice", "NEUTRAL")
         conf_1h = answers.get("signal_1h_action", {}).get("confidence", 0.78)
-        p_1h = answers.get("prob_up_1h", {}).get("noul", 0.50)
+        raw_p_1h = answers.get("prob_up_1h", {}).get("noul", 0.50)
+        p_1h = float(np.clip(0.40 * float(raw_p_1h) + 0.60 * float(fb_res["forward_1h"]["prob_up"]), 0.05, 0.95))
+
+        def cal_act(raw, p):
+            if p >= 0.56: return "STRONG_LONG"
+            elif p >= 0.52: return "LEAN_LONG"
+            elif p <= 0.44: return "STRONG_SHORT"
+            elif p <= 0.48: return "LEAN_SHORT"
+            return raw if raw != "NEUTRAL" else "NEUTRAL"
+
+        act_1m = cal_act(raw_act_1m, p_1m)
+        act_10m = cal_act(raw_act_10m, p_10m)
+        act_30m = cal_act(raw_act_30m, p_30m)
+        act_1h = cal_act(raw_act_1h, p_1h)
 
         probs = [p_1m, p_10m, p_30m, p_1h]
         avg_p = float(np.mean(probs))
-        bull_c = sum(1 for p in probs if p > 0.53)
-        bear_c = sum(1 for p in probs if p < 0.47)
+        bull_c = sum(1 for p in probs if p > 0.52)
+        bear_c = sum(1 for p in probs if p < 0.48)
         alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Up)" if bull_c == 4 else ("STRONG_BEARISH_ALIGNMENT (4/4 Down)" if bear_c == 4 else ("MODERATE_BULLISH_BIAS (3/4 Up)" if bull_c >= 3 else ("MODERATE_BEARISH_BIAS (3/4 Down)" if bear_c >= 3 else "DIVERGENT_CHOP / NEUTRAL")))
 
         ip_extra = {}

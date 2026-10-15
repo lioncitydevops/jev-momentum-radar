@@ -7,6 +7,7 @@ import numpy as np
 from datetime import datetime, timezone
 import requests
 from oanda_feed import fetch_oanda_candles, test_oanda_connection
+from multi_horizon_momentum import generate_multi_horizon_signals
 
 print("=" * 115)
 print("     LIVE END-TO-END VALIDATION: OANDA CFD FEEDS, MATHEMATICAL COMPUTATIONS & TYPESAFE JEV")
@@ -29,97 +30,29 @@ ASSETS = {
 }
 
 def analyze_asset_live(df, name="S&P 500 (SPX)"):
-    close = df["Close"].values
-    high = df["High"].values
-    low = df["Low"].values
-    open_p = df["Open"].values
-    volume = df["Volume"].fillna(0).values
+    mh_data = generate_multi_horizon_signals(df, asset_name=name)
+    sigs = mh_data["signals"]
+    feat = mh_data["features"]
+    sig_10m = sigs["forward_10m"]
     
-    total_vol = volume.sum()
-    if total_vol > 0:
-        typical_price = (high + low + close) / 3.0
-        vwap = (typical_price * volume).sum() / (total_vol + 1e-9)
-    else:
-        vwap = float(np.mean(close[-20:]))
-        
-    tr = np.maximum(high[1:] - low[1:], np.maximum(abs(high[1:] - close[:-1]), abs(low[1:] - close[:-1])))
-    atr_14 = float(np.mean(tr[-14:])) if len(tr) >= 14 else float(np.std(close))
-    vwap_z = (close[-1] - vwap) / (atr_14 + 1e-9)
+    act_raw = sig_10m["action"]
+    prob = sig_10m["prob_up"]
+    conf = sig_10m["confidence"]
+    is_live_jev = sigs.get("is_live_jev", False)
     
-    ret_3 = ((close[-1] / close[-4]) - 1) * 100 if len(close) > 4 else 0.0
-    ret_6 = ((close[-1] / close[-7]) - 1) * 100 if len(close) > 7 else 0.0
-    ret_10 = ((close[-1] / close[-11]) - 1) * 100 if len(close) > 11 else 0.0
-    session_change = ((close[-1] / open_p[0]) - 1) * 100
-    
-    delta = np.diff(close[-15:])
-    gain = np.where(delta > 0, delta, 0)
-    loss = np.where(delta < 0, -delta, 0)
-    avg_gain = np.mean(gain)
-    avg_loss = np.mean(loss)
-    rsi_14 = 100 - (100 / (1 + (avg_gain / (avg_loss + 1e-9))))
-    
-    # Live Jev Query
-    state_str = (
-        f"Asset: {name} (Timeframe: 1-Minute Bars, OANDA CFD Live Feed)\n"
-        f"Forecasting Horizon: Next 10 Minutes (10 bars forward)\n"
-        f"Latest 1m Bar Timestamp (UTC): {df.index[-1].strftime('%Y-%m-%d %H:%M:%S')}\n"
-        f"Current Price: ${close[-1]:.2f}\n"
-        f"Session Return: {session_change:+.2f}%\n"
-        f"Session VWAP: ${vwap:.2f} (Deviation: {vwap_z:+.2f} ATR)\n"
-        f"1-Minute Micro-Momentum: 3-min={ret_3:+.2f}%, 6-min={ret_6:+.2f}%, 10-min={ret_10:+.2f}%\n"
-        f"14-Period RSI: {rsi_14:.1f}\n"
-        f"1-Minute ATR: ${atr_14:.2f}\n"
-        f"10-Minute Momentum Trajectory: {'Bullish Expansion' if ret_10 > 0.1 else ('Bearish Contraction' if ret_10 < -0.1 else 'Rangebound/Flat')}"
+    sig_label = "BUY / LONG" if ("LONG" in act_raw or "BUY" in act_raw) else (
+        "SELL / SHORT" if ("SHORT" in act_raw or "SELL" in act_raw) else "HOLD CASH"
     )
     
-    jev_key = os.getenv("TYPESAFE_API_KEY", "")
-    jev_url = "https://api.typesafe.ai/v1/systemone"
-    payload = {
-        "model": "jev-latest",
-        "state": state_str,
-        "questions": {
-            "tactical_action": {
-                "type": "choice",
-                "instructions": "Determine tactical positioning for the next 10 minutes (next 10 bars forward on 1-minute interval) based on microstructure momentum, VWAP deviation, and short-term trend for CFD instruments.",
-                "criteria": {
-                    "BUY_LONG": "Clear bullish momentum above VWAP with high probability of higher prices over next 10 minutes",
-                    "HOLD_CASH": "Choppy, consolidation, neutral range, or tight oscillation near VWAP expected over next 10 minutes",
-                    "SELL_SHORT": "Clear bearish breakdown below VWAP with high probability of lower prices over next 10 minutes"
-                }
-            },
-            "prob_continuation": {
-                "type": "noul",
-                "instructions": "What is the probability that price will close higher 10 minutes from now (next 10 bars forward on 1-minute interval)?"
-            }
-        }
-    }
-    
-    try:
-        resp = requests.post(jev_url, json=payload, headers={"Authorization": f"Bearer {jev_key}", "Content-Type": "application/json"}, timeout=8)
-        resp.raise_for_status()
-        data = resp.json()
-        action = data.get("answers", {}).get("tactical_action", {}).get("choice", "HOLD_CASH")
-        conf = data.get("answers", {}).get("tactical_action", {}).get("confidence", 0.6)
-        prob = data.get("answers", {}).get("prob_continuation", {}).get("noul", 0.5)
-        is_live_jev = True
-    except Exception as e:
-        raw_score = 0.30 * ret_3 + 0.35 * ret_6 + 0.35 * ret_10 + 0.25 * (vwap_z * 0.4)
-        prob = float(1.0 / (1.0 + np.exp(- (0.19 + 0.35 * raw_score))))
-        action = "BUY_LONG" if (prob > 0.54 and vwap_z > 0.15) else ("SELL_SHORT" if (prob < 0.46 and vwap_z < -0.15) else "HOLD_CASH")
-        conf = 0.70
-        is_live_jev = False
-
-    sig_label = "BUY / LONG" if "BUY" in action else ("SELL / SHORT" if "SELL" in action else "HOLD CASH")
-    
     return {
-        "price": close[-1],
-        "vwap": vwap,
-        "vwap_z": vwap_z,
-        "atr": atr_14,
-        "ret_3": ret_3,
-        "ret_6": ret_6,
-        "ret_10": ret_10,
-        "rsi": rsi_14,
+        "price": feat["price"],
+        "vwap": feat["vwap"],
+        "vwap_z": feat["vwap_z"],
+        "atr": feat["atr_14"],
+        "ret_3": feat["ret_3m"],
+        "ret_6": feat.get("ret_5m", 0.0),
+        "ret_10": feat["ret_10m"],
+        "rsi": feat["rsi_14"],
         "action": sig_label,
         "prob_up": prob,
         "confidence": conf,

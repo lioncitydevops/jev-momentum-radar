@@ -265,6 +265,21 @@ def compute_1m_features(df: pd.DataFrame) -> dict:
     # nanoHUB Wave Oscillator Dynamics (Supriyo Datta Framework)
     wave_dynamics = compute_wave_oscillator_dynamics(df)
 
+    # Realized 1-Minute Autocorrelation & Microstructure Regime
+    rets_1m = np.diff(close[-25:]) / (close[-25:-1] + 1e-9) if n >= 25 else np.diff(close) / (close[:-1] + 1e-9)
+    if len(rets_1m) >= 5 and np.std(rets_1m) > 0:
+        autocorr_1m = float(np.corrcoef(rets_1m[:-1], rets_1m[1:])[0, 1])
+        autocorr_1m = float(np.nan_to_num(autocorr_1m, nan=0.0))
+    else:
+        autocorr_1m = 0.0
+
+    if autocorr_1m < -0.05:
+        micro_regime = "MEAN_REVERSION_DOMINANT (Negative autocorrelation: micro-bursts tend to fade/revert)"
+    elif autocorr_1m > 0.08:
+        micro_regime = "MOMENTUM_EXPANSION_DOMINANT (Positive autocorrelation: breakouts exhibit persistence)"
+    else:
+        micro_regime = "EQUILIBRIUM_CHOP (Near-zero autocorrelation: oscillation around fair value)"
+
     return {
         "price": float(close[-1]),
         "vwap": vwap,
@@ -277,6 +292,8 @@ def compute_1m_features(df: pd.DataFrame) -> dict:
         "slope_micro_vs_mid": slope_micro_vs_mid,
         "slope_mid_vs_macro": slope_mid_vs_macro,
         "term_structure_type": term_structure_type,
+        "autocorr_1m": round(autocorr_1m, 3),
+        "micro_regime": micro_regime,
         "ret_1m": ret_1m,
         "ret_3m": ret_3m,
         "ret_5m": ret_5m,
@@ -322,20 +339,24 @@ def format_multi_horizon_state_prompt(asset_name: str, features: dict, timestamp
         f"Latest 1m Close Price: ${features['price']:,.2f}\n"
         f"Anchored Session VWAP: ${features['vwap']:,.2f} (VWAP Distance Z-Score: {features['vwap_z']:+.2f} ATRs)\n"
         f"14-Period RSI: {features['rsi_14']:.1f} | RVOL: {features['rvol']:.2f}x | Range Location: {features['close_loc']:.2f}\n"
+        f"Realized 1-Min Autocorrelation: ρ_1 = {features.get('autocorr_1m', 0.0):+.2f}\n"
+        f"Microstructure Dynamic Regime: {features.get('micro_regime', 'EQUILIBRIUM')}\n"
         f"--- Multi-Horizon Temporal Term Structure ---\n"
         f"Returns Curve: 1m={features['ret_1m']:+.2f}%, 3m={features['ret_3m']:+.2f}%, 5m={features['ret_5m']:+.2f}%, 10m={features['ret_10m']:+.2f}%, 30m={features['ret_30m']:+.2f}%, 60m={features.get('ret_60m', features['ret_30m']):+.2f}%\n"
         f"Normalized Z-Scores: Z(1m)={features['z_1m']:+.2f}σ, Z(10m)={features['z_10m']:+.2f}σ, Z(30m)={features['z_30m']:+.2f}σ, Z(60m)={features.get('z_60m', features['z_30m']):+.2f}σ\n"
         f"Temporal Slopes: Micro vs Mid (1m-10m)={features['slope_micro_vs_mid']:+.3f}%, Mid vs Macro (10m-30m)={features['slope_mid_vs_macro']:+.3f}%\n"
         f"Momentum Acceleration: {features['mom_accel']:+.3f}%\n"
         f"Temporal Term Structure Regime: {features['term_structure_type']}\n"
+        f"Microstructure Predictive Guidance: In Mean-Reversion Dominant regimes (negative autocorrelation), short-term extensions beyond VWAP are statistically prone to immediate counter-oscillation back toward equilibrium. In Momentum Expansion regimes, breakouts exhibit directional persistence.\n"
         f"{w_block}"
         f"{loop_block}"
     )
 
-def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: float = 0.0) -> dict:
+def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: float = 0.0, opt_configs: dict = None) -> dict:
     """
     Calibrated quantitative logistic model for 1m, 10m, 30m, and 1h (60m) forward horizons
-    used as fallback or offline simulation layer.
+    used as fallback or offline simulation layer. Dynamically conditions on microstructure
+    autocorrelation and autotuned walk-forward optimal regimes.
     """
     vwap_z = features["vwap_z"]
     ret_1m = features["ret_1m"]
@@ -346,6 +367,9 @@ def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: flo
     ret_60m = features.get("ret_60m", ret_30m)
     rsi = features["rsi_14"]
     close_loc = features["close_loc"]
+    autocorr = features.get("autocorr_1m", 0.0)
+
+    opt = opt_configs or features.get("opt_configs") or {}
 
     # nanoHUB Matrix Exponential Propagated State Predictions (Supriyo Datta Framework)
     w_dyn = features.get("wave_dynamics", {})
@@ -355,87 +379,101 @@ def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: flo
     z_w_1h = w_dyn.get("z_pred_1h", 0.0)
 
     # 1. 1-Minute Forward (Fast Micro-Burst, 1 bar forward)
-    # Weights prioritize immediate 1m, 3m returns, micro-position, and continuous wave exponential projection
-    score_1m = 0.40 * ret_1m + 0.25 * ret_3m + 0.15 * (close_loc - 0.5) + 0.20 * (vwap_z * 0.3) + 0.30 * (z_w_1m * 0.3)
+    mode_1m = opt.get("1m", {}).get("mode", "micro_vwap_fade" if autocorr < -0.05 else "harmonic_micro")
+    if mode_1m == 'micro_mean_reversion':
+        score_1m = -0.50 * ret_1m - 0.30 * ret_3m - 0.20 * z_w_1m
+    elif mode_1m == 'micro_vwap_fade':
+        score_1m = -0.40 * ret_1m - 0.40 * vwap_z
+    else:  # harmonic_micro
+        score_1m = 0.40 * ret_1m + 0.25 * ret_3m + 0.15 * (close_loc - 0.5) + 0.20 * (vwap_z * 0.3) + 0.30 * (z_w_1m * 0.3)
+
     if tv_rating_score:
         score_1m += 0.10 * tv_rating_score
     prob_1m = float(1.0 / (1.0 + np.exp(-(0.03 + 0.50 * score_1m))))
     prob_1m = float(np.clip(prob_1m, 0.05, 0.95))
-    
-    if prob_1m >= 0.60 and vwap_z > 0.05:
-        action_1m = "STRONG_LONG"
-    elif prob_1m >= 0.53:
-        action_1m = "LEAN_LONG"
-    elif prob_1m <= 0.40 and vwap_z < -0.05:
-        action_1m = "STRONG_SHORT"
-    elif prob_1m <= 0.47:
-        action_1m = "LEAN_SHORT"
-    else:
-        action_1m = "NEUTRAL"
+
+    d_1m = opt.get("1m", {}).get("delta", 0.02)
+    if prob_1m >= 0.50 + d_1m * 2.0: action_1m = "STRONG_LONG"
+    elif prob_1m >= 0.50 + d_1m: action_1m = "LEAN_LONG"
+    elif prob_1m <= 0.50 - d_1m * 2.0: action_1m = "STRONG_SHORT"
+    elif prob_1m <= 0.50 - d_1m: action_1m = "LEAN_SHORT"
+    else: action_1m = "NEUTRAL"
 
     # 2. 10-Minute Forward (Standard Intraday Cycle, 10 bars forward)
-    # Weights balance 3m, 5m, 10m, VWAP trend confirmation, and continuous wave exponential projection
-    score_10m = 0.20 * ret_3m + 0.25 * ret_5m + 0.25 * ret_10m + 0.25 * (vwap_z * 0.4) + 0.25 * (z_w_10m * 0.3)
+    mode_10m = opt.get("10m", {}).get("mode", "mean_reversion_fade" if autocorr < -0.05 else "confluence_mid")
+    if mode_10m == 'mean_reversion_fade':
+        score_10m = -0.40 * ret_3m - 0.40 * ret_5m - 0.20 * vwap_z
+    elif mode_10m == 'pure_fade_micro':
+        score_10m = -0.50 * ret_3m - 0.50 * ret_5m
+    elif mode_10m == 'fade_trend_cycle':
+        score_10m = -0.50 * ret_5m - 0.50 * ret_10m
+    elif mode_10m == 'vwap_harmonic_fade':
+        score_10m = z_w_10m - 0.45 * vwap_z
+    elif mode_10m == 'pullback_trend_entry':
+        score_10m = 0.45 * ret_30m - 0.40 * vwap_z
+    else:  # confluence_mid
+        score_10m = 0.20 * ret_3m + 0.25 * ret_5m + 0.25 * ret_10m + 0.25 * (vwap_z * 0.4) + 0.25 * (z_w_10m * 0.3)
+
     if tv_rating_score:
         score_10m += 0.20 * tv_rating_score
-    prob_10m = float(1.0 / (1.0 + np.exp(-(0.08 + 0.40 * score_10m))))
+    prob_10m = float(1.0 / (1.0 + np.exp(-(0.05 + 0.45 * score_10m))))
     prob_10m = float(np.clip(prob_10m, 0.05, 0.95))
 
-    if prob_10m >= 0.60 and vwap_z > 0.15:
-        action_10m = "STRONG_LONG"
-    elif prob_10m >= 0.53:
-        action_10m = "LEAN_LONG"
-    elif prob_10m <= 0.40 and vwap_z < -0.15:
-        action_10m = "STRONG_SHORT"
-    elif prob_10m <= 0.47:
-        action_10m = "LEAN_SHORT"
-    else:
-        action_10m = "NEUTRAL"
+    d_10m = opt.get("10m", {}).get("delta", 0.03)
+    if prob_10m >= 0.50 + d_10m * 2.0: action_10m = "STRONG_LONG"
+    elif prob_10m >= 0.50 + d_10m: action_10m = "LEAN_LONG"
+    elif prob_10m <= 0.50 - d_10m * 2.0: action_10m = "STRONG_SHORT"
+    elif prob_10m <= 0.50 - d_10m: action_10m = "LEAN_SHORT"
+    else: action_10m = "NEUTRAL"
 
     # 3. 30-Minute Forward (Mid-Horizon Intraday Trend, 30 bars forward)
-    # Weights emphasize 5m, 10m, 30m returns, VWAP regime, RSI regime, and continuous wave exponential projection
     rsi_norm = (rsi - 50.0) / 25.0
-    score_30m = 0.15 * ret_5m + 0.25 * ret_10m + 0.30 * ret_30m + 0.25 * (vwap_z * 0.4) + 0.10 * rsi_norm + 0.25 * (z_w_30m * 0.3)
+    mode_30m = opt.get("30m", {}).get("mode", "mean_reversion")
+    if mode_30m == 'mean_reversion':
+        score_30m = -0.35 * ret_10m - 0.35 * ret_30m - 0.30 * vwap_z
+    elif mode_30m == 'vwap_restoring':
+        score_30m = -0.50 * vwap_z
+    else:  # trend_persistence
+        score_30m = 0.15 * ret_5m + 0.25 * ret_10m + 0.30 * ret_30m + 0.25 * (vwap_z * 0.4) + 0.10 * rsi_norm + 0.25 * (z_w_30m * 0.3)
+
     if tv_rating_score:
         score_30m += 0.22 * tv_rating_score
-    prob_30m = float(1.0 / (1.0 + np.exp(-(0.09 + 0.38 * score_30m))))
+    prob_30m = float(1.0 / (1.0 + np.exp(-(0.05 + 0.40 * score_30m))))
     prob_30m = float(np.clip(prob_30m, 0.05, 0.95))
 
-    if prob_30m >= 0.60 and vwap_z > 0.20:
-        action_30m = "STRONG_LONG"
-    elif prob_30m >= 0.53:
-        action_30m = "LEAN_LONG"
-    elif prob_30m <= 0.40 and vwap_z < -0.20:
-        action_30m = "STRONG_SHORT"
-    elif prob_30m <= 0.47:
-        action_30m = "LEAN_SHORT"
-    else:
-        action_30m = "NEUTRAL"
+    d_30m = opt.get("30m", {}).get("delta", 0.035)
+    if prob_30m >= 0.50 + d_30m * 2.0: action_30m = "STRONG_LONG"
+    elif prob_30m >= 0.50 + d_30m: action_30m = "LEAN_LONG"
+    elif prob_30m <= 0.50 - d_30m * 2.0: action_30m = "STRONG_SHORT"
+    elif prob_30m <= 0.50 - d_30m: action_30m = "LEAN_SHORT"
+    else: action_30m = "NEUTRAL"
 
     # 4. 1-Hour Forward (Macro Intraday Trend, 60 bars forward)
-    # Weights emphasize 10m, 30m, 60m returns, long-range VWAP anchor, RSI momentum, and continuous wave exponential projection
-    score_1h = 0.10 * ret_10m + 0.30 * ret_30m + 0.30 * ret_60m + 0.30 * (vwap_z * 0.4) + 0.15 * rsi_norm + 0.25 * (z_w_1h * 0.3)
+    mode_1h = opt.get("1h", {}).get("mode", "vwap_equilibrium")
+    if mode_1h == 'vwap_equilibrium':
+        score_1h = -0.50 * vwap_z
+    elif mode_1h == 'trend_vwap_damped':
+        score_1h = 0.50 * ret_30m - 0.35 * vwap_z
+    else:  # macro_trend_pure
+        score_1h = 0.10 * ret_10m + 0.30 * ret_30m + 0.30 * ret_60m + 0.30 * (vwap_z * 0.4) + 0.15 * rsi_norm + 0.25 * (z_w_1h * 0.3)
+
     if tv_rating_score:
         score_1h += 0.25 * tv_rating_score
-    prob_1h = float(1.0 / (1.0 + np.exp(-(0.10 + 0.35 * score_1h))))
+    prob_1h = float(1.0 / (1.0 + np.exp(-(0.05 + 0.38 * score_1h))))
     prob_1h = float(np.clip(prob_1h, 0.05, 0.95))
 
-    if prob_1h >= 0.60 and vwap_z > 0.25:
-        action_1h = "STRONG_LONG"
-    elif prob_1h >= 0.53:
-        action_1h = "LEAN_LONG"
-    elif prob_1h <= 0.40 and vwap_z < -0.25:
-        action_1h = "STRONG_SHORT"
-    elif prob_1h <= 0.47:
-        action_1h = "LEAN_SHORT"
-    else:
-        action_1h = "NEUTRAL"
+    d_1h = opt.get("1h", {}).get("delta", 0.04)
+    if prob_1h >= 0.50 + d_1h * 2.0: action_1h = "STRONG_LONG"
+    elif prob_1h >= 0.50 + d_1h: action_1h = "LEAN_LONG"
+    elif prob_1h <= 0.50 - d_1h * 2.0: action_1h = "STRONG_SHORT"
+    elif prob_1h <= 0.50 - d_1h: action_1h = "LEAN_SHORT"
+    else: action_1h = "NEUTRAL"
 
     # Alignment evaluation across the 4 horizons
     probs = [prob_1m, prob_10m, prob_30m, prob_1h]
     avg_prob = float(np.mean(probs))
-    bull_count = sum(1 for p in probs if p > 0.53)
-    bear_count = sum(1 for p in probs if p < 0.47)
+    bull_count = sum(1 for p in probs if p > 0.52)
+    bear_count = sum(1 for p in probs if p < 0.48)
 
     if bull_count == 4:
         alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Horizons Up)"
@@ -537,14 +575,16 @@ def compute_indicative_prices(features: dict, p_1m: float, p_10m: float, p_30m: 
         "h1h": pack_horizon_details(d_1h, pred_1h, mult_1h),
     }
 
-def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_rating_score: float = 0.0) -> dict:
+def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_rating_score: float = 0.0, opt_configs: dict = None) -> dict:
     """
     Queries TypeSafe Jev System One API with 1m, 10m, 30m, and 1h forward trend signal questions.
+    Fuses Jev qualitative judgments with empirical autotuned walk-forward priors.
     Falls back gracefully to mathematical simulation prior if key missing or request fails.
     """
+    opt = opt_configs or features.get("opt_configs") or {}
     api_key = os.getenv("TYPESAFE_API_KEY", "").strip()
     if not api_key:
-        return simulate_calibrated_multi_horizon_prior(features, tv_rating_score)
+        return simulate_calibrated_multi_horizon_prior(features, tv_rating_score, opt_configs=opt)
 
     payload = {
         "model": "jev-latest",
@@ -634,26 +674,51 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
         data = resp.json()
         answers = data.get("answers", {})
 
-        act_1m = answers.get("signal_1m_action", {}).get("choice", "NEUTRAL")
+        # Compute empirical prior for Bayesian calibration
+        prior_res = simulate_calibrated_multi_horizon_prior(features, tv_rating_score, opt_configs=opt)
+
+        raw_act_1m = answers.get("signal_1m_action", {}).get("choice", "NEUTRAL")
         conf_1m = answers.get("signal_1m_action", {}).get("confidence", 0.70)
-        p_1m = answers.get("prob_up_1m", {}).get("noul", 0.50)
+        raw_p_1m = answers.get("prob_up_1m", {}).get("noul", 0.50)
+        p_prior_1m = prior_res["forward_1m"]["prob_up"]
+        p_1m = float(np.clip(0.40 * raw_p_1m + 0.60 * p_prior_1m, 0.05, 0.95))
 
-        act_10m = answers.get("signal_10m_action", {}).get("choice", "NEUTRAL")
+        raw_act_10m = answers.get("signal_10m_action", {}).get("choice", "NEUTRAL")
         conf_10m = answers.get("signal_10m_action", {}).get("confidence", 0.72)
-        p_10m = answers.get("prob_up_10m", {}).get("noul", 0.50)
+        raw_p_10m = answers.get("prob_up_10m", {}).get("noul", 0.50)
+        p_prior_10m = prior_res["forward_10m"]["prob_up"]
+        p_10m = float(np.clip(0.40 * raw_p_10m + 0.60 * p_prior_10m, 0.05, 0.95))
 
-        act_30m = answers.get("signal_30m_action", {}).get("choice", "NEUTRAL")
+        raw_act_30m = answers.get("signal_30m_action", {}).get("choice", "NEUTRAL")
         conf_30m = answers.get("signal_30m_action", {}).get("confidence", 0.75)
-        p_30m = answers.get("prob_up_30m", {}).get("noul", 0.50)
+        raw_p_30m = answers.get("prob_up_30m", {}).get("noul", 0.50)
+        p_prior_30m = prior_res["forward_30m"]["prob_up"]
+        p_30m = float(np.clip(0.40 * raw_p_30m + 0.60 * p_prior_30m, 0.05, 0.95))
 
-        act_1h = answers.get("signal_1h_action", {}).get("choice", "NEUTRAL")
+        raw_act_1h = answers.get("signal_1h_action", {}).get("choice", "NEUTRAL")
         conf_1h = answers.get("signal_1h_action", {}).get("confidence", 0.78)
-        p_1h = answers.get("prob_up_1h", {}).get("noul", 0.50)
+        raw_p_1h = answers.get("prob_up_1h", {}).get("noul", 0.50)
+        p_prior_1h = prior_res["forward_1h"]["prob_up"]
+        p_1h = float(np.clip(0.40 * raw_p_1h + 0.60 * p_prior_1h, 0.05, 0.95))
+
+        # Dynamic deadband classification
+        def get_calibrated_action(raw_act, p_val, h_key, default_d):
+            delta = opt.get(h_key, {}).get("delta", default_d)
+            if p_val >= 0.50 + delta * 2.0: return "STRONG_LONG"
+            elif p_val >= 0.50 + delta: return "LEAN_LONG"
+            elif p_val <= 0.50 - delta * 2.0: return "STRONG_SHORT"
+            elif p_val <= 0.50 - delta: return "LEAN_SHORT"
+            return raw_act if raw_act != "NEUTRAL" and abs(p_val - 0.50) >= delta * 0.7 else "NEUTRAL"
+
+        act_1m = get_calibrated_action(raw_act_1m, p_1m, "1m", 0.02)
+        act_10m = get_calibrated_action(raw_act_10m, p_10m, "10m", 0.03)
+        act_30m = get_calibrated_action(raw_act_30m, p_30m, "30m", 0.035)
+        act_1h = get_calibrated_action(raw_act_1h, p_1h, "1h", 0.04)
 
         probs = [p_1m, p_10m, p_30m, p_1h]
         avg_p = float(np.mean(probs))
-        bull_c = sum(1 for p in probs if p > 0.53)
-        bear_c = sum(1 for p in probs if p < 0.47)
+        bull_c = sum(1 for p in probs if p > 0.52)
+        bear_c = sum(1 for p in probs if p < 0.48)
 
         if bull_c == 4:
             alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Horizons Up)"
@@ -706,7 +771,7 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
         }
     except Exception as e:
         print(f"[Warning] Live TypeSafe Jev API call failed ({e}). Falling back to calibrated prior model.")
-        return simulate_calibrated_multi_horizon_prior(features, tv_rating_score)
+        return simulate_calibrated_multi_horizon_prior(features, tv_rating_score, opt_configs=opt)
 
 def generate_multi_horizon_signals(df_1m: pd.DataFrame, asset_name: str = "S&P 500 (SPX)", tv_rating_score: float = 0.0, loop_feedback: str = None) -> dict:
     """
@@ -714,9 +779,12 @@ def generate_multi_horizon_signals(df_1m: pd.DataFrame, asset_name: str = "S&P 5
     from 1-minute input candles with closed-loop empirical feedback injection.
     """
     features = compute_1m_features(df_1m)
+    opt_configs = autotune_hyperparameters(df_1m)
+    features["opt_configs"] = opt_configs
+
     timestamp_str = df_1m.index[-1].strftime('%Y-%m-%d %H:%M:%S') if isinstance(df_1m.index, pd.DatetimeIndex) else None
     prompt = format_multi_horizon_state_prompt(asset_name, features, timestamp_str, loop_feedback=loop_feedback)
-    jev_result = query_typesafe_jev_multi_horizon(prompt, features, tv_rating_score)
+    jev_result = query_typesafe_jev_multi_horizon(prompt, features, tv_rating_score, opt_configs=opt_configs)
 
     return {
         "asset_name": asset_name,
@@ -809,9 +877,20 @@ def autotune_hyperparameters(df: pd.DataFrame) -> dict:
             fwd_rets.append(fwd_ret)
 
             if h == '1m':
-                s_map = {'harmonic_micro': 0.50 * ret_1 + 0.30 * ret_3 + 0.20 * z_pred}
+                s_map = {
+                    'harmonic_micro': 0.50 * ret_1 + 0.30 * ret_3 + 0.20 * z_pred,
+                    'micro_mean_reversion': -0.50 * ret_1 - 0.30 * ret_3 - 0.20 * z_pred,
+                    'micro_vwap_fade': -0.40 * ret_1 - 0.40 * z_vwap
+                }
             elif h == '10m':
-                s_map = {'confluence_mid': 0.40 * ret_3 + 0.30 * ret_5 + 0.30 * z_pred}
+                s_map = {
+                    'confluence_mid': 0.40 * ret_3 + 0.30 * ret_5 + 0.30 * z_pred,
+                    'mean_reversion_fade': -0.40 * ret_3 - 0.40 * ret_5 - 0.20 * z_vwap,
+                    'pure_fade_micro': -0.50 * ret_3 - 0.50 * ret_5,
+                    'fade_trend_cycle': -0.50 * ret_5 - 0.50 * ret_10,
+                    'pullback_trend_entry': 0.45 * ret_30 - 0.40 * z_vwap,
+                    'vwap_harmonic_fade': z_pred - 0.45 * z_vwap
+                }
             elif h == '30m':
                 s_map = {
                     'mean_reversion': -0.35 * ret_10 - 0.35 * ret_30 - 0.30 * z_vwap,
@@ -974,8 +1053,22 @@ def compute_single_asset_confusion_matrix(df: pd.DataFrame, asset_name: str = ""
             else:
                 if opt_mode == 'harmonic_micro':
                     score = 0.50 * ret_1 + 0.30 * ret_3 + 0.20 * z_pred
+                elif opt_mode == 'micro_mean_reversion':
+                    score = -0.50 * ret_1 - 0.30 * ret_3 - 0.20 * z_pred
+                elif opt_mode == 'micro_vwap_fade':
+                    score = -0.40 * ret_1 - 0.40 * z_vwap
                 elif opt_mode == 'confluence_mid':
                     score = 0.40 * ret_3 + 0.30 * ret_5 + 0.30 * z_pred
+                elif opt_mode == 'mean_reversion_fade':
+                    score = -0.40 * ret_3 - 0.40 * ret_5 - 0.20 * z_vwap
+                elif opt_mode == 'pure_fade_micro':
+                    score = -0.50 * ret_3 - 0.50 * ret_5
+                elif opt_mode == 'fade_trend_cycle':
+                    score = -0.50 * ret_5 - 0.50 * ret_10
+                elif opt_mode == 'pullback_trend_entry':
+                    score = 0.45 * ret_30 - 0.40 * z_vwap
+                elif opt_mode == 'vwap_harmonic_fade':
+                    score = z_pred - 0.45 * z_vwap
                 elif opt_mode == 'mean_reversion':
                     score = -0.35 * ret_10 - 0.35 * ret_30 - 0.30 * z_vwap
                 elif opt_mode == 'trend_persistence':

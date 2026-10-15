@@ -24,3 +24,4 @@ ENV/
 scratch/
 
 .vercel
+.env*
