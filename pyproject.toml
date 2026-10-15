@@ -16,3 +16,8 @@ dependencies = [
 
 [tool.vercel]
 entrypoint = "api.index:app"
+
+[tool.pytest.ini_options]
+norecursedirs = ["scratch", ".vercel", ".agents"]
+python_files = ["test_*.py"]
+
