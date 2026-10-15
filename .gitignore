@@ -22,6 +22,7 @@ ENV/
 # Logs & temp files
 *.log
 scratch/
+*.pdf
 
 .vercel
 .env*
