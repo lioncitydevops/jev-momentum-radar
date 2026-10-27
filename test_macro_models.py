@@ -1,6 +1,10 @@
 """
-Validation Suite for Model A (Full Macro with Yield + Brent + WTI)
-and Model B (Rate-Only with 10Y Yield ONLY) across Equity Indices
+Validation Suite for Macro-Conditioned Momentum Models:
+- Model A (Full Macro with Yield + Brent + WTI)
+- Model B (Rate-Only with 10Y Yield ONLY)
+- Dynamic Nikkei 225 USD/JPY FX vs Equity Sentiment Driver Engine
+- TypeSafe Jev System One Output Variables: Score, Choice, and Noul
+- Institutional OANDA CFD Feed Priority
 
 Author: Quantitative Trader & Mathematician
 """
@@ -21,24 +25,25 @@ load_dotenv()
 
 from macro_conditioned_momentum import (
     generate_macro_full_signals,
-    generate_rate_only_signals
+    generate_rate_only_signals,
+    compute_nikkei_dynamic_fx_equity_regime,
+    JEV_PRIMITIVES_GUIDE
 )
 
 def run_tests():
-    print("=" * 100)
-    print("       MODEL A & MODEL B MACRO-CONDITIONED TREND SIGNAL VERIFICATION SUITE")
-    print("=" * 100)
+    print("=" * 110)
+    print("   MODEL A, MODEL B, NIKKEI FX/EQUITY DYNAMICS & JEV PRIMITIVES VERIFICATION SUITE")
+    print("=" * 110)
 
-    # Generate test market scenario: Yield (TNX) surging, Crude (Brent/WTI) surging, Equities near VWAP
-    dates = pd.date_range(end=pd.Timestamp.now(), periods=75, freq="1min")
+    dates = pd.date_range(end=pd.Timestamp.now(), periods=80, freq="1min")
     np.random.seed(123)
 
     make_series = lambda base, drift, vol: pd.DataFrame({
-        "Open": base + np.cumsum(np.random.normal(drift, vol, 75)),
-        "High": base + np.cumsum(np.random.normal(drift, vol, 75)) + 0.3,
-        "Low": base + np.cumsum(np.random.normal(drift, vol, 75)) - 0.3,
-        "Close": base + np.cumsum(np.random.normal(drift, vol, 75)),
-        "Volume": np.random.randint(200, 1500, 75)
+        "Open": base + np.cumsum(np.random.normal(drift, vol, 80)),
+        "High": base + np.cumsum(np.random.normal(drift, vol, 80)) + 0.3,
+        "Low": base + np.cumsum(np.random.normal(drift, vol, 80)) - 0.3,
+        "Close": base + np.cumsum(np.random.normal(drift, vol, 80)),
+        "Volume": np.random.randint(200, 1500, 80)
     }, index=dates)
 
     sp_df = make_series(5800.0, 0.05, 0.3)
@@ -49,6 +54,7 @@ def run_tests():
     tnx_df = make_series(3.95, 0.015, 0.005) # TNX surging upward
     brent_df = make_series(75.0, 0.2, 0.1)  # Brent surging upward
     wti_df = make_series(71.0, 0.2, 0.1)    # WTI surging upward
+    usdjpy_df = make_series(157.0, 0.03, 0.02) # USD/JPY weakening Yen
 
     equities = {
         "S&P 500 (SPX)": sp_df,
@@ -57,40 +63,147 @@ def run_tests():
         "Nikkei 225 (NI225)": ni_df
     }
 
-    print("\n[SCENARIO] 10Y Yields surging (+1.5% in 5m), Crude Oil surging (+2.0% in 5m).")
-    print("Testing sensitivity of Equity Trend Signals under Model A vs Model B (1m, 10m, 30m, 1h):\n")
+    all_dfs = {
+        **equities,
+        "10Y Treasury (TNX)": tnx_df,
+        "Brent Crude (BRENT)": brent_df,
+        "WTI Crude (WTI)": wti_df,
+        "USD/JPY (USDJPY)": usdjpy_df
+    }
 
-    all_dfs = {**equities, "10Y Treasury (TNX)": tnx_df, "Brent Crude (BRENT)": brent_df, "WTI Crude (WTI)": wti_df}
-
+    # -------------------------------------------------------------
+    # 1. Baseline Model A & B Equity Signals
+    # -------------------------------------------------------------
+    print("\n[1] Testing Model A vs Model B Multi-Horizon Signals across Equities:")
+    print("-" * 110)
     for eq_name, eq_df in equities.items():
-        print("-" * 90)
-        print(f"ASSET: {eq_name}")
-
-        # Model A: Full Macro (Yield + Brent + WTI)
         res_a = generate_macro_full_signals(eq_df, tnx_df, brent_df, wti_df, equity_name=eq_name, all_dfs=all_dfs)
         sig_a = res_a["signals"]
-
-        # Model B: Rate-Only (Yield ONLY)
         res_b = generate_rate_only_signals(eq_df, tnx_df, equity_name=eq_name, all_dfs=all_dfs)
         sig_b = res_b["signals"]
 
-        print(f"  Model A (Full Macro: Yield + Brent + WTI):")
-        print(f"    - Alignment: {sig_a['alignment']}")
-        print(f"    - 1m:  {sig_a['forward_1m']['action']:<12} (P={sig_a['forward_1m']['prob_up']*100:.1f}%)")
-        print(f"    - 10m: {sig_a['forward_10m']['action']:<12} (P={sig_a['forward_10m']['prob_up']*100:.1f}%)")
-        print(f"    - 30m: {sig_a['forward_30m']['action']:<12} (P={sig_a['forward_30m']['prob_up']*100:.1f}%)")
-        print(f"    - 1h:  {sig_a['forward_1h']['action']:<12} (P={sig_a['forward_1h']['prob_up']*100:.1f}%)")
+        print(f"ASSET: {eq_name:<20} | Model A 10m: {sig_a['forward_10m']['action']:<10} (P={sig_a['forward_10m']['prob_up']*100:.1f}%) | Model B 10m: {sig_b['forward_10m']['action']:<10} (P={sig_b['forward_10m']['prob_up']*100:.1f}%)")
 
-        print(f"  Model B (Rate-Only: Yield ONLY):")
-        print(f"    - Alignment: {sig_b['alignment']}")
-        print(f"    - 1m:  {sig_b['forward_1m']['action']:<12} (P={sig_b['forward_1m']['prob_up']*100:.1f}%)")
-        print(f"    - 10m: {sig_b['forward_10m']['action']:<12} (P={sig_b['forward_10m']['prob_up']*100:.1f}%)")
-        print(f"    - 30m: {sig_b['forward_30m']['action']:<12} (P={sig_b['forward_30m']['prob_up']*100:.1f}%)")
-        print(f"    - 1h:  {sig_b['forward_1h']['action']:<12} (P={sig_b['forward_1h']['prob_up']*100:.1f}%)")
+        assert "forward_10m" in sig_a, "Missing forward_10m in Model A"
+        assert "action" in sig_a["forward_10m"], "Missing action Choice in Model A"
+        assert "prob_up" in sig_a["forward_10m"], "Missing prob_up Noul in Model A"
+        assert 0.0 <= sig_a["forward_10m"]["prob_up"] <= 1.0, "Invalid prob_up Noul range"
 
-    print("\n" + "=" * 100)
-    print("                     ALL MODEL A & MODEL B TESTS PASSED SUCCESSFULLY!")
-    print("=" * 100)
+    # -------------------------------------------------------------
+    # 2. Dynamic Nikkei 225 USD/JPY FX vs Equity Sentiment Engine
+    # -------------------------------------------------------------
+    print("\n[2] Testing Dynamic USD/JPY FX vs Equity Sentiment Conditioning for Nikkei 225:")
+    print("-" * 110)
+
+    # Scenario A: USD/JPY surging (+0.6% in 5m), SPX flat -> FX_DOMINANT regime
+    usdjpy_surging = ni_df.copy()
+    close_vals = np.linspace(155.0, 158.0, len(dates)) # Strong upward trend in USD/JPY (weakening yen)
+    usdjpy_surging["Close"] = close_vals
+    usdjpy_surging["High"] = close_vals + 0.1
+    usdjpy_surging["Low"] = close_vals - 0.1
+    usdjpy_surging["Open"] = close_vals - 0.05
+    usdjpy_surging["Volume"] = 1000
+
+    spx_flat = sp_df.copy()
+    spx_flat["Close"] = 5800.0 + np.random.normal(0, 0.01, len(dates))
+
+    dyn_a = compute_nikkei_dynamic_fx_equity_regime(ni_df, usdjpy_df=usdjpy_surging, spx_df=spx_flat, all_dfs=None)
+    print("Scenario A (USD/JPY Surging +0.6%, SPX Flat):")
+    print(f"  * Regime:             {dyn_a['regime']} (Choice)")
+    print(f"  * USD/JPY FX Weight:  {dyn_a['fx_weight'] * 100:.1f}%")
+    print(f"  * Equity Weight:      {dyn_a['equity_weight'] * 100:.1f}%")
+    print(f"  * FX Sensitivity:     {dyn_a['fx_sensitivity_score']:.1f}/100 (Score)")
+    print(f"  * FX Transmission:    {dyn_a['prob_fx_transmission'] * 100:.1f}% (Noul)")
+    print(f"  * Dynamic Macro Adj:  {dyn_a['dynamic_macro_impact']:+.4f}")
+    assert dyn_a["fx_weight"] > 0.50, f"Expected fx_weight > 0.50 when FX is surging, got {dyn_a['fx_weight']}"
+    assert dyn_a["dynamic_macro_impact"] > 0.0, "Expected positive macro boost on Nikkei from weakening Yen"
+    assert dyn_a["regime"] in ["FX_DOMINANT", "DUAL_REINFORCING"], f"Unexpected regime: {dyn_a['regime']}"
+
+    # Scenario B: USD/JPY plunging (-0.6% in 5m, Yen surge / carry unwind), SPX flat -> Bearish Drag
+    usdjpy_plunging = usdjpy_surging.copy()
+    plunge_vals = np.linspace(158.0, 155.0, len(dates))
+    usdjpy_plunging["Close"] = plunge_vals
+    usdjpy_plunging["High"] = plunge_vals + 0.1
+    usdjpy_plunging["Low"] = plunge_vals - 0.1
+
+    dyn_b = compute_nikkei_dynamic_fx_equity_regime(ni_df, usdjpy_df=usdjpy_plunging, spx_df=spx_flat, all_dfs=None)
+    print("\nScenario B (USD/JPY Plunging -0.6%, Yen Surge):")
+    print(f"  * Regime:             {dyn_b['regime']} (Choice)")
+    print(f"  * USD/JPY FX Weight:  {dyn_b['fx_weight'] * 100:.1f}%")
+    print(f"  * Dynamic Macro Adj:  {dyn_b['dynamic_macro_impact']:+.4f}")
+    assert dyn_b["dynamic_macro_impact"] < 0.0, "Expected negative macro drag on Nikkei from rapid Yen appreciation"
+
+    # Scenario C: Opposing drivers (USD/JPY dropping, SPX surging) -> DECOUPLED_CHOP
+    spx_surging = sp_df.copy()
+    spx_vals = np.linspace(5750.0, 5850.0, len(dates))
+    spx_surging["Close"] = spx_vals
+    dyn_c = compute_nikkei_dynamic_fx_equity_regime(ni_df, usdjpy_df=usdjpy_plunging, spx_df=spx_surging, all_dfs=None)
+    print("\nScenario C (USD/JPY Plunging vs SPX Surging):")
+    print(f"  * Regime:             {dyn_c['regime']} (Choice)")
+    print(f"  * Description:        {dyn_c['regime_desc']}")
+    assert dyn_c["regime"] == "DECOUPLED_CHOP", f"Expected DECOUPLED_CHOP, got {dyn_c['regime']}"
+
+    # -------------------------------------------------------------
+    # 3. TypeSafe Jev System One Output Variables Specification
+    # -------------------------------------------------------------
+    print("\n[3] Verifying TypeSafe Jev System One Output Primitives (Score, Choice, Noul):")
+    print("-" * 110)
+
+    # 1. SCORE Primitive: Continuous calibrated metric with confidence
+    print("Primitive 1: SCORE")
+    score_info = JEV_PRIMITIVES_GUIDE["Score"]
+    print(f"  * Definition: {score_info['definition'][:120]}...")
+    print(f"  * Referenced Variables: {list(score_info['forecasted_variables_referenced'].keys())}")
+    res_nikkei = generate_macro_full_signals(ni_df, tnx_df, brent_df, wti_df, equity_name="Nikkei 225 (NI225)", all_dfs=all_dfs)
+    conviction = res_nikkei.get("conviction_score")
+    assert conviction is not None, "Missing conviction_score"
+    score_val = conviction.get("score") if isinstance(conviction, dict) else float(conviction)
+    print(f"  * Sample Nikkei Conviction Score: {score_val} (Scale: -100 to +100)")
+    assert -100.0 <= score_val <= 100.0, "Score outside range [-100, 100]"
+
+    # 2. CHOICE Primitive: Discrete categorical selection with probabilities
+    print("\nPrimitive 2: CHOICE")
+    choice_info = JEV_PRIMITIVES_GUIDE["Choice"]
+    print(f"  * Definition: {choice_info['definition'][:120]}...")
+    print(f"  * Referenced Variables: {list(choice_info['forecasted_variables_referenced'].keys())}")
+    tactical_choice = res_nikkei["signals"]["forward_10m"]["action"]
+    print(f"  * Sample Nikkei 10m Action Choice: {tactical_choice}")
+    assert tactical_choice in ["STRONG_LONG", "LEAN_LONG", "NEUTRAL", "LEAN_SHORT", "STRONG_SHORT", "BUY_LONG", "HOLD_CASH", "SELL_SHORT"], f"Invalid Choice: {tactical_choice}"
+    dyn_regime = res_nikkei.get("nikkei_fx_equity_dynamics", {}).get("regime")
+    print(f"  * Sample Nikkei Driver Regime Choice: {dyn_regime}")
+    assert dyn_regime in ["FX_DOMINANT", "EQUITY_SENTIMENT_DOMINANT", "DUAL_REINFORCING", "DECOUPLED_CHOP"]
+
+    # 3. NOUL Primitive: Calibrated truth probability without separate confidence
+    print("\nPrimitive 3: NOUL")
+    noul_info = JEV_PRIMITIVES_GUIDE["Noul"]
+    print(f"  * Definition: {noul_info['definition'][:120]}...")
+    print(f"  * Referenced Variables: {list(noul_info['forecasted_variables_referenced'].keys())}")
+    prob_10m = res_nikkei["signals"]["forward_10m"]["prob_up"]
+    prob_trans = res_nikkei.get("nikkei_fx_equity_dynamics", {}).get("prob_fx_transmission")
+    print(f"  * Sample 10m Prob Up Noul:        {prob_10m * 100:.2f}%")
+    print(f"  * Sample Prob FX Transmission:     {prob_trans * 100:.2f}%")
+    assert 0.0 <= prob_10m <= 1.0, "prob_10m Noul out of bounds"
+    assert 0.0 <= prob_trans <= 1.0, "prob_trans Noul out of bounds"
+    print("  * Verification: Noul directly embeds uncertainty via P (P=0.50 is maximum entropy).")
+
+    # -------------------------------------------------------------
+    # 4. Institutional OANDA Feed Default Priority
+    # -------------------------------------------------------------
+    print("\n[4] Verifying Institutional OANDA CFD Feed Configuration:")
+    print("-" * 110)
+    from oanda_feed import OANDA_INSTRUMENTS, get_configured_credentials, test_oanda_connection
+    key, env = get_configured_credentials()
+    print(f"  * OANDA Configured: Key Present = {bool(key)}, Environment = {env.upper()}")
+    print(f"  * Instruments Supported ({len(OANDA_INSTRUMENTS)} Total):")
+    for name, oanda_code in OANDA_INSTRUMENTS.items():
+        print(f"      - {name:<22} -> {oanda_code}")
+    assert "USD/JPY (USDJPY)" in OANDA_INSTRUMENTS, "USD/JPY missing from OANDA_INSTRUMENTS"
+    assert OANDA_INSTRUMENTS["USD/JPY (USDJPY)"] == "USD_JPY", "Incorrect OANDA instrument mapping"
+    assert "Nikkei 225 (NI225)" in OANDA_INSTRUMENTS, "Nikkei 225 missing from OANDA_INSTRUMENTS"
+
+    print("\n" + "=" * 110)
+    print("     ALL MACRO CONDITIONING, NIKKEI FX/EQUITY & JEV PRIMITIVES TESTS PASSED 100%!")
+    print("=" * 110)
 
 if __name__ == "__main__":
     run_tests()

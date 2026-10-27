@@ -34,6 +34,8 @@ app.add_middleware(
 TYPESAFE_API_KEY = os.getenv("TYPESAFE_API_KEY", "").strip()
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
 
+from macro_conditioned_momentum import JEV_PRIMITIVES_GUIDE
+
 # 100% Global CFD Specifications
 ASSETS = {
     "S&P 500 (SPX)": {
@@ -70,6 +72,15 @@ ASSETS = {
         "tv_scan_ticker": "TVC:NI225",
         "flag": "🇯🇵",
         "desc": "Nikkei 225 Index / CFD",
+        "market": "cfd"
+    },
+    "USD/JPY (USDJPY)": {
+        "symbol": "JPY=X",
+        "oanda": "USD_JPY",
+        "tv_ticker": "FX:USDJPY",
+        "tv_scan_ticker": "FX_IDC:USDJPY",
+        "flag": "💴",
+        "desc": "USD/JPY Foreign Exchange CFD",
         "market": "cfd"
     },
     "10Y Treasury (TNX)": {
@@ -566,6 +577,9 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         },
         "maritime_supply_index": mh_sigs.get("maritime_supply_index"),
         "forward_projections": fwd_proj,
+        "conviction_score": mh_sigs.get("conviction_score", 0.0),
+        "nikkei_fx_equity_dynamics": mh_sigs.get("nikkei_fx_equity_dynamics"),
+        "jev_primitives_guide": mh_sigs.get("jev_primitives_guide"),
         "shipping_telemetry": mh_data.get("telemetry"),
         "visual_analytics": mh_data.get("visual_analytics"),
         "ais_confusion_matrix": mh_data.get("ais_confusion_matrix"),
@@ -589,6 +603,26 @@ def generate_insights(results):
 
         if ni["session_change"] > 1.0 and sp["session_change"] < -0.3:
             insights.append({"type": "neutral", "text": f"🌏 Trans-Pacific Divergence: Nikkei 225 strong ({ni['session_change']:+.2f}%) while US Equities lag ({sp['session_change']:+.2f}%)."})
+
+    # Dynamic Nikkei 225 USD/JPY FX vs Equity Sentiment Driver Insights
+    if "Nikkei 225 (NI225)" in results:
+        ni = results["Nikkei 225 (NI225)"]
+        nik_dyn = ni.get("nikkei_fx_equity_dynamics")
+        if nik_dyn and nik_dyn.get("has_fx_driver"):
+            regime = nik_dyn.get("regime", "EQUITY_SENTIMENT_DOMINANT")
+            w_fx = nik_dyn.get("fx_weight", 0.5) * 100.0
+            w_eq = nik_dyn.get("equity_weight", 0.5) * 100.0
+            rho_fx = nik_dyn.get("rho_nikkei_fx", 0.65)
+            fx_sens = nik_dyn.get("fx_sensitivity_score", w_fx)
+            p_trans = nik_dyn.get("prob_fx_transmission", 0.5) * 100.0
+            if regime == "FX_DOMINANT":
+                insights.append({"type": "bull" if "LONG" in ni["action"] else "bear", "text": f"💴 🇯🇵 Nikkei FX-Dominant Regime: USD/JPY currency dynamics ({w_fx:.0f}% FX Weight vs {w_eq:.0f}% Equity, Score={fx_sens:.1f}, Transmission P={p_trans:.0f}%, ρ={rho_fx:+.2f}) actively driving Nikkei forward momentum over Wall Street."})
+            elif regime == "DUAL_REINFORCING":
+                insights.append({"type": "bull" if "LONG" in ni["action"] else "bear", "text": f"🚀 🇯🇵 Nikkei Dual-Reinforced Momentum: USD/JPY currency impulse and Wall Street equity sentiment are mutually aligned, compounding Nikkei trend persistence."})
+            elif regime == "DECOUPLED_CHOP":
+                insights.append({"type": "warn", "text": f"⚠️ 🇯🇵 Nikkei Decoupled Cross-Currents: Conflicting signals between USD/JPY currency moves and US Equity Sentiment causing localized chop and mean-reverting drag."})
+            else:
+                insights.append({"type": "neutral", "text": f"🌏 🇯🇵 Nikkei Equity-Dominant Regime: Global Wall Street risk appetite ({w_eq:.0f}% weight) leading over FX carry dynamics."})
 
     if "10Y Treasury (TNX)" in results:
         tnx = results["10Y Treasury (TNX)"]
@@ -1130,13 +1164,22 @@ def get_radar(timeframe: str = "1m", model_variant: str = "standalone", engine_m
 
     return {
         "status": "success",
-        "feed": "TradingView Official CFD Feeds",
+        "feed": "OANDA Institutional 24H CFD Live Feed",
         "timeframe": timeframe,
         "model_variant": model_variant,
         "engine_mode": engine_mode,
         "results": results,
         "insights": insights,
-        "confusion_matrix": confusion_matrix
+        "confusion_matrix": confusion_matrix,
+        "jev_primitives_guide": JEV_PRIMITIVES_GUIDE
+    }
+
+@app.get("/api/jev-primitives-guide")
+def get_jev_primitives_guide_endpoint():
+    """Returns official descriptions and operational guide for TypeSafe Jev System One output variables: Score, Choice, and Noul."""
+    return {
+        "status": "success",
+        "primitives": JEV_PRIMITIVES_GUIDE
     }
 
 

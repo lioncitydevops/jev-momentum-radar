@@ -1,24 +1,36 @@
 # 📐 Quantitative Methodology Note: Short-Term Multi-CFD Momentum Radar
 
-**Engine**: TypeSafe Jev System One (`jev-latest`)  
-**Data Infrastructure**: TradingView Official Real-Time CFD Scanner & Streaming Feeds  
-**Asset Universe**: 24-Hour Continuous Benchmark Index/CFD Instruments (`SP:SPX`, `TVC:IXIC`, `TVC:RUT`, `TVC:NI225`, `TVC:US10Y`)  
-**Deployment**: Serverless FastAPI Python 3.12 Engine on Vercel  
+**Engine**: TypeSafe Jev System One (`jev-latest`, `jev-1.14.0`)  
+**Data Infrastructure**: OANDA v20 Live Institutional CFD Feeds (Zero-Lag 24/5 Stream, Primary) & TradingView Scanner  
+**Asset Universe**: 24-Hour Continuous Benchmark CFD Instruments:
+- S&P 500 (`SPX500_USD` / `SP:SPX`)
+- Nasdaq 100 (`NAS100_USD` / `NASDAQ:NDX`)
+- Russell 2000 (`US2000_USD` / `TVC:RUT`)
+- Nikkei 225 (`JP225_USD` / `TVC:NI225`)
+- USD/JPY Foreign Exchange (`USD_JPY` / `FX:USDJPY`)
+- 10-Year US Treasury (`USB10Y_USD` / `TVC:US10Y`)
+- WTI Crude Oil (`WTICO_USD` / `TVC:USOIL`)
+- Brent Crude Oil (`BCO_USD` / `TVC:UKOIL`)
+**Deployment**: Serverless FastAPI Python Engine on Vercel & Real-Time Interactive Streamlit Radar
 
 ---
 
 ## 1. Executive Overview & System Architecture
 
-The **Global Multi-CFD Momentum Radar** is a dual-layer quantitative decision architecture. It combines **continuous mathematical feature extraction** across multi-horizon market microstructure with **TypeSafe Jev System One** models to produce probabilistic tactical judgments (`BUY / LONG`, `SELL / SHORT`, `HOLD CASH`) with Bayesian-calibrated continuation probabilities.
+The **Global Multi-CFD Momentum Radar** is a dual-layer quantitative decision architecture. It combines **continuous mathematical feature extraction** across multi-horizon market microstructure with **TypeSafe Jev System One** models to produce probabilistic tactical judgments (`STRONG_LONG`, `LEAN_LONG`, `NEUTRAL`, `LEAN_SHORT`, `STRONG_SHORT`) with Bayesian-calibrated continuation probabilities.
+
+**Data Feed Policy ("Always Use OANDA")**: The system prioritizes OANDA v20 institutional streaming live feeds with zero latency. Every 1-minute candle, VWAP, true range, and micro-return sequence is sourced directly from OANDA CFD instruments with continuous 24/5 liquidity.
 
 ```mermaid
 flowchart TD
-    subgraph MarketFeeds ["1. Real-Time Market Data Ingestion"]
-        SPX["S&P 500 Index / CFD (SP:SPX)"]
-        NDX["Nasdaq 100 Index / CFD (TVC:IXIC)"]
-        RUT["Russell 2000 Index / CFD (TVC:RUT)"]
-        NI225["Nikkei 225 Index / CFD (TVC:NI225)"]
-        TNX["10Y Treasury Yield CFD (TVC:US10Y)"]
+    subgraph MarketFeeds ["1. Real-Time OANDA Institutional Data Feeds (Always Use OANDA)"]
+        SPX["S&P 500 CFD (SPX500_USD)"]
+        NDX["Nasdaq 100 CFD (NAS100_USD)"]
+        RUT["Russell 2000 CFD (US2000_USD)"]
+        NI225["Nikkei 225 CFD (JP225_USD)"]
+        USDJPY["USD/JPY FX Pair (USD_JPY)"]
+        TNX["10Y Treasury Note (USB10Y_USD)"]
+        OIL["Crude Oil (WTICO_USD / BCO_USD)"]
     end
 
     subgraph FeatureEngineering ["2. Mathematical Feature Engineering"]
@@ -183,6 +195,92 @@ To model macro spillover and inter-market feedback loops, the system provides tw
   * Evaluates duration risk and discount rate pressure independent of energy shocks.
   * Mathematical Prior Formulation:
     $$\text{Score}_{\text{RateOnly}} = \text{Score}_{\text{Base}} - \alpha_{\text{TNX}} \cdot Z_{\text{mom}, \text{TNX}}$$
+
+---
+
+### 3.5 Dynamic USD/JPY FX vs Equity Sentiment Conditioning Engine for Nikkei 225
+
+The Nikkei 225 index (`JP225_USD`) exhibits a time-varying structural dependence on two distinct macro transmission channels:
+1. **USD/JPY Currency Channel (Yen Carry & Exporter Translation)**: A depreciating Yen (rising USD/JPY) boosts overseas repatriated profits for Japanese multinational exporters (Toyota, Sony, Keyence, Tokyo Electron) and incentivizes cross-border Yen carry trade leverage. Conversely, sudden Yen appreciation induces violent carry trade unwinds and equity liquidation.
+2. **Global Equity Sentiment Channel (Wall Street Beta)**: Overnight US and European equity sentiment (S&P 500 / Nasdaq momentum) dictates baseline global risk appetite across the Tokyo trading session.
+
+Because the relative dominance of these two drivers shifts across market regimes, the model employs a **Dynamic Time-Varying Beta & Allocation Engine**:
+
+#### 1. Rolling Micro-Correlation Tracking ($\rho_{\text{NK, FX}}$ and $\rho_{\text{NK, SPX}}$):
+$$\rho_{\text{NK, FX}}(t) = \text{Corr}\left(\mathbf{r}_{\text{NI225}, 30m}, \mathbf{r}_{\text{USDJPY}, 30m}\right)$$
+$$\rho_{\text{NK, SPX}}(t) = \text{Corr}\left(\mathbf{r}_{\text{NI225}, 30m}, \mathbf{r}_{\text{SPX}, 30m}\right)$$
+
+#### 2. Dynamic Driver Intensity & Weights ($w_{\text{FX}}$ vs $w_{\text{Eq}}$):
+$$I_{\text{FX}}(t) = \max\left(0.15, |\rho_{\text{NK, FX}}|\right) \cdot \left(1.0 + \min\left(2.5, 2.0 \cdot |r_{\text{FX}, 5m}| + 0.5 \cdot |Z_{\text{VWAP, FX}}|\right)\right)$$
+$$I_{\text{Eq}}(t) = \max\left(0.15, |\rho_{\text{NK, SPX}}|\right) \cdot \left(1.0 + \min\left(2.5, 1.5 \cdot |r_{\text{SPX}, 5m}| + 0.4 \cdot |Z_{\text{VWAP, SPX}}|\right)\right)$$
+
+Normalized driver allocation weights (constrained to $[0.10, 0.90]$):
+$$w_{\text{FX}}(t) = \text{clip}\left(\frac{I_{\text{FX}}(t)}{I_{\text{FX}}(t) + I_{\text{Eq}}(t)}, 0.10, 0.90\right), \quad w_{\text{Eq}}(t) = 1.0 - w_{\text{FX}}(t)$$
+
+#### 3. Four Dynamic Driver Regimes (Choice Primitive):
+- **`FX_DOMINANT`** ($w_{\text{FX}} \ge 0.56$): USD/JPY currency momentum and Yen carry trade flows are the leading primary driver of Nikkei 225 price action.
+- **`EQUITY_SENTIMENT_DOMINANT`** ($w_{\text{FX}} < 0.56$): Wall Street risk appetite and S&P 500 equity sentiment dominate over FX currency dynamics.
+- **`DUAL_REINFORCING`**: Both USD/JPY and S&P 500 move in the same direction, compounding directional impulse and expanding Nikkei momentum.
+- **`DECOUPLED_CHOP`**: USD/JPY and S&P 500 exert opposing forces (e.g. Yen strengthening while US stocks surge), dampening trend velocity and causing mean-reverting chop.
+
+#### 4. Macro Impulse Transmission:
+$$\Delta_{\text{FX}} = (0.35 \cdot r_{\text{FX}, 5m} + 0.15 \cdot Z_{\text{VWAP, FX}}) \cdot \text{sign}(\rho_{\text{NK, FX}})$$
+$$\Delta_{\text{Eq}} = (0.32 \cdot r_{\text{SPX}, 5m} + 0.12 \cdot Z_{\text{VWAP, SPX}}) \cdot \text{sign}(\rho_{\text{NK, SPX}})$$
+$$\text{NetMacroImpact}_{\text{Nikkei}} = w_{\text{FX}} \cdot \Delta_{\text{FX}} + w_{\text{Eq}} \cdot \Delta_{\text{Eq}}$$
+
+---
+
+### 3.6 TypeSafe Jev System One Output Variables Architecture: Score, Choice, and Noul Operational Taxonomy
+
+TypeSafe Jev System One replaces unconstrained text generation with typed probabilistic decision primitives. The radar synthesizes all forecasted figures through three formal primitives:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                             TYPESAFE JEV SYSTEM ONE OUTPUT PRIMITIVES                              │
+├──────────────────────────┬──────────────────────────────┬──────────────────────────────────────────┤
+│ PRIMITIVE TYPE           │ MATHEMATICAL DEFINITION      │ REFERENCED FORECASTED VARIABLES          │
+├──────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ 1. SCORE                 │ Continuous Bounded Intensity │ • momentum_conviction_score (-100 to +100│
+│                          │ along an ordered scale       │ • fx_sensitivity_score (0 to 100)        │
+│                          │ with peakness confidence.    │ • indicative target prices (P_exp, limits│
+├──────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ 2. CHOICE                │ Categorical Classification   │ • forward_1m.action, forward_10m.action  │
+│                          │ picking exactly one label    │ • forward_30m.action, forward_1h.action  │
+│                          │ with discrete probabilities. │ • nikkei_driver_regime (4 regimes)       │
+│                          │                              │ • cross_sectional_leadership             │
+├──────────────────────────┼──────────────────────────────┼──────────────────────────────────────────┤
+│ 3. NOUL                  │ Continuous Truth Likelihood  │ • prob_up_1m, prob_up_10m (P_Up)         │
+│                          │ P in [0.0, 1.0] without      │ • prob_up_30m, prob_up_1h                │
+│                          │ separate confidence metric.  │ • prob_fx_transmission (Nikkei 225)      │
+│                          │                              │ • average_prob_up                        │
+└──────────────────────────┴──────────────────────────────┴──────────────────────────────────────────┘
+```
+
+#### Detailed Primitive Operational Breakdown:
+
+1. **`Score` Primitive (Continuous Scaled Conviction & Magnitude)**:
+   - **Operational Definition**: Evaluates magnitude or conviction along an ordered continuous or binned scale (e.g. extreme bearish to extreme bullish). Rather than a fragile point regression, Jev integrates likelihood over ordered criteria levels `["Extreme Bearish", "Moderate Bearish", "Neutral", "Moderate Bullish", "Extreme Bullish"]`.
+   - **Outputs**: Returns continuous value $s \in [0, N-1]$ mapped to $[-100.0, +100.0]$ via $s_{\text{mapped}} = (s - 2.0) \times 50.0$, accompanied by a distribution confidence metric $C \in [0.0, 1.0]$ quantifying consensus concentration.
+   - **Referenced Pipeline Figures**:
+     - `momentum_conviction_score` / `conviction_score`: Master directional conviction $[-100.0, +100.0]$.
+     - `fx_sensitivity_score`: Degree of USD/JPY FX influence on Nikkei 225 $[0.0, 100.0]$.
+     - `indicative_forward_target_prices` ($P_{\text{expected}}, P_{\text{lower}}, P_{\text{upper}}$): Continuous price targets computed per horizon from wave volatility envelopes.
+
+2. **`Choice` Primitive (Categorical Label Selection with Distribution)**:
+   - **Operational Definition**: Selects exactly one discrete option from a predefined, mutually exclusive set of semantic criteria. Jev computes the softmax probability over all options and selects the argmax label.
+   - **Outputs**: Returns chosen categorical label `choice`, classification confidence $C \in [0.0, 1.0]$, and the complete posterior probability distribution across all options `probabilities: {option_k: p_k}`.
+   - **Referenced Pipeline Figures**:
+     - `forward_1m.action`, `forward_10m.action`, `forward_30m.action`, `forward_1h.action`: Discrete positioning (`STRONG_LONG`, `LEAN_LONG`, `NEUTRAL`, `LEAN_SHORT`, `STRONG_SHORT`).
+     - `nikkei_driver_regime`: Selected active driver regime (`FX_DOMINANT`, `EQUITY_SENTIMENT_DOMINANT`, `DUAL_REINFORCING`, `DECOUPLED_CHOP`).
+     - `cross_sectional_leadership`: Inter-market relative momentum position (`TOP_TIER_OUTPERFORMER`, `MID_PACK_PARTICIPANT`, `LAGGING_UNDERPERFORMER`, `FLIGHT_TO_SAFETY_HEDGE`).
+
+3. **`Noul` Primitive (Calibrated Single-Proposition Probability)**:
+   - **Operational Definition**: Evaluates the continuous probability that a specific proposition or condition holds true ($P \in [0.0, 1.0]$).
+   - **Critical Architectural Distinction**: A Noul has **NO separate confidence parameter**. The probability itself encapsulates epistemic certainty. $P = 0.50$ denotes maximal entropy / complete neutrality (50-50 tossup). $P = 0.95$ denotes near-absolute certainty of occurrence, while $P = 0.05$ denotes near-absolute certainty of non-occurrence.
+   - **Referenced Pipeline Figures**:
+     - `prob_up_1m, prob_up_10m, prob_up_30m, prob_up_1h` ($P_{\text{Up}}$): Exact continuous probability that the asset price closes higher at $t+\tau$ relative to current close.
+     - `prob_fx_transmission` (Nikkei 225): Probability that USD/JPY FX currency momentum directly transmits into Nikkei price returns over the next 10 minutes.
+     - `average_prob_up`: Composite cross-horizon probability consensus across all 4 forward horizons.
 
 ---
 

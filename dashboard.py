@@ -128,6 +128,12 @@ ASSETS = {
         "flag": "🇯🇵",
         "desc": "Nikkei 225 Index CFD"
     },
+    "USD/JPY (USDJPY)": {
+        "symbol": "JPY=X",
+        "oanda": "USD_JPY",
+        "flag": "💴",
+        "desc": "USD/JPY Foreign Exchange CFD"
+    },
     "10Y Treasury (TNX)": {
         "symbol": "^TNX",
         "oanda": "USB10Y_USD",
@@ -576,6 +582,9 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         },
         "mpsi": mh_sigs.get("maritime_supply_index"),
         "forward_projections": fwd_proj,
+        "conviction_score": mh_sigs.get("conviction_score", 0.0),
+        "nikkei_fx_equity_dynamics": mh_sigs.get("nikkei_fx_equity_dynamics"),
+        "jev_primitives_guide": mh_sigs.get("jev_primitives_guide"),
         "shipping_telemetry": mh_data.get("telemetry"),
         "visual_analytics": mh_data.get("visual_analytics"),
         "ais_confusion_matrix": mh_data.get("ais_confusion_matrix")
@@ -814,6 +823,26 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
     if nik["prob_up"] > 0.55:
         insights.append("🇯🇵 **Nikkei Momentum**: Asian session trading with upside momentum bias.")
 
+    # Dynamic Nikkei 225 USD/JPY FX vs Equity Sentiment Driver Insights
+    nik_dyn = nik.get("nikkei_fx_equity_dynamics")
+    if nik_dyn and nik_dyn.get("has_fx_driver"):
+        regime = nik_dyn.get("regime", "EQUITY_SENTIMENT_DOMINANT")
+        w_fx = nik_dyn.get("fx_weight", 0.5) * 100.0
+        w_eq = nik_dyn.get("equity_weight", 0.5) * 100.0
+        rho_fx = nik_dyn.get("rho_nikkei_fx", 0.65)
+        fx_sens = nik_dyn.get("fx_sensitivity_score", w_fx)
+        p_trans = nik_dyn.get("prob_fx_transmission", 0.5) * 100.0
+        macro_imp = nik_dyn.get("dynamic_macro_impact", 0.0)
+
+        if regime == "FX_DOMINANT":
+            insights.append(f"💴 🇯🇵 **Nikkei FX-Dominant Driver Active**: USD/JPY currency dynamics ({w_fx:.0f}% FX Weight vs {w_eq:.0f}% Equity, Score: {fx_sens:.1f}/100, Transmission P: {p_trans:.0f}%, ρ={rho_fx:+.2f}) actively driving Nikkei forward momentum over Wall Street.")
+        elif regime == "DUAL_REINFORCING":
+            insights.append(f"🚀 🇯🇵 **Nikkei Dual-Reinforced Momentum**: USD/JPY currency impulse and Wall Street equity sentiment are mutually aligned, compounding Nikkei trend persistence (Net Macro Impulse: {macro_imp:+.4f}).")
+        elif regime == "DECOUPLED_CHOP":
+            insights.append(f"⚠️ 🇯🇵 **Nikkei Decoupled Cross-Currents**: Conflicting signals between USD/JPY currency moves and US Equity Sentiment causing localized chop and mean-reverting drag.")
+        else:
+            insights.append(f"🌏 🇯🇵 **Nikkei Equity-Dominant Regime**: Global Wall Street risk appetite ({w_eq:.0f}% weight) is leading over currency carry dynamics.")
+
     if "WTI Crude (WTI)" in results and "Brent Crude (BRENT)" in results:
         wti = results["WTI Crude (WTI)"]
         brent = results["Brent Crude (BRENT)"]
@@ -825,6 +854,56 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
         
     if insights:
         st.info("💡 **Cross-Asset Intelligence:**\n\n" + "\n\n".join(insights))
+
+    # Dedicated Nikkei 225 Dynamic Driver Radar Card
+    if nik_dyn and nik_dyn.get("has_fx_driver"):
+        st.markdown("#### 🇯🇵 Nikkei 225 Dynamic Driver Radar: USD/JPY FX vs Global Equity Sentiment")
+        c1, c2, c3, c4 = st.columns(4)
+        regime_name = nik_dyn.get("regime", "N/A")
+        c1.metric("Active Driver Regime (Choice)", regime_name, help=nik_dyn.get("regime_desc", ""))
+        c2.metric("USD/JPY FX Weight", f"{nik_dyn.get('fx_weight', 0.5)*100:.1f}%", f"ρ(NK,FX): {nik_dyn.get('rho_nikkei_fx', 0):+.2f}")
+        c3.metric("Equity Sentiment Weight", f"{nik_dyn.get('equity_weight', 0.5)*100:.1f}%", f"ρ(NK,SPX): {nik_dyn.get('rho_nikkei_spx', 0):+.2f}")
+        c4.metric("FX Sensitivity Score / Transmission", f"{nik_dyn.get('fx_sensitivity_score', 50):.1f} / 100", f"P(Trans Noul): {nik_dyn.get('prob_fx_transmission', 0.5)*100:.0f}%")
+
+    # Comprehensive JEV Primitives Guide
+    with st.expander("📘 TypeSafe Jev System One Output Variables Reference: Score, Choice, and Noul", expanded=False):
+        st.markdown(r"""
+        ### 🔬 TypeSafe Jev System One Decision Primitives Taxonomy & Operational Interpretation
+        
+        The Multi-Horizon Forward Trend Radar is powered by **TypeSafe Jev System One** (`jev-latest`), which transforms complex multi-asset microstructure, cross-sectional spreads, physical shipping telemetry, and dynamic FX conditioning into typed, calibrated decision primitives: **Score**, **Choice**, and **Noul**.
+        
+        ---
+        
+        #### 1. 🎯 Choice (Discrete Categorical Selection)
+        * **Mathematical Definition**: Evaluates the multi-dimensional market state and selects exactly **one option** out of a predefined, mutually exclusive discrete set $\mathcal{C} = \{c_1, c_2, \dots, c_K\}$ based on natural-language criteria. Accompanied by a **Confidence** metric $C \in [0.0, 1.0]$ summarizing the probability mass concentration on the winning choice relative to competitors.
+        * **Forecasted Numbers on Screen**:
+          * **Tactical Action Choices (`forward_1m.action`, `forward_10m.action`, `forward_30m.action`, `forward_1h.action`)**: Categorical labels from `[STRONG_LONG, LEAN_LONG, NEUTRAL, LEAN_SHORT, STRONG_SHORT]`.
+          * **Nikkei Driver Regime (`nikkei_driver_regime`)**: Discrete classification from `[FX_DOMINANT, EQUITY_SENTIMENT_DOMINANT, DUAL_REINFORCING, DECOUPLED_CHOP]`.
+          * **Cross-Sectional Leadership**: `[TOP_TIER_OUTPERFORMER, MID_PACK_PARTICIPANT, LAGGING_UNDERPERFORMER, FLIGHT_TO_SAFETY_HEDGE]`.
+          * **Confidence Metric ($C$)**: Displayed as a percentage (e.g. `76.0%`), measuring how decisively the probability distribution peaked on the selected action.
+        
+        ---
+        
+        #### 2. 📊 Score (Continuous / Ordered Dimension Degree)
+        * **Mathematical Definition**: Measures degree, intensity, or magnitude along an ordered continuous or binned dimension $S \in [S_{\min}, S_{\max}]$. Jev computes a calibrated probability distribution across ordered intervals and returns the **probability-weighted expected position** $\mathbb{E}[S] = \sum_i s_i \cdot P(s_i)$.
+        * **Forecasted Numbers on Screen**:
+          * **Momentum Conviction Score (`conviction_score`)**: Continuous directional intensity rating from **$-100.0$** (extreme bearish conviction / exhaustion) to **$+100.0$** (extreme bullish momentum persistence). Values near $0.0$ represent neutral consolidation.
+          * **FX Sensitivity Score (`fx_sensitivity_score`)**: Measures the dynamic extent to which USD/JPY currency moves are steering Nikkei 225 forward price return over Wall Street equity sentiment, on a scale of **$0.0$** (purely equity sentiment) to **$100.0$** (purely FX currency driven).
+          * **Indicative Target Prices ($P_{\text{expected}}, P_{\text{lower}}, P_{\text{upper}}$)**: Continuous forward price expectations derived from probability-weighted wave propagation.
+        
+        ---
+        
+        #### 3. 🎲 Noul (Binary Truth Likelihood / Continuous Probability)
+        * **Mathematical Definition**: Evaluates the continuous probability that a specific proposition or condition holds true: $P(\text{condition} = \text{True}) \in [0.0, 1.0]$.
+        * **CRITICAL OPERATIONAL DISTINCTION**: A **Noul has NO separate confidence metric**. The probability itself encapsulates certainty:
+          * $P = 0.50$ denotes complete epistemic neutrality / 50-50 tossup (maximum entropy / equal odds).
+          * $P > 0.50$ represents odds in favor of the condition ($P = 0.85$ is high certainty of upside continuation).
+          * $P < 0.50$ represents odds against the condition ($P = 0.15$ is high certainty of downside / $85\%$ probability of down).
+        * **Forecasted Numbers on Screen**:
+          * **Directional Forward Upside Probabilities (`prob_up_1m`, `prob_up_10m`, `prob_up_30m`, `prob_up_1h`)**: The exact continuous probability $P(\text{Price}_{t+h} > \text{Price}_t)$ that price closes higher at horizon $h$.
+          * **Probability of FX Transmission (`prob_fx_transmission`)**: The continuous probability that USD/JPY foreign exchange momentum will transmit into Nikkei 225 forward price action over the next 10 minutes.
+          * **Average Upside Probability ($\bar{P}_{\text{Up}}$)**: Cross-horizon directional consensus probability.
+        """)
 
 st.divider()
 

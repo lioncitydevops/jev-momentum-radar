@@ -24,6 +24,7 @@ ASSETS = {
     "Nasdaq 100 (NDX)": "NAS100_USD",
     "Russell 2000 (RUT)": "US2000_USD",
     "Nikkei 225 (NI225)": "JP225_USD",
+    "USD/JPY (USDJPY)": "USD_JPY",
     "10Y Treasury (TNX)": "USB10Y_USD",
     "WTI Crude (WTI)": "WTICO_USD",
     "Brent Crude (BRENT)": "BCO_USD"
