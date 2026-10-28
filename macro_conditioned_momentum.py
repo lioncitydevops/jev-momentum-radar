@@ -118,20 +118,22 @@ JEV_PRIMITIVES_GUIDE = {
 def decompose_nikkei_movements(
     ni_df: pd.DataFrame,
     usdjpy_df: pd.DataFrame = None,
-    spx_df: pd.DataFrame = None,
-    all_dfs: dict = None
+    ndx_df: pd.DataFrame = None,
+    all_dfs: dict = None,
+    spx_df: pd.DataFrame = None
 ) -> dict:
     """
     Rigorously decomposes Nikkei 225 price movements across multiple horizons
     (1m, 5m, 10m, 30m, 60m) into:
       1. USD/JPY FX Effect: Exporter profit translation & Yen carry-trade channel.
-      2. Pure Equity Sentiment Effect: Global Wall Street / S&P 500 risk appetite,
-         orthogonalized against USD/JPY to isolate pure equity sentiment.
+      2. Pure Equity Sentiment Effect: Global tech / Nasdaq 100 (NDX) risk appetite,
+         orthogonalized against USD/JPY to isolate pure tech & equity sentiment for
+         Tokyo's heavy semiconductor and tech exporter constituents.
       3. Domestic / Idiosyncratic Japan Alpha: Domestic BoJ policy, TSE microstructure,
          and domestic corporate earnings independent of macro factors.
 
     Also computes:
-      - Rolling OLS Factor Betas: beta_fx, beta_equity_orthogonalized, beta_equity_raw.
+      - Rolling OLS Factor Betas: beta_fx, beta_equity_ortho (NDX⊥), beta_equity_raw.
       - Variance / ANOVA Decomposition (R^2, FX variance %, Pure Equity variance %, Idiosyncratic %).
       - Exact Additive Horizon Attribution (bps and %):
           Delta_NK(tau) == Delta_FX(tau) + Delta_PureEquity(tau) + Delta_Idiosyncratic(tau)
@@ -143,18 +145,25 @@ def decompose_nikkei_movements(
             if k in all_dfs and all_dfs[k] is not None:
                 usdjpy_df = all_dfs[k]
                 break
-    if spx_df is None and all_dfs:
-        for k in ["S&P 500 (SPX)", "SPX", "^GSPC"]:
+    
+    # Priority: Nasdaq 100 (NDX) is the primary equity benchmark for tech-heavy Nikkei 225
+    if ndx_df is None and spx_df is not None:
+        ndx_df = spx_df
+    if ndx_df is None and all_dfs:
+        for k in ["Nasdaq 100 (NDX)", "NDX", "^NDX", "NAS100_USD", "S&P 500 (SPX)", "SPX", "^GSPC"]:
             if k in all_dfs and all_dfs[k] is not None:
-                spx_df = all_dfs[k]
+                ndx_df = all_dfs[k]
                 break
+
+    equity_benchmark = "Nasdaq 100 (NDX)"
 
     if ni_df is None or len(ni_df) < 5:
         return {
             "has_decomposition": False,
             "primary_driver": "NEUTRAL",
             "primary_driver_desc": "Insufficient history for decomposition",
-            "betas": {"beta_fx": 0.0, "beta_equity_ortho": 0.0, "beta_equity_raw": 0.0, "gamma_spx_fx": 0.0, "alpha_bps": 0.0},
+            "equity_benchmark": equity_benchmark,
+            "betas": {"beta_fx": 0.0, "beta_equity_ortho": 0.0, "beta_ndx_ortho": 0.0, "beta_spx_ortho": 0.0, "beta_equity_raw": 0.0, "gamma_equity_fx": 0.0, "gamma_spx_fx": 0.0, "alpha_bps": 0.0, "equity_benchmark": equity_benchmark},
             "variance_decomposition": {"fx_var_pct": 0.0, "pure_equity_var_pct": 0.0, "idiosyncratic_var_pct": 100.0, "r_squared": 0.0, "r_squared_pct": 0.0},
             "horizons": {},
             "scores": {"fx_contribution_score": 0.0, "pure_equity_sentiment_score": 0.0, "idiosyncratic_score": 0.0},
@@ -164,13 +173,13 @@ def decompose_nikkei_movements(
 
     ni_close = ni_df["Close"].values.astype(float)
     fx_close = usdjpy_df["Close"].values.astype(float) if usdjpy_df is not None and len(usdjpy_df) >= 5 else None
-    spx_close = spx_df["Close"].values.astype(float) if spx_df is not None and len(spx_df) >= 5 else None
+    eq_close = ndx_df["Close"].values.astype(float) if ndx_df is not None and len(ndx_df) >= 5 else None
 
     n_bars = len(ni_close)
     if fx_close is not None:
         n_bars = min(n_bars, len(fx_close))
-    if spx_close is not None:
-        n_bars = min(n_bars, len(spx_close))
+    if eq_close is not None:
+        n_bars = min(n_bars, len(eq_close))
 
     w = max(5, min(n_bars, 45))
     ni_c = ni_close[-w:]
@@ -182,53 +191,53 @@ def decompose_nikkei_movements(
     else:
         r_fx = np.zeros_like(r_ni)
 
-    if spx_close is not None:
-        sp_c = spx_close[-w:]
-        r_sp = np.diff(sp_c) / (sp_c[:-1] + 1e-9)
+    if eq_close is not None:
+        eq_c = eq_close[-w:]
+        r_eq = np.diff(eq_c) / (eq_c[:-1] + 1e-9)
     else:
-        r_sp = np.zeros_like(r_ni)
+        r_eq = np.zeros_like(r_ni)
 
-    # 1. Orthogonalization of Pure Equity Sentiment against USD/JPY
+    # 1. Orthogonalization of Pure Equity Sentiment (Nasdaq 100) against USD/JPY
     var_fx = float(np.var(r_fx))
-    var_sp = float(np.var(r_sp))
-    cov_sp_fx = float(np.cov(r_sp, r_fx)[0, 1]) if len(r_sp) > 2 and var_fx > 1e-12 else 0.0
+    var_eq = float(np.var(r_eq))
+    cov_eq_fx = float(np.cov(r_eq, r_fx)[0, 1]) if len(r_eq) > 2 and var_fx > 1e-12 else 0.0
 
     if var_fx > 1e-12:
-        gamma_spx_fx = cov_sp_fx / var_fx
-        r_sp_ortho = r_sp - gamma_spx_fx * r_fx
+        gamma_eq_fx = cov_eq_fx / var_fx
+        r_eq_ortho = r_eq - gamma_eq_fx * r_fx
     else:
-        gamma_spx_fx = 0.0
-        r_sp_ortho = r_sp.copy()
+        gamma_eq_fx = 0.0
+        r_eq_ortho = r_eq.copy()
 
-    var_sp_ortho = float(np.var(r_sp_ortho))
+    var_eq_ortho = float(np.var(r_eq_ortho))
 
     # 2. Factor Betas
     cov_ni_fx = float(np.cov(r_ni, r_fx)[0, 1]) if len(r_ni) > 2 and var_fx > 1e-12 else 0.0
     beta_fx = float(cov_ni_fx / var_fx) if var_fx > 1e-12 else 0.0
 
-    cov_ni_sp_ortho = float(np.cov(r_ni, r_sp_ortho)[0, 1]) if len(r_ni) > 2 and var_sp_ortho > 1e-12 else 0.0
-    beta_sp_ortho = float(cov_ni_sp_ortho / var_sp_ortho) if var_sp_ortho > 1e-12 else 0.0
+    cov_ni_eq_ortho = float(np.cov(r_ni, r_eq_ortho)[0, 1]) if len(r_ni) > 2 and var_eq_ortho > 1e-12 else 0.0
+    beta_eq_ortho = float(cov_ni_eq_ortho / var_eq_ortho) if var_eq_ortho > 1e-12 else 0.0
 
-    cov_ni_sp_raw = float(np.cov(r_ni, r_sp)[0, 1]) if len(r_ni) > 2 and var_sp > 1e-12 else 0.0
-    beta_sp_raw = float(cov_ni_sp_raw / var_sp) if var_sp > 1e-12 else 0.0
+    cov_ni_eq_raw = float(np.cov(r_ni, r_eq)[0, 1]) if len(r_ni) > 2 and var_eq > 1e-12 else 0.0
+    beta_eq_raw = float(cov_ni_eq_raw / var_eq) if var_eq > 1e-12 else 0.0
 
-    alpha_1m = float(np.mean(r_ni) - beta_fx * np.mean(r_fx) - beta_sp_ortho * np.mean(r_sp_ortho))
+    alpha_1m = float(np.mean(r_ni) - beta_fx * np.mean(r_fx) - beta_eq_ortho * np.mean(r_eq_ortho))
 
     # 3. Variance / ANOVA Decomposition
     var_ni = float(np.var(r_ni))
     var_fx_exp = (beta_fx ** 2) * var_fx
-    var_sp_exp = (beta_sp_ortho ** 2) * var_sp_ortho
-    var_exp_total = var_fx_exp + var_sp_exp
+    var_eq_exp = (beta_eq_ortho ** 2) * var_eq_ortho
+    var_exp_total = var_fx_exp + var_eq_exp
     var_denom = var_ni if var_ni > 1e-12 else (var_exp_total if var_exp_total > 1e-12 else 1e-12)
 
     r_squared = float(np.clip(var_exp_total / var_denom, 0.0, 1.0))
     share_var_fx = float(np.clip((var_fx_exp / var_denom) * 100.0, 0.0, 100.0))
-    share_var_sp = float(np.clip((var_sp_exp / var_denom) * 100.0, 0.0, 100.0))
-    if share_var_fx + share_var_sp > 100.0:
-        tot = share_var_fx + share_var_sp
+    share_var_eq = float(np.clip((var_eq_exp / var_denom) * 100.0, 0.0, 100.0))
+    if share_var_fx + share_var_eq > 100.0:
+        tot = share_var_fx + share_var_eq
         share_var_fx = (share_var_fx / tot) * 95.0
-        share_var_sp = (share_var_sp / tot) * 95.0
-    share_var_idio = float(np.clip(100.0 - (share_var_fx + share_var_sp), 0.0, 100.0))
+        share_var_eq = (share_var_eq / tot) * 95.0
+    share_var_idio = float(np.clip(100.0 - (share_var_fx + share_var_eq), 0.0, 100.0))
 
     # 4. Multi-Horizon Return Attribution
     horizons = {}
@@ -237,12 +246,12 @@ def decompose_nikkei_movements(
         if len(ni_close) > tau:
             ret_ni_tau = float((ni_close[-1] / ni_close[-tau-1] - 1.0) * 100.0)
             ret_fx_tau = float((fx_close[-1] / fx_close[-tau-1] - 1.0) * 100.0) if fx_close is not None and len(fx_close) > tau else 0.0
-            ret_sp_tau = float((spx_close[-1] / spx_close[-tau-1] - 1.0) * 100.0) if spx_close is not None and len(spx_close) > tau else 0.0
+            ret_eq_tau = float((eq_close[-1] / eq_close[-tau-1] - 1.0) * 100.0) if eq_close is not None and len(eq_close) > tau else 0.0
 
-            ret_sp_ortho_tau = ret_sp_tau - gamma_spx_fx * ret_fx_tau
+            ret_eq_ortho_tau = ret_eq_tau - gamma_eq_fx * ret_fx_tau
 
             fx_impact_pct = beta_fx * ret_fx_tau
-            pure_equity_impact_pct = beta_sp_ortho * ret_sp_ortho_tau
+            pure_equity_impact_pct = beta_eq_ortho * ret_eq_ortho_tau
             idio_impact_pct = ret_ni_tau - (fx_impact_pct + pure_equity_impact_pct)
 
             abs_sum = abs(fx_impact_pct) + abs(pure_equity_impact_pct) + abs(idio_impact_pct) + 1e-9
@@ -252,6 +261,7 @@ def decompose_nikkei_movements(
 
             horizons[f"{tau}m"] = {
                 "span_bars": tau,
+                "equity_benchmark": equity_benchmark,
                 "ret_nikkei_pct": round(ret_ni_tau, 4),
                 "ret_nikkei_bps": round(ret_ni_tau * 100.0, 1),
                 "fx_impact_pct": round(fx_impact_pct, 4),
@@ -278,16 +288,16 @@ def decompose_nikkei_movements(
         driver_desc = f"USD/JPY FX currency transmission explains {sh_fx:.0f}% of Nikkei movement ({ref_h.get('fx_impact_bps', 0):+.1f} bps)."
     elif sh_eq >= 55.0:
         primary_driver = "PURE_EQUITY_SENTIMENT"
-        driver_desc = f"Pure Global Equity Sentiment (Wall Street beta) explains {sh_eq:.0f}% of Nikkei movement ({ref_h.get('pure_equity_impact_bps', 0):+.1f} bps)."
+        driver_desc = f"Pure Global Equity Sentiment (Nasdaq 100 beta) explains {sh_eq:.0f}% of Nikkei movement ({ref_h.get('pure_equity_impact_bps', 0):+.1f} bps)."
     elif sh_idio >= 55.0:
         primary_driver = "DOMESTIC_IDIOSYNCRATIC"
         driver_desc = f"Domestic Japan alpha / Tokyo microstructure explains {sh_idio:.0f}% of movement ({ref_h.get('idiosyncratic_impact_bps', 0):+.1f} bps)."
     elif fx_imp * eq_imp > 0 and abs(fx_imp) > 0.01:
         primary_driver = "DUAL_AMPLIFYING"
-        driver_desc = "USD/JPY currency momentum and US Equity Sentiment are mutually compounding Nikkei trend velocity."
+        driver_desc = "USD/JPY currency momentum and Nasdaq 100 Equity Sentiment are mutually compounding Nikkei trend velocity."
     else:
         primary_driver = "CROSS_CANCELING"
-        driver_desc = "USD/JPY FX and US Equity Sentiment are pulling in opposing directions, creating localized chop."
+        driver_desc = "USD/JPY FX and Nasdaq 100 Equity Sentiment are pulling in opposing directions, creating localized chop."
 
     fx_last_rate = float(fx_close[-1]) if fx_close is not None and len(fx_close) > 0 else 155.0
     exporter_margin_spread = float(fx_imp * 100.0)
@@ -297,22 +307,28 @@ def decompose_nikkei_movements(
     idio_score = float(np.clip(ref_h.get("idiosyncratic_impact_pct", 0.0) * 200.0, -100.0, 100.0))
 
     prob_fx_trans = float(np.clip(0.50 + 0.35 * (beta_fx / (abs(beta_fx) + 1.0)) * (1.0 if abs(fx_imp) > 0.01 else 0.5), 0.05, 0.95))
-    prob_eq_trans = float(np.clip(0.50 + 0.35 * (beta_sp_ortho / (abs(beta_sp_ortho) + 1.0)) * (1.0 if abs(eq_imp) > 0.01 else 0.5), 0.05, 0.95))
+    prob_eq_trans = float(np.clip(0.50 + 0.35 * (beta_eq_ortho / (abs(beta_eq_ortho) + 1.0)) * (1.0 if abs(eq_imp) > 0.01 else 0.5), 0.05, 0.95))
 
     return {
         "has_decomposition": True,
         "primary_driver": primary_driver,
         "primary_driver_desc": driver_desc,
+        "equity_benchmark": equity_benchmark,
         "betas": {
             "beta_fx": round(beta_fx, 4),
-            "beta_equity_ortho": round(beta_sp_ortho, 4),
-            "beta_equity_raw": round(beta_sp_raw, 4),
-            "gamma_spx_fx": round(gamma_spx_fx, 4),
-            "alpha_1m_bps": round(alpha_1m * 10000.0, 2)
+            "beta_equity_ortho": round(beta_eq_ortho, 4),
+            "beta_ndx_ortho": round(beta_eq_ortho, 4),
+            "beta_spx_ortho": round(beta_eq_ortho, 4),
+            "beta_equity_raw": round(beta_eq_raw, 4),
+            "gamma_equity_fx": round(gamma_eq_fx, 4),
+            "gamma_ndx_fx": round(gamma_eq_fx, 4),
+            "gamma_spx_fx": round(gamma_eq_fx, 4),
+            "alpha_1m_bps": round(alpha_1m * 10000.0, 2),
+            "equity_benchmark": equity_benchmark
         },
         "variance_decomposition": {
             "fx_var_pct": round(share_var_fx, 1),
-            "pure_equity_var_pct": round(share_var_sp, 1),
+            "pure_equity_var_pct": round(share_var_eq, 1),
             "idiosyncratic_var_pct": round(share_var_idio, 1),
             "r_squared": round(r_squared, 4),
             "r_squared_pct": round(r_squared * 100.0, 1)
@@ -338,20 +354,21 @@ def decompose_nikkei_movements(
 def compute_nikkei_dynamic_fx_equity_regime(
     ni_df: pd.DataFrame,
     usdjpy_df: pd.DataFrame = None,
-    spx_df: pd.DataFrame = None,
-    all_dfs: dict = None
+    ndx_df: pd.DataFrame = None,
+    all_dfs: dict = None,
+    spx_df: pd.DataFrame = None
 ) -> dict:
     """
     Computes the dynamic time-varying beta and driver regime for Nikkei 225.
     Nikkei 225 is driven by USD/JPY FX dynamics (exporter currency translation, Yen carry trade)
-    and Global Equity Sentiment (Wall Street S&P 500 risk appetite) at varying extent at different times.
+    and Global Equity Sentiment (Wall Street Nasdaq 100 risk appetite) at varying extent at different times.
     
     Returns:
     - regime: Choice primitive (FX_DOMINANT, EQUITY_SENTIMENT_DOMINANT, DUAL_REINFORCING, DECOUPLED_CHOP)
     - fx_weight, equity_weight: Dynamic weights w_fx and w_eq (w_fx + w_eq = 1.0)
     - fx_sensitivity_score: Score primitive (0 to 100)
     - prob_fx_transmission: Noul primitive (0.05 to 0.95)
-    - rho_nikkei_fx, rho_nikkei_spx: Rolling correlations
+    - rho_nikkei_fx, rho_nikkei_ndx: Rolling correlations
     - dynamic_macro_impact: Directional scalar adjustment for Nikkei forward score
     - decomposition: Rigorous multi-horizon factor attribution & variance decomposition
     """
@@ -360,32 +377,36 @@ def compute_nikkei_dynamic_fx_equity_regime(
             if k in all_dfs and all_dfs[k] is not None:
                 usdjpy_df = all_dfs[k]
                 break
-    if spx_df is None and all_dfs:
-        for k in ["S&P 500 (SPX)", "SPX", "^GSPC"]:
+
+    # Priority: Nasdaq 100 (NDX) for Tokyo tech beta
+    if ndx_df is None and spx_df is not None:
+        ndx_df = spx_df
+    if ndx_df is None and all_dfs:
+        for k in ["Nasdaq 100 (NDX)", "NDX", "^NDX", "NAS100_USD", "S&P 500 (SPX)", "SPX", "^GSPC"]:
             if k in all_dfs and all_dfs[k] is not None:
-                spx_df = all_dfs[k]
+                ndx_df = all_dfs[k]
                 break
 
     # Compute full econometric decomposition
-    decomp = decompose_nikkei_movements(ni_df, usdjpy_df=usdjpy_df, spx_df=spx_df, all_dfs=all_dfs)
+    decomp = decompose_nikkei_movements(ni_df, usdjpy_df=usdjpy_df, ndx_df=ndx_df, all_dfs=all_dfs)
 
     # Fallback default values if USD/JPY data not available
     if usdjpy_df is None or len(usdjpy_df) < 5 or ni_df is None or len(ni_df) < 5:
         return {
             "has_fx_driver": False,
             "regime": "EQUITY_SENTIMENT_DOMINANT",
-            "regime_desc": "USD/JPY feed offline; operating under baseline equity sentiment model.",
+            "regime_desc": "USD/JPY feed offline; operating under baseline Nasdaq 100 equity sentiment model.",
             "fx_weight": 0.35,
             "equity_weight": 0.65,
             "fx_sensitivity_score": 35.0,
             "prob_fx_transmission": 0.50,
             "rho_nikkei_fx": 0.65,
-            "rho_nikkei_spx": 0.70,
+            "rho_nikkei_ndx": 0.75,
+            "rho_nikkei_spx": 0.75,
             "dynamic_macro_impact": 0.0,
             "delta_fx": 0.0,
             "delta_eq": 0.0,
             "usdjpy_metrics": {},
-            "spx_metrics": {},
             "decomposition": decomp
         }
 
@@ -405,19 +426,19 @@ def compute_nikkei_dynamic_fx_equity_regime(
     else:
         rho_fx = 0.65
 
-    # Rolling correlation between Nikkei and SPX (Equity Sentiment)
-    if spx_df is not None and len(spx_df) >= 5:
-        spx_close = spx_df["Close"].values.astype(float)
-        k_sp = min(len(ni_close), len(spx_close), 30)
-        sp_rets = np.diff(spx_close[-k_sp:]) / (spx_close[-k_sp:-1] + 1e-9)
-        if len(sp_rets) >= 5 and np.std(sp_rets) > 1e-7 and np.std(ni_rets[-len(sp_rets):]) > 1e-7:
-            rho_spx = float(np.corrcoef(ni_rets[-len(sp_rets):], sp_rets)[0, 1])
-            rho_spx = float(np.nan_to_num(rho_spx, nan=0.70))
+    # Rolling correlation between Nikkei and NDX (Nasdaq 100 Tech Equity Sentiment)
+    if ndx_df is not None and len(ndx_df) >= 5:
+        ndx_close = ndx_df["Close"].values.astype(float)
+        k_ndx = min(len(ni_close), len(ndx_close), 30)
+        ndx_rets = np.diff(ndx_close[-k_ndx:]) / (ndx_close[-k_ndx:-1] + 1e-9)
+        if len(ndx_rets) >= 5 and np.std(ndx_rets) > 1e-7 and np.std(ni_rets[-len(ndx_rets):]) > 1e-7:
+            rho_ndx = float(np.corrcoef(ni_rets[-len(ndx_rets):], ndx_rets)[0, 1])
+            rho_ndx = float(np.nan_to_num(rho_ndx, nan=0.75))
         else:
-            rho_spx = 0.70
+            rho_ndx = 0.75
     else:
-        spx_close = np.array([])
-        rho_spx = 0.70
+        ndx_close = np.array([])
+        rho_ndx = 0.75
 
     # Compute USD/JPY micro-features
     fx_ret_1m = float((fx_close[-1] / fx_close[-2] - 1) * 100) if len(fx_close) >= 2 else 0.0
@@ -433,23 +454,23 @@ def compute_nikkei_dynamic_fx_equity_regime(
     fx_vwap = float(np.sum(fx_typical[-14:] * fx_vol[-14:]) / (np.sum(fx_vol[-14:]) + 1e-9))
     fx_vwap_z = float((fx_close[-1] - fx_vwap) / (fx_atr + 1e-9))
 
-    # Compute SPX micro-features
-    if spx_df is not None and len(spx_df) >= 6:
-        sp_c = spx_df["Close"].values.astype(float)
-        sp_ret_5m = float((sp_c[-1] / sp_c[-6] - 1) * 100)
-        sp_ret_10m = float((sp_c[-1] / sp_c[-11] - 1) * 100) if len(sp_c) >= 11 else sp_ret_5m
-        sp_high = spx_df["High"].values.astype(float)
-        sp_low = spx_df["Low"].values.astype(float)
-        sp_atr = float(np.mean(np.maximum(sp_high[-14:] - sp_low[-14:], 0.1)))
-        sp_vwap_z = float((sp_c[-1] - np.mean(sp_c[-14:])) / (sp_atr + 1e-9))
+    # Compute NDX micro-features
+    if ndx_df is not None and len(ndx_df) >= 6:
+        ndx_c = ndx_df["Close"].values.astype(float)
+        ndx_ret_5m = float((ndx_c[-1] / ndx_c[-6] - 1) * 100)
+        ndx_ret_10m = float((ndx_c[-1] / ndx_c[-11] - 1) * 100) if len(ndx_c) >= 11 else ndx_ret_5m
+        ndx_high = ndx_df["High"].values.astype(float)
+        ndx_low = ndx_df["Low"].values.astype(float)
+        ndx_atr = float(np.mean(np.maximum(ndx_high[-14:] - ndx_low[-14:], 0.1)))
+        ndx_vwap_z = float((ndx_c[-1] - np.mean(ndx_c[-14:])) / (ndx_atr + 1e-9))
     else:
-        sp_ret_5m = 0.0
-        sp_ret_10m = 0.0
-        sp_vwap_z = 0.0
+        ndx_ret_5m = 0.0
+        ndx_ret_10m = 0.0
+        ndx_vwap_z = 0.0
 
     # Dynamic Time-Varying Beta & Allocation Weights
     i_fx = max(0.15, abs(rho_fx)) * (1.0 + min(2.5, abs(fx_ret_5m) * 2.0 + abs(fx_vwap_z) * 0.5))
-    i_eq = max(0.15, abs(rho_spx)) * (1.0 + min(2.5, abs(sp_ret_5m) * 1.5 + abs(sp_vwap_z) * 0.4))
+    i_eq = max(0.15, abs(rho_ndx)) * (1.0 + min(2.5, abs(ndx_ret_5m) * 1.5 + abs(ndx_vwap_z) * 0.4))
     
     total_i = i_fx + i_eq + 1e-9
     w_fx = float(np.clip(i_fx / total_i, 0.10, 0.90))
@@ -457,25 +478,24 @@ def compute_nikkei_dynamic_fx_equity_regime(
 
     # Regime Classification (Choice Primitive)
     fx_direction = 1 if fx_ret_5m > 0.01 else (-1 if fx_ret_5m < -0.01 else 0)
-    sp_direction = 1 if sp_ret_5m > 0.02 else (-1 if sp_ret_5m < -0.02 else 0)
+    ndx_direction = 1 if ndx_ret_5m > 0.02 else (-1 if ndx_ret_5m < -0.02 else 0)
 
-    if fx_direction != 0 and sp_direction != 0 and fx_direction == sp_direction:
+    if fx_direction != 0 and ndx_direction != 0 and fx_direction == ndx_direction:
         regime = "DUAL_REINFORCING"
-        regime_desc = "USD/JPY currency momentum and US Equity Sentiment are mutually aligned, compounding Nikkei trend impulse."
-    elif fx_direction != 0 and sp_direction != 0 and fx_direction != sp_direction:
+        regime_desc = "USD/JPY currency momentum and Nasdaq 100 Equity Sentiment are mutually aligned, compounding Nikkei trend impulse."
+    elif fx_direction != 0 and ndx_direction != 0 and fx_direction != ndx_direction:
         regime = "DECOUPLED_CHOP"
-        regime_desc = "Opposing forces between USD/JPY currency dynamics and Wall Street equity sentiment causing chop and mean-reverting drag."
+        regime_desc = "Opposing forces between USD/JPY currency dynamics and Nasdaq 100 equity sentiment causing chop and mean-reverting drag."
     elif w_fx >= 0.56:
         regime = "FX_DOMINANT"
         regime_desc = "USD/JPY currency momentum & Yen carry trade dynamics actively leading Nikkei 225 price action."
     else:
         regime = "EQUITY_SENTIMENT_DOMINANT"
-        regime_desc = "Global Wall Street risk appetite & S&P 500 equity sentiment dominating over FX moves."
+        regime_desc = "Global tech risk appetite & Nasdaq 100 equity sentiment dominating over FX moves."
 
     # Quantitative FX and Equity transmission delta to Nikkei 225
-    # Weakening Yen (USD/JPY up) boosts Nikkei exporter earnings; Yen surge (USD/JPY down) unwinds carry trade
     delta_fx = (0.35 * fx_ret_5m + 0.15 * fx_vwap_z) * np.sign(rho_fx if rho_fx != 0 else 1.0)
-    delta_eq = (0.32 * sp_ret_5m + 0.12 * sp_vwap_z) * np.sign(rho_spx if rho_spx != 0 else 1.0)
+    delta_eq = (0.32 * ndx_ret_5m + 0.12 * ndx_vwap_z) * np.sign(rho_ndx if rho_ndx != 0 else 1.0)
 
     dynamic_macro_impact = float(w_fx * delta_fx + w_eq * delta_eq)
 
@@ -494,7 +514,8 @@ def compute_nikkei_dynamic_fx_equity_regime(
         "fx_sensitivity_score": fx_sensitivity_score,
         "prob_fx_transmission": round(prob_fx_transmission, 4),
         "rho_nikkei_fx": round(rho_fx, 3),
-        "rho_nikkei_spx": round(rho_spx, 3),
+        "rho_nikkei_ndx": round(rho_ndx, 3),
+        "rho_nikkei_spx": round(rho_ndx, 3),
         "dynamic_macro_impact": round(dynamic_macro_impact, 4),
         "delta_fx": round(delta_fx, 4),
         "delta_eq": round(delta_eq, 4),
@@ -505,11 +526,17 @@ def compute_nikkei_dynamic_fx_equity_regime(
             "ret_10m": round(fx_ret_10m, 3),
             "vwap_z": round(fx_vwap_z, 2)
         },
+        "ndx_metrics": {
+            "price": round(float(ndx_close[-1]), 2) if len(ndx_close) > 0 else 0.0,
+            "ret_5m": round(ndx_ret_5m, 3),
+            "ret_10m": round(ndx_ret_10m, 3),
+            "vwap_z": round(ndx_vwap_z, 2)
+        },
         "spx_metrics": {
-            "price": round(float(spx_close[-1]), 2) if len(spx_close) > 0 else 0.0,
-            "ret_5m": round(sp_ret_5m, 3),
-            "ret_10m": round(sp_ret_10m, 3),
-            "vwap_z": round(sp_vwap_z, 2)
+            "price": round(float(ndx_close[-1]), 2) if len(ndx_close) > 0 else 0.0,
+            "ret_5m": round(ndx_ret_5m, 3),
+            "ret_10m": round(ndx_ret_10m, 3),
+            "vwap_z": round(ndx_vwap_z, 2)
         },
         "decomposition": decomp
     }
@@ -547,7 +574,7 @@ def format_macro_full_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, br
     nikkei_block = ""
     if nikkei_dyn and nikkei_dyn.get("has_fx_driver"):
         fx_m = nikkei_dyn.get("usdjpy_metrics", {})
-        sp_m = nikkei_dyn.get("spx_metrics", {})
+        eq_m = nikkei_dyn.get("ndx_metrics") or nikkei_dyn.get("spx_metrics", {})
         decomp = nikkei_dyn.get("decomposition", {})
         h5 = decomp.get("horizons", {}).get("5m", {})
         v_dec = decomp.get("variance_decomposition", {})
@@ -555,13 +582,13 @@ def format_macro_full_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, br
         nikkei_block = (
             f"--- Dynamic Nikkei 225 Macro Drivers & Factor Decomposition ---\n"
             f"USD/JPY FX (USD_JPY): Price={fx_m.get('price',0):.3f} | 1m Ret={fx_m.get('ret_1m',0):+.2f}%, 5m Ret={fx_m.get('ret_5m',0):+.2f}%, VWAP Z={fx_m.get('vwap_z',0):+.2f}σ | Rolling Corr ρ(NK, FX)={nikkei_dyn.get('rho_nikkei_fx',0):+.2f}\n"
-            f"S&P 500 Equity Sentiment (SPX): Price={sp_m.get('price',0):,.2f} | 5m Ret={sp_m.get('ret_5m',0):+.2f}%, VWAP Z={sp_m.get('vwap_z',0):+.2f}σ | Rolling Corr ρ(NK, SPX)={nikkei_dyn.get('rho_nikkei_spx',0):+.2f}\n"
+            f"Nasdaq 100 Equity Sentiment (NDX): Price={eq_m.get('price',0):,.2f} | 5m Ret={eq_m.get('ret_5m',0):+.2f}%, VWAP Z={eq_m.get('vwap_z',0):+.2f}σ | Rolling Corr ρ(NK, NDX)={nikkei_dyn.get('rho_nikkei_ndx', nikkei_dyn.get('rho_nikkei_spx', 0)):+.2f}\n"
             f"Econometric 2-Factor Decomposition (5m Nikkei Move: {h5.get('ret_nikkei_pct', 0.0):+.2f}% / {h5.get('ret_nikkei_bps', 0.0):+.0f} bps):\n"
             f"  * USD/JPY FX Contribution: {h5.get('fx_impact_pct', 0.0):+.2f}% ({h5.get('fx_impact_bps', 0.0):+.0f} bps, {h5.get('share_fx_pct', 50):.0f}% share, β_FX={betas.get('beta_fx', 0.0):+.2f})\n"
-            f"  * Pure Equity Sentiment:   {h5.get('pure_equity_impact_pct', 0.0):+.2f}% ({h5.get('pure_equity_impact_bps', 0.0):+.0f} bps, {h5.get('share_equity_pct', 30):.0f}% share, β_SPX_ortho={betas.get('beta_equity_ortho', 0.0):+.2f})\n"
+            f"  * Pure Equity Sentiment:   {h5.get('pure_equity_impact_pct', 0.0):+.2f}% ({h5.get('pure_equity_impact_bps', 0.0):+.0f} bps, {h5.get('share_equity_pct', 30):.0f}% share, β_NDX_ortho={betas.get('beta_equity_ortho', 0.0):+.2f})\n"
             f"  * Idiosyncratic Japan Alpha:{h5.get('idiosyncratic_impact_pct', 0.0):+.2f}% ({h5.get('idiosyncratic_impact_bps', 0.0):+.0f} bps, {h5.get('share_idiosyncratic_pct', 20):.0f}% share)\n"
             f"Variance Attribution (ANOVA): FX={v_dec.get('fx_var_pct', 0):.1f}%, Pure Equity={v_dec.get('pure_equity_var_pct', 0):.1f}%, Idiosyncratic={v_dec.get('idiosyncratic_var_pct', 0):.1f}%, Model R²={v_dec.get('r_squared_pct', 0):.1f}%\n"
-            f"Dynamic Time-Varying Beta Allocation: USD/JPY FX Weight = {nikkei_dyn.get('fx_weight',0.5)*100:.1f}%, Global Equity Sentiment Weight = {nikkei_dyn.get('equity_weight',0.5)*100:.1f}%\n"
+            f"Dynamic Time-Varying Beta Allocation: USD/JPY FX Weight = {nikkei_dyn.get('fx_weight',0.5)*100:.1f}%, Global Tech Equity Sentiment Weight = {nikkei_dyn.get('equity_weight',0.5)*100:.1f}%\n"
             f"Active Driver Regime: {nikkei_dyn.get('regime','N/A')} ({nikkei_dyn.get('regime_desc','')})\n"
             f"Primary Movement Driver: {decomp.get('primary_driver', 'N/A')} ({decomp.get('primary_driver_desc', '')})\n"
             f"Dynamic Macro Impulse: Net Impact={nikkei_dyn.get('dynamic_macro_impact',0):+.4f} (FX Delta={nikkei_dyn.get('delta_fx',0):+.4f}, Eq Delta={nikkei_dyn.get('delta_eq',0):+.4f})\n"
@@ -619,7 +646,7 @@ def format_rate_only_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, cs_
     nikkei_block = ""
     if nikkei_dyn and nikkei_dyn.get("has_fx_driver"):
         fx_m = nikkei_dyn.get("usdjpy_metrics", {})
-        sp_m = nikkei_dyn.get("spx_metrics", {})
+        eq_m = nikkei_dyn.get("ndx_metrics") or nikkei_dyn.get("spx_metrics", {})
         decomp = nikkei_dyn.get("decomposition", {})
         h5 = decomp.get("horizons", {}).get("5m", {})
         v_dec = decomp.get("variance_decomposition", {})
@@ -627,13 +654,13 @@ def format_rate_only_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, cs_
         nikkei_block = (
             f"--- Dynamic Nikkei 225 Macro Drivers & Factor Decomposition ---\n"
             f"USD/JPY FX (USD_JPY): Price={fx_m.get('price',0):.3f} | 1m Ret={fx_m.get('ret_1m',0):+.2f}%, 5m Ret={fx_m.get('ret_5m',0):+.2f}%, VWAP Z={fx_m.get('vwap_z',0):+.2f}σ | Rolling Corr ρ(NK, FX)={nikkei_dyn.get('rho_nikkei_fx',0):+.2f}\n"
-            f"S&P 500 Equity Sentiment (SPX): Price={sp_m.get('price',0):,.2f} | 5m Ret={sp_m.get('ret_5m',0):+.2f}%, VWAP Z={sp_m.get('vwap_z',0):+.2f}σ | Rolling Corr ρ(NK, SPX)={nikkei_dyn.get('rho_nikkei_spx',0):+.2f}\n"
+            f"Nasdaq 100 Equity Sentiment (NDX): Price={eq_m.get('price',0):,.2f} | 5m Ret={eq_m.get('ret_5m',0):+.2f}%, VWAP Z={eq_m.get('vwap_z',0):+.2f}σ | Rolling Corr ρ(NK, NDX)={nikkei_dyn.get('rho_nikkei_ndx', nikkei_dyn.get('rho_nikkei_spx', 0)):+.2f}\n"
             f"Econometric 2-Factor Decomposition (5m Nikkei Move: {h5.get('ret_nikkei_pct', 0.0):+.2f}% / {h5.get('ret_nikkei_bps', 0.0):+.0f} bps):\n"
             f"  * USD/JPY FX Contribution: {h5.get('fx_impact_pct', 0.0):+.2f}% ({h5.get('fx_impact_bps', 0.0):+.0f} bps, {h5.get('share_fx_pct', 50):.0f}% share, β_FX={betas.get('beta_fx', 0.0):+.2f})\n"
-            f"  * Pure Equity Sentiment:   {h5.get('pure_equity_impact_pct', 0.0):+.2f}% ({h5.get('pure_equity_impact_bps', 0.0):+.0f} bps, {h5.get('share_equity_pct', 30):.0f}% share, β_SPX_ortho={betas.get('beta_equity_ortho', 0.0):+.2f})\n"
+            f"  * Pure Equity Sentiment:   {h5.get('pure_equity_impact_pct', 0.0):+.2f}% ({h5.get('pure_equity_impact_bps', 0.0):+.0f} bps, {h5.get('share_equity_pct', 30):.0f}% share, β_NDX_ortho={betas.get('beta_equity_ortho', 0.0):+.2f})\n"
             f"  * Idiosyncratic Japan Alpha:{h5.get('idiosyncratic_impact_pct', 0.0):+.2f}% ({h5.get('idiosyncratic_impact_bps', 0.0):+.0f} bps, {h5.get('share_idiosyncratic_pct', 20):.0f}% share)\n"
             f"Variance Attribution (ANOVA): FX={v_dec.get('fx_var_pct', 0):.1f}%, Pure Equity={v_dec.get('pure_equity_var_pct', 0):.1f}%, Idiosyncratic={v_dec.get('idiosyncratic_var_pct', 0):.1f}%, Model R²={v_dec.get('r_squared_pct', 0):.1f}%\n"
-            f"Dynamic Time-Varying Beta Allocation: USD/JPY FX Weight = {nikkei_dyn.get('fx_weight',0.5)*100:.1f}%, Global Equity Sentiment Weight = {nikkei_dyn.get('equity_weight',0.5)*100:.1f}%\n"
+            f"Dynamic Time-Varying Beta Allocation: USD/JPY FX Weight = {nikkei_dyn.get('fx_weight',0.5)*100:.1f}%, Global Tech Equity Sentiment Weight = {nikkei_dyn.get('equity_weight',0.5)*100:.1f}%\n"
             f"Active Driver Regime: {nikkei_dyn.get('regime','N/A')} ({nikkei_dyn.get('regime_desc','')})\n"
             f"Primary Movement Driver: {decomp.get('primary_driver', 'N/A')} ({decomp.get('primary_driver_desc', '')})\n"
             f"Dynamic Macro Impulse: Net Impact={nikkei_dyn.get('dynamic_macro_impact',0):+.4f} (FX Delta={nikkei_dyn.get('delta_fx',0):+.4f}, Eq Delta={nikkei_dyn.get('delta_eq',0):+.4f})\n"

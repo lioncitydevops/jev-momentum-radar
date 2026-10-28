@@ -133,8 +133,8 @@ try:
         v_dec = decomp["variance_decomposition"]
         q_dyn = decomp["quanto_dynamics"]
         print(f"  * Primary Movement Driver:    {decomp['primary_driver']} ({decomp['primary_driver_desc']})")
-        print(f"  * Rolling Factor Betas:       β_FX = {betas['beta_fx']:+.2f}, β_SPX⊥ = {betas['beta_equity_ortho']:+.2f}, γ_SPX/FX = {betas['gamma_spx_fx']:+.2f}")
-        print(f"  * ANOVA Variance Shares:      FX = {v_dec['fx_var_pct']:.1f}%, Pure Equity = {v_dec['pure_equity_var_pct']:.1f}%, Idiosyncratic = {v_dec['idiosyncratic_var_pct']:.1f}% | R² = {v_dec['r_squared_pct']:.1f}%")
+        print(f"  * Rolling Factor Betas:       Beta_FX = {betas['beta_fx']:+.2f}, Beta_NDX_ortho = {betas['beta_equity_ortho']:+.2f}, Gamma_NDX/FX = {betas.get('gamma_equity_fx', betas.get('gamma_spx_fx', 0.0)):+.2f}")
+        print(f"  * ANOVA Variance Shares:      FX = {v_dec['fx_var_pct']:.1f}%, Pure Equity (NDX) = {v_dec['pure_equity_var_pct']:.1f}%, Idiosyncratic = {v_dec['idiosyncratic_var_pct']:.1f}% | R² = {v_dec['r_squared_pct']:.1f}%")
         h5 = decomp["horizons"].get("5m", {})
         if h5:
             print(f"  * 5-Min Nikkei Move:          {h5['ret_nikkei_pct']:+.2f}% ({h5['ret_nikkei_bps']:+.0f} bps)")

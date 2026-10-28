@@ -872,7 +872,8 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
         c2.metric("USD/JPY FX Beta & Weight", f"β={b_fx:+.2f} ({nik_dyn.get('fx_weight', 0.5)*100:.0f}%)", f"ρ(NK,FX): {nik_dyn.get('rho_nikkei_fx', 0):+.2f}")
         
         b_eq = betas.get("beta_equity_ortho", 0.0)
-        c3.metric("Pure US Equity Beta & Weight", f"β⊥={b_eq:+.2f} ({nik_dyn.get('equity_weight', 0.5)*100:.0f}%)", f"ρ(NK,SPX): {nik_dyn.get('rho_nikkei_spx', 0):+.2f}")
+        rho_eq_val = nik_dyn.get('rho_nikkei_ndx', nik_dyn.get('rho_nikkei_spx', 0.0))
+        c3.metric("Pure US Equity Beta (NDX⊥)", f"β⊥={b_eq:+.2f} ({nik_dyn.get('equity_weight', 0.5)*100:.0f}%)", f"ρ(NK,NDX): {rho_eq_val:+.2f}")
         
         r2_pct = v_dec.get("r_squared_pct", 0.0)
         c4.metric("Model R² & FX Transmission", f"R²={r2_pct:.1f}%", f"P(Trans Noul): {nik_dyn.get('prob_fx_transmission', 0.5)*100:.0f}%")
@@ -887,7 +888,7 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
                 st.markdown(
                     f"**Variance Attribution (ANOVA):** "
                     f"`USD/JPY FX: {fx_v:.1f}%` • "
-                    f"`Pure Equity Sentiment: {eq_v:.1f}%` • "
+                    f"`Pure Equity Sentiment (Nasdaq 100): {eq_v:.1f}%` • "
                     f"`Japan Domestic Alpha / Noise: {id_v:.1f}%` • "
                     f"`Total Model Explanatory Power R²: {r2_pct:.1f}%`"
                 )
@@ -912,7 +913,7 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
                             "Forward Horizon": f"{h_k} ({h_data['span_bars']} bars)",
                             "Total Nikkei Return": f"{h_data['ret_nikkei_pct']:+.2f}% ({h_data['ret_nikkei_bps']:+.0f} bps)",
                             "USD/JPY FX Impact": f"{h_data['fx_impact_pct']:+.2f}% ({h_data['fx_impact_bps']:+.0f} bps)",
-                            "Pure Equity Sentiment": f"{h_data['pure_equity_impact_pct']:+.2f}% ({h_data['pure_equity_impact_bps']:+.0f} bps)",
+                            "Pure Equity Sentiment (NDX⊥)": f"{h_data['pure_equity_impact_pct']:+.2f}% ({h_data['pure_equity_impact_bps']:+.0f} bps)",
                             "Japan Domestic Alpha": f"{h_data['idiosyncratic_impact_pct']:+.2f}% ({h_data['idiosyncratic_impact_bps']:+.0f} bps)",
                             "FX Share": f"{h_data['share_fx_pct']:.0f}%",
                             "Equity Share": f"{h_data['share_equity_pct']:.0f}%",
@@ -939,7 +940,7 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
                     fig_bars.add_trace(go.Bar(
                         x=chart_horizons,
                         y=chart_eq_bps,
-                        name="Pure Equity (SPX⊥)",
+                        name="Pure Equity (NDX⊥)",
                         marker_color="#818cf8"
                     ))
                     fig_bars.add_trace(go.Bar(
@@ -964,7 +965,7 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
 
                 with col_chart2:
                     fig_donut = go.Figure(data=[go.Pie(
-                        labels=["USD/JPY FX", "Pure US Equity", "Japan Idiosyncratic"],
+                        labels=["USD/JPY FX", "Pure US Equity (NDX)", "Japan Idiosyncratic"],
                         values=[max(0.1, fx_v), max(0.1, eq_v), max(0.1, id_v)],
                         hole=0.58,
                         marker_colors=["#38bdf8", "#818cf8", "#fbbf24"],
@@ -987,7 +988,7 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
                     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
                 st.caption(
-                    f"💡 **Econometric Identity:** Total Nikkei Move ≡ USD/JPY FX Contribution + Pure Equity Sentiment (Orthogonalized SPX) + Japan Domestic Alpha. "
+                    f"💡 **Econometric Identity:** Total Nikkei Move ≡ USD/JPY FX Contribution + Pure Equity Sentiment (Orthogonalized NDX⊥ / Nasdaq 100) + Japan Domestic Alpha. "
                     f"USD/JPY FX Quote: {q_dyn.get('usd_jpy_rate', 155.0):.3f} | Exporter Margin Translation Spread: {q_dyn.get('exporter_margin_spread_5m_bps', 0.0):+.1f} bps."
                 )
 

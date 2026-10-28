@@ -1433,7 +1433,7 @@
               <span style="font-size:10px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:6px; padding:2px 8px; font-weight:700; text-transform:uppercase;">Orthogonal 2-Factor OLS</span>
             </div>
             <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">
-              Gram-Schmidt Orthogonalization: Separating USD/JPY FX Impact, Pure US Equity Sentiment (SPX⊥), and Japan Domestic Alpha
+              Gram-Schmidt Orthogonalization: Separating USD/JPY FX Impact, Pure US Equity Sentiment (NDX⊥ / Nasdaq 100), and Japan Domestic Alpha
             </div>
           </div>
           <div id="nikkei-decomp-badges" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -1454,9 +1454,9 @@
             <div id="kpi-nikkei-corr-fx" style="font-size:10px; color:var(--text-muted); margin-top:2px;">Rolling ρ(NK, FX): --</div>
           </div>
           <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(129,140,248,0.2); border-radius:10px; padding:12px;">
-            <div style="font-size:10px; font-weight:700; color:#818cf8; text-transform:uppercase;">Pure US Equity Beta (β_SPX⊥)</div>
+            <div style="font-size:10px; font-weight:700; color:#818cf8; text-transform:uppercase;">Pure US Equity Beta (β_NDX⊥)</div>
             <div id="kpi-nikkei-beta-spx" style="font-size:15px; font-weight:800; color:#818cf8; margin-top:4px;">--</div>
-            <div id="kpi-nikkei-corr-spx" style="font-size:10px; color:var(--text-muted); margin-top:2px;">Rolling ρ(NK, SPX): --</div>
+            <div id="kpi-nikkei-corr-spx" style="font-size:10px; color:var(--text-muted); margin-top:2px;">Rolling ρ(NK, NDX): --</div>
           </div>
           <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(0,255,136,0.2); border-radius:10px; padding:12px;">
             <div style="font-size:10px; font-weight:700; color:#00ff88; text-transform:uppercase;">Model R² & FX Transmission</div>
@@ -1476,7 +1476,7 @@
               <div style="display:flex; align-items:center; gap:12px; font-size:10px; color:#cbd5e1; flex-wrap:wrap;">
                 <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#fff;"></span> Total Nikkei Move</span>
                 <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#38bdf8;"></span> USD/JPY FX</span>
-                <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#818cf8;"></span> Pure Equity (SPX⊥)</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#818cf8;"></span> Pure Equity (NDX⊥)</span>
                 <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#fbbf24;"></span> Japan Idiosyncratic</span>
               </div>
             </div>
@@ -1509,7 +1509,7 @@
                 <span id="lbl-var-fx" class="mono" style="color:#38bdf8; font-weight:800;">--</span>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px;">
-                <span style="color:#818cf8; font-weight:600;">Pure US Equity Sentiment:</span>
+                <span style="color:#818cf8; font-weight:600;">Pure US Equity Sentiment (NDX):</span>
                 <span id="lbl-var-eq" class="mono" style="color:#818cf8; font-weight:800;">--</span>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px;">
@@ -1538,7 +1538,7 @@
                 <th style="padding:6px 8px; text-align:left;">Horizon</th>
                 <th style="padding:6px 8px; text-align:left;">Total Nikkei Move</th>
                 <th style="padding:6px 8px; text-align:left;">USD/JPY FX Impact</th>
-                <th style="padding:6px 8px; text-align:left;">Pure Equity (SPX⊥)</th>
+                <th style="padding:6px 8px; text-align:left;">Pure Equity (NDX⊥)</th>
                 <th style="padding:6px 8px; text-align:left;">Japan Domestic Alpha</th>
                 <th style="padding:6px 8px; text-align:left;">Factor Variance Share</th>
               </tr>
@@ -1851,7 +1851,7 @@
               β_FX: <strong style="color: #38bdf8;">${betas.beta_fx !== undefined ? (betas.beta_fx >= 0 ? '+' : '') + betas.beta_fx.toFixed(2) : '--'}</strong>
             </span>
             <span style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
-              β_SPX⊥: <strong style="color: #818cf8;">${betas.beta_equity_ortho !== undefined ? (betas.beta_equity_ortho >= 0 ? '+' : '') + betas.beta_equity_ortho.toFixed(2) : '--'}</strong>
+              β_NDX⊥: <strong style="color: #818cf8;">${betas.beta_equity_ortho !== undefined ? (betas.beta_equity_ortho >= 0 ? '+' : '') + betas.beta_equity_ortho.toFixed(2) : '--'}</strong>
             </span>
             <span style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
               USD/JPY: <strong style="color: #f1f5f9;">${qDyn.usd_jpy_rate ? qDyn.usd_jpy_rate.toFixed(2) : '--'}</strong>
@@ -1892,8 +1892,9 @@
           kpiBetaSpx.innerText = `β⊥=${betas.beta_equity_ortho !== undefined ? (betas.beta_equity_ortho >= 0 ? '+' : '') + betas.beta_equity_ortho.toFixed(2) : '--'}`;
         }
         if (kpiCorrSpx) {
-          const rSpx = corrs.rho_nikkei_spx_30m !== undefined ? (corrs.rho_nikkei_spx_30m >= 0 ? '+' : '') + corrs.rho_nikkei_spx_30m.toFixed(2) : '--';
-          kpiCorrSpx.innerText = `Rolling ρ(NK, SPX): ${rSpx}`;
+          const rNdx = (corrs.rho_nikkei_ndx_30m !== undefined ? corrs.rho_nikkei_ndx_30m : corrs.rho_nikkei_spx_30m);
+          const rStr = rNdx !== undefined ? (rNdx >= 0 ? '+' : '') + rNdx.toFixed(2) : '--';
+          kpiCorrSpx.innerText = `Rolling ρ(NK, NDX): ${rStr}`;
         }
         if (kpiR2) {
           kpiR2.innerText = `R² = ${r2Pct.toFixed(1)}%`;
@@ -1957,7 +1958,7 @@
         const qCaption = document.getElementById('nikkei-decomp-quanto-caption');
         if (qCaption) {
           const spreadStr = qDyn.exporter_margin_spread_5m_bps !== undefined ? (qDyn.exporter_margin_spread_5m_bps >= 0 ? '+' : '') + qDyn.exporter_margin_spread_5m_bps.toFixed(1) : '0.0';
-          qCaption.innerHTML = `💡 <strong>Econometric Identity:</strong> Total Nikkei Return ≡ USD/JPY FX Contribution + Pure Equity Sentiment (Orthogonalized SPX⊥) + Japan Domestic Alpha. USD/JPY FX: <strong style="color:#fff;">${qDyn.usd_jpy_rate ? qDyn.usd_jpy_rate.toFixed(3) : '157.94'}</strong> | Exporter Margin Translation Spread (5m): <strong style="color:#38bdf8;">${spreadStr} bps</strong>.`;
+          qCaption.innerHTML = `💡 <strong>Econometric Identity:</strong> Total Nikkei Return ≡ USD/JPY FX Contribution + Pure Equity Sentiment (Orthogonalized NDX⊥ / Nasdaq 100) + Japan Domestic Alpha. USD/JPY FX: <strong style="color:#fff;">${qDyn.usd_jpy_rate ? qDyn.usd_jpy_rate.toFixed(3) : '157.94'}</strong> | Exporter Margin Translation Spread (5m): <strong style="color:#38bdf8;">${spreadStr} bps</strong>.`;
         }
       }
 
@@ -2021,7 +2022,7 @@
           const items = [
             { bps: d.ret_nikkei_bps || 0, color: '#f8fafc', label: 'Total Move' },
             { bps: d.fx_impact_bps || 0, color: '#38bdf8', label: 'USD/JPY FX' },
-            { bps: d.pure_equity_impact_bps || 0, color: '#818cf8', label: 'Pure Equity' },
+            { bps: d.pure_equity_impact_bps || 0, color: '#818cf8', label: 'Pure Equity (NDX)' },
             { bps: d.idiosyncratic_impact_bps || 0, color: '#fbbf24', label: 'Japan Alpha' }
           ];
 
@@ -2078,7 +2079,7 @@
               <title>USD/JPY FX: ${fxPct.toFixed(1)}%</title>
             </circle>
             <circle cx="60" cy="60" r="${r}" fill="none" stroke="#818cf8" stroke-width="14" stroke-dasharray="${eqLen} ${circ - eqLen}" stroke-dashoffset="${eqOffset}">
-              <title>Pure US Equity: ${eqPct.toFixed(1)}%</title>
+              <title>Pure US Equity (NDX): ${eqPct.toFixed(1)}%</title>
             </circle>
             <circle cx="60" cy="60" r="${r}" fill="none" stroke="#fbbf24" stroke-width="14" stroke-dasharray="${idLen} ${circ - idLen}" stroke-dashoffset="${idOffset}">
               <title>Japan Idiosyncratic: ${idPct.toFixed(1)}%</title>

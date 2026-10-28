@@ -202,22 +202,22 @@ To model macro spillover and inter-market feedback loops, the system provides tw
 
 The Nikkei 225 index (`JP225_USD`) exhibits a time-varying structural dependence on two distinct macro transmission channels:
 1. **USD/JPY Currency Channel (Yen Carry & Exporter Translation)**: A depreciating Yen (rising USD/JPY) boosts overseas repatriated profits for Japanese multinational exporters (Toyota, Sony, Keyence, Tokyo Electron) and incentivizes cross-border Yen carry trade leverage. Conversely, sudden Yen appreciation induces violent carry trade unwinds and equity liquidation.
-2. **Global Equity Sentiment Channel (Wall Street Beta)**: Overnight US and European equity sentiment (S&P 500 / Nasdaq momentum) dictates baseline global risk appetite across the Tokyo trading session.
+2. **Global Equity Sentiment Channel (Nasdaq 100 / Tech Beta)**: Nikkei 225 constituent weightings are heavily dominated by semiconductor capital equipment and technology conglomerates (Tokyo Electron, Advantest, SoftBank Group, Lasertec, Screen Holdings). Consequently, **Nasdaq 100 (`NAS100_USD` / `NDX`)** serves as the optimal benchmark for global pure equity risk appetite, delivering significantly higher explanatory power ($R^2$) than broad indices like the S&P 500.
 
-Because USD/JPY and US equity markets often co-move during global risk-on/risk-off regimes, a naive multi-variable model suffers from severe multicollinearity and conflates currency carry with pure equity sentiment. To resolve this, the system executes a **Rigorous 2-Factor Orthogonalized Decomposition & Multi-Horizon Attribution**:
+Because USD/JPY and US tech equity markets often co-move during global risk-on/risk-off regimes, a naive multi-variable model suffers from severe multicollinearity and conflates currency carry with pure equity sentiment. To resolve this, the system executes a **Rigorous 2-Factor Orthogonalized Decomposition & Multi-Horizon Attribution**:
 
 ---
 
 #### 1. Gram-Schmidt Orthogonalization (Pure Equity Sentiment Isolation)
-To isolate true global equity risk appetite independent of currency movements, S&P 500 1-minute returns $\mathbf{r}_{\text{SPX}}$ are projected onto the orthogonal complement of USD/JPY returns $\mathbf{r}_{\text{FX}}$:
+To isolate true global equity risk appetite independent of currency movements, Nasdaq 100 1-minute returns $\mathbf{r}_{\text{NDX}}$ are projected onto the orthogonal complement of USD/JPY returns $\mathbf{r}_{\text{FX}}$:
 
-$$\gamma_{\text{SPX, FX}} = \frac{\text{Cov}\left(\mathbf{r}_{\text{SPX}}, \mathbf{r}_{\text{FX}}\right)}{\text{Var}\left(\mathbf{r}_{\text{FX}}\right) + \epsilon}$$
+$$\gamma_{\text{NDX, FX}} = \frac{\text{Cov}\left(\mathbf{r}_{\text{NDX}}, \mathbf{r}_{\text{FX}}\right)}{\text{Var}\left(\mathbf{r}_{\text{FX}}\right) + \epsilon}$$
 
-$$\mathbf{r}_{\text{SPX}}^{\perp}(t) = \mathbf{r}_{\text{SPX}}(t) - \gamma_{\text{SPX, FX}} \cdot \mathbf{r}_{\text{FX}}(t)$$
+$$\mathbf{r}_{\text{NDX}}^{\perp}(t) = \mathbf{r}_{\text{NDX}}(t) - \gamma_{\text{NDX, FX}} \cdot \mathbf{r}_{\text{FX}}(t)$$
 
 By mathematical construction:
-$$\text{Corr}\left(\mathbf{r}_{\text{SPX}}^{\perp}, \mathbf{r}_{\text{FX}}\right) \equiv 0$$
-$\mathbf{r}_{\text{SPX}}^{\perp}$ represents **Pure Equity Sentiment**, purged of any foreign exchange carry transmission.
+$$\text{Corr}\left(\mathbf{r}_{\text{NDX}}^{\perp}, \mathbf{r}_{\text{FX}}\right) \equiv 0$$
+$\mathbf{r}_{\text{NDX}}^{\perp}$ represents **Pure Equity Sentiment**, purged of any foreign exchange carry transmission.
 
 ---
 
@@ -226,13 +226,13 @@ Over a rolling 45-minute window $W$, the model estimates instantaneous elasticit
 
 $$\beta_{\text{FX}}(t) = \frac{\text{Cov}\left(\mathbf{r}_{\text{NI225}}, \mathbf{r}_{\text{FX}}\right)}{\text{Var}\left(\mathbf{r}_{\text{FX}}\right) + \epsilon}$$
 
-$$\beta_{\text{Eq}}^{\perp}(t) = \frac{\text{Cov}\left(\mathbf{r}_{\text{NI225}}, \mathbf{r}_{\text{SPX}}^{\perp}\right)}{\text{Var}\left(\mathbf{r}_{\text{SPX}}^{\perp}\right) + \epsilon}$$
+$$\beta_{\text{Eq}}^{\perp}(t) = \frac{\text{Cov}\left(\mathbf{r}_{\text{NI225}}, \mathbf{r}_{\text{NDX}}^{\perp}\right)}{\text{Var}\left(\mathbf{r}_{\text{NDX}}^{\perp}\right) + \epsilon}$$
 
-$$\alpha_{\text{Idio}}(t) = \mathbb{E}[\mathbf{r}_{\text{NI225}}] - \beta_{\text{FX}} \mathbb{E}[\mathbf{r}_{\text{FX}}] - \beta_{\text{Eq}}^{\perp} \mathbb{E}[\mathbf{r}_{\text{SPX}}^{\perp}]$$
+$$\alpha_{\text{Idio}}(t) = \mathbb{E}[\mathbf{r}_{\text{NI225}}] - \beta_{\text{FX}} \mathbb{E}[\mathbf{r}_{\text{FX}}] - \beta_{\text{Eq}}^{\perp} \mathbb{E}[\mathbf{r}_{\text{NDX}}^{\perp}]$$
 
 Where:
 - $\beta_{\text{FX}}$ measures Nikkei price elasticity with respect to a 1% move in USD/JPY (typically $+0.6$ to $+1.4$ for exporter-heavy Nikkei).
-- $\beta_{\text{Eq}}^{\perp}$ measures Nikkei price elasticity with respect to pure, currency-neutral Wall Street equity sentiment.
+- $\beta_{\text{Eq}}^{\perp}$ measures Nikkei price elasticity with respect to pure, currency-neutral Nasdaq 100 tech equity sentiment ($\beta_{\text{NDX}}^{\perp}$).
 
 ---
 
@@ -241,7 +241,7 @@ For every forward horizon $\tau \in \{1m, 5m, 10m, 30m, 60m\}$, total realized N
 
 $$\Delta_{\text{FX}}(\tau) = \beta_{\text{FX}} \cdot r_{\text{FX}}(\tau)$$
 
-$$\Delta_{\text{PureEquity}}(\tau) = \beta_{\text{Eq}}^{\perp} \cdot \left[r_{\text{SPX}}(\tau) - \gamma_{\text{SPX, FX}} \cdot r_{\text{FX}}(\tau)\right]$$
+$$\Delta_{\text{PureEquity}}(\tau) = \beta_{\text{Eq}}^{\perp} \cdot \left[r_{\text{NDX}}(\tau) - \gamma_{\text{NDX, FX}} \cdot r_{\text{FX}}(\tau)\right]$$
 
 $$\Delta_{\text{Idio}}(\tau) = \Delta_{\text{NK}}(\tau) - \left[\Delta_{\text{FX}}(\tau) + \Delta_{\text{PureEquity}}(\tau)\right]$$
 
@@ -254,24 +254,24 @@ $$\text{Share}_{\text{FX}}(\tau) = \frac{|\Delta_{\text{FX}}(\tau)|}{|\Delta_{\t
 ---
 
 #### 4. ANOVA Variance Decomposition & Explanatory Power ($R^2$)
-Because the regressors $\mathbf{r}_{\text{FX}}$ and $\mathbf{r}_{\text{SPX}}^{\perp}$ are strictly orthogonal, total Nikkei return variance partitions cleanly:
+Because the regressors $\mathbf{r}_{\text{FX}}$ and $\mathbf{r}_{\text{NDX}}^{\perp}$ are strictly orthogonal, total Nikkei return variance partitions cleanly:
 
-$$\sigma^2_{\text{Total}} = \beta_{\text{FX}}^2 \sigma^2_{\text{FX}} + (\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{SPX}\perp} + \sigma^2_{\text{Idio}}$$
+$$\sigma^2_{\text{Total}} = \beta_{\text{FX}}^2 \sigma^2_{\text{FX}} + (\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{NDX}\perp} + \sigma^2_{\text{Idio}}$$
 
-$$\text{Share}_{\text{Var, FX}} = \frac{\beta_{\text{FX}}^2 \sigma^2_{\text{FX}}}{\sigma^2_{\text{Total}}} \times 100\%, \quad \text{Share}_{\text{Var, PureEquity}} = \frac{(\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{SPX}\perp}}{\sigma^2_{\text{Total}}} \times 100\%$$
+$$\text{Share}_{\text{Var, FX}} = \frac{\beta_{\text{FX}}^2 \sigma^2_{\text{FX}}}{\sigma^2_{\text{Total}}} \times 100\%, \quad \text{Share}_{\text{Var, PureEquity}} = \frac{(\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{NDX}\perp}}{\sigma^2_{\text{Total}}} \times 100\%$$
 
 $$\text{Share}_{\text{Var, Idio}} = 100\% - (\text{Share}_{\text{Var, FX}} + \text{Share}_{\text{Var, PureEquity}})$$
 
-$$R^2 = \frac{\beta_{\text{FX}}^2 \sigma^2_{\text{FX}} + (\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{SPX}\perp}}{\sigma^2_{\text{Total}}}$$
+$$R^2 = \frac{\beta_{\text{FX}}^2 \sigma^2_{\text{FX}} + (\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{NDX}\perp}}{\sigma^2_{\text{Total}}}$$
 
 ---
 
 #### 5. Five Primary Movement Driver Regimes (Choice Primitive):
 - **`FX_DOMINANT`** ($\text{Share}_{\text{FX}} \ge 55\%$): USD/JPY currency translation and Yen carry flows are the primary driver of the current move.
-- **`PURE_EQUITY_SENTIMENT`** ($\text{Share}_{\text{PureEquity}} \ge 55\%$): Global equity risk appetite (Wall Street beta) is the primary driver.
+- **`PURE_EQUITY_SENTIMENT`** ($\text{Share}_{\text{PureEquity}} \ge 55\%$): Global tech equity risk appetite (Nasdaq 100 beta) is the primary driver.
 - **`DOMESTIC_IDIOSYNCRATIC`** ($\text{Share}_{\text{Idio}} \ge 55\%$): Local Japanese alpha (BoJ policy, TSE corporate announcements, domestic earnings) is driving price action.
 - **`DUAL_AMPLIFYING`**: Both USD/JPY and Pure Equity Sentiment exert directional pushes in the same direction, expanding trend velocity.
-- **`CROSS_CANCELING`**: USD/JPY and Pure Equity Sentiment pull in opposing directions (e.g. Yen strengthening while US stocks rally), inducing localized chop and spread compression.
+- **`CROSS_CANCELING`**: USD/JPY and Pure Equity Sentiment pull in opposing directions (e.g. Yen strengthening while tech stocks rally), inducing localized chop and spread compression.
 
 ---
 

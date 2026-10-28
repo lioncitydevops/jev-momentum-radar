@@ -1178,10 +1178,11 @@ def get_radar(timeframe: str = "1m", model_variant: str = "macro_full", engine_m
     nikkei_decomp = results.get("Nikkei 225 (NI225)", {}).get("nikkei_fx_equity_dynamics", {}).get("decomposition") if "Nikkei 225 (NI225)" in results and results["Nikkei 225 (NI225)"].get("nikkei_fx_equity_dynamics") else None
 
     # Fallback guarantee: if nikkei_decomp is not yet populated, compute directly from raw_dfs
-    if not nikkei_decomp and "Nikkei 225 (NI225)" in raw_dfs and "USD/JPY (USDJPY)" in raw_dfs and "S&P 500 (SPX)" in raw_dfs:
+    eq_benchmark_df = raw_dfs.get("Nasdaq 100 (NDX)") if "Nasdaq 100 (NDX)" in raw_dfs else raw_dfs.get("S&P 500 (SPX)")
+    if not nikkei_decomp and "Nikkei 225 (NI225)" in raw_dfs and "USD/JPY (USDJPY)" in raw_dfs and eq_benchmark_df is not None:
         try:
             from macro_conditioned_momentum import decompose_nikkei_movements
-            nikkei_decomp = decompose_nikkei_movements(raw_dfs["Nikkei 225 (NI225)"], raw_dfs["USD/JPY (USDJPY)"], raw_dfs["S&P 500 (SPX)"], all_dfs=raw_dfs)
+            nikkei_decomp = decompose_nikkei_movements(raw_dfs["Nikkei 225 (NI225)"], raw_dfs["USD/JPY (USDJPY)"], ndx_df=eq_benchmark_df, all_dfs=raw_dfs)
         except Exception as _e_dec:
             print(f"Error computing fallback nikkei decomposition: {_e_dec}")
 

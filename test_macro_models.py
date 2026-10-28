@@ -149,15 +149,19 @@ def run_tests():
     # -------------------------------------------------------------
     print("\n[2B] Testing Econometric 2-Factor Decomposition & Multi-Horizon Attribution:")
     print("-" * 110)
-    decomp = decompose_nikkei_movements(ni_df, usdjpy_df=usdjpy_surging, spx_df=spx_surging, all_dfs=None)
+    # Test with Nasdaq 100 priority
+    decomp = decompose_nikkei_movements(ni_df, usdjpy_df=usdjpy_surging, ndx_df=ndx_df, spx_df=spx_surging, all_dfs=all_dfs)
     assert decomp["has_decomposition"] is True, "Decomposition flagged as inactive"
     assert "betas" in decomp, "Missing betas dictionary"
     assert "variance_decomposition" in decomp, "Missing variance_decomposition dictionary"
     assert "horizons" in decomp, "Missing horizons attribution dictionary"
+    assert decomp.get("equity_benchmark") == "Nasdaq 100 (NDX)", f"Expected Nasdaq 100 (NDX), got {decomp.get('equity_benchmark')}"
+    assert "beta_ndx_ortho" in decomp["betas"], "Missing beta_ndx_ortho in betas"
 
     betas = decomp["betas"]
     v_dec = decomp["variance_decomposition"]
-    print(f"  * Rolling Factor Betas:   β_FX={betas['beta_fx']:+.4f}, β_SPX_ortho={betas['beta_equity_ortho']:+.4f}, γ_SPX_on_FX={betas['gamma_spx_fx']:+.4f}")
+    print(f"  * Benchmark:              {decomp.get('equity_benchmark')}")
+    print(f"  * Rolling Factor Betas:   β_FX={betas['beta_fx']:+.4f}, β_NDX_ortho={betas['beta_equity_ortho']:+.4f}, γ_NDX_on_FX={betas['gamma_equity_fx']:+.4f}")
     print(f"  * ANOVA Variance Shares:  FX={v_dec['fx_var_pct']:.1f}%, Pure Equity={v_dec['pure_equity_var_pct']:.1f}%, Idiosyncratic={v_dec['idiosyncratic_var_pct']:.1f}% | R²={v_dec['r_squared_pct']:.1f}%")
     print(f"  * Primary Driver Choice:  {decomp['primary_driver']} ({decomp['primary_driver_desc']})")
 
@@ -179,27 +183,27 @@ def run_tests():
     assert "exporter_margin_spread_5m_bps" in q_dyn, "Missing exporter margin spread"
     print(f"  * Quanto / Exporter Spread: USD/JPY={q_dyn['usd_jpy_rate']}, Exporter Margin={q_dyn['exporter_margin_spread_5m_bps']:+.1f} bps")
 
-    # Synthetic Known Factor Loadings Recovery Test (Beta_FX = 0.85, Beta_SPX = 0.65)
+    # Synthetic Known Factor Loadings Recovery Test (Beta_FX = 0.85, Beta_NDX = 0.65)
     np.random.seed(123)
     dates_synth = pd.date_range(end=pd.Timestamp.now(), periods=50, freq="1min")
     fx_rets_known = np.random.normal(0.0005, 0.002, 50)
-    sp_rets_known = np.random.normal(0.0003, 0.003, 50)
+    ndx_rets_known = np.random.normal(0.0003, 0.003, 50)
     noise_known = np.random.normal(0.0, 0.0004, 50)
-    ni_rets_known = 0.85 * fx_rets_known + 0.65 * sp_rets_known + noise_known
+    ni_rets_known = 0.85 * fx_rets_known + 0.65 * ndx_rets_known + noise_known
 
     fx_series = 155.0 * np.cumprod(1.0 + fx_rets_known)
-    sp_series = 5800.0 * np.cumprod(1.0 + sp_rets_known)
+    ndx_series = 18500.0 * np.cumprod(1.0 + ndx_rets_known)
     ni_series = 38000.0 * np.cumprod(1.0 + ni_rets_known)
 
     df_fx = pd.DataFrame({"Close": fx_series, "High": fx_series+0.1, "Low": fx_series-0.1, "Open": fx_series, "Volume": 1000}, index=dates_synth)
-    df_sp = pd.DataFrame({"Close": sp_series, "High": sp_series+1.0, "Low": sp_series-1.0, "Open": sp_series, "Volume": 1000}, index=dates_synth)
+    df_ndx = pd.DataFrame({"Close": ndx_series, "High": ndx_series+1.0, "Low": ndx_series-1.0, "Open": ndx_series, "Volume": 1000}, index=dates_synth)
     df_ni = pd.DataFrame({"Close": ni_series, "High": ni_series+10.0, "Low": ni_series-10.0, "Open": ni_series, "Volume": 1000}, index=dates_synth)
 
-    decomp_synth = decompose_nikkei_movements(df_ni, usdjpy_df=df_fx, spx_df=df_sp)
-    print(f"  * Ground Truth Recovery:  β_FX={decomp_synth['betas']['beta_fx']:.2f} (Target 0.85), β_SPX_raw={decomp_synth['betas']['beta_equity_raw']:.2f} (Target 0.65), R²={decomp_synth['variance_decomposition']['r_squared_pct']:.1f}%")
+    decomp_synth = decompose_nikkei_movements(df_ni, usdjpy_df=df_fx, ndx_df=df_ndx)
+    print(f"  * Ground Truth Recovery:  β_FX={decomp_synth['betas']['beta_fx']:.2f} (Target 0.85), β_NDX_raw={decomp_synth['betas']['beta_equity_raw']:.2f} (Target 0.65), R²={decomp_synth['variance_decomposition']['r_squared_pct']:.1f}%")
     assert decomp_synth['variance_decomposition']['r_squared'] > 0.60, f"Expected R^2 > 0.60, got {decomp_synth['variance_decomposition']['r_squared']}"
     assert decomp_synth['betas']['beta_fx'] > 0.50, f"Expected Beta_FX > 0.50, got {decomp_synth['betas']['beta_fx']}"
-    assert decomp_synth['betas']['beta_equity_raw'] > 0.40, f"Expected Beta_SPX > 0.40, got {decomp_synth['betas']['beta_equity_raw']}"
+    assert decomp_synth['betas']['beta_equity_raw'] > 0.40, f"Expected Beta_NDX > 0.40, got {decomp_synth['betas']['beta_equity_raw']}"
 
     # -------------------------------------------------------------
     # 3. TypeSafe Jev System One Output Variables Specification
