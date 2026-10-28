@@ -773,7 +773,7 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
         print(f"[Warning] Live TypeSafe Jev API call failed ({e}). Falling back to calibrated prior model.")
         return simulate_calibrated_multi_horizon_prior(features, tv_rating_score, opt_configs=opt)
 
-def generate_multi_horizon_signals(df_1m: pd.DataFrame, asset_name: str = "S&P 500 (SPX)", tv_rating_score: float = 0.0, loop_feedback: str = None) -> dict:
+def generate_multi_horizon_signals(df_1m: pd.DataFrame, asset_name: str = "S&P 500 (SPX)", tv_rating_score: float = 0.0, loop_feedback: str = None, all_dfs: dict = None) -> dict:
     """
     Main entry point to compute 1-min forward, 10-min forward, 30-min forward, and 1-hour forward trend signals
     from 1-minute input candles with closed-loop empirical feedback injection.
@@ -786,13 +786,22 @@ def generate_multi_horizon_signals(df_1m: pd.DataFrame, asset_name: str = "S&P 5
     prompt = format_multi_horizon_state_prompt(asset_name, features, timestamp_str, loop_feedback=loop_feedback)
     jev_result = query_typesafe_jev_multi_horizon(prompt, features, tv_rating_score, opt_configs=opt_configs)
 
+    nikkei_dyn = None
+    if "Nikkei" in asset_name or "NI225" in asset_name:
+        try:
+            from macro_conditioned_momentum import compute_nikkei_dynamic_fx_equity_regime
+            nikkei_dyn = compute_nikkei_dynamic_fx_equity_regime(df_1m, all_dfs=all_dfs)
+        except Exception:
+            pass
+
     return {
         "asset_name": asset_name,
         "input_interval": "1m",
         "timestamp": timestamp_str,
         "features": features,
         "state_prompt": prompt,
-        "signals": jev_result
+        "signals": jev_result,
+        "nikkei_fx_equity_dynamics": nikkei_dyn
     }
 
 

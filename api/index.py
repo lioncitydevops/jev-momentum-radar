@@ -610,19 +610,33 @@ def generate_insights(results):
         nik_dyn = ni.get("nikkei_fx_equity_dynamics")
         if nik_dyn and nik_dyn.get("has_fx_driver"):
             regime = nik_dyn.get("regime", "EQUITY_SENTIMENT_DOMINANT")
+            decomp = nik_dyn.get("decomposition", {})
+            h5 = decomp.get("horizons", {}).get("5m", {})
+            v_dec = decomp.get("variance_decomposition", {})
+            betas = decomp.get("betas", {})
             w_fx = nik_dyn.get("fx_weight", 0.5) * 100.0
             w_eq = nik_dyn.get("equity_weight", 0.5) * 100.0
             rho_fx = nik_dyn.get("rho_nikkei_fx", 0.65)
             fx_sens = nik_dyn.get("fx_sensitivity_score", w_fx)
             p_trans = nik_dyn.get("prob_fx_transmission", 0.5) * 100.0
-            if regime == "FX_DOMINANT":
-                insights.append({"type": "bull" if "LONG" in ni["action"] else "bear", "text": f"💴 🇯🇵 Nikkei FX-Dominant Regime: USD/JPY currency dynamics ({w_fx:.0f}% FX Weight vs {w_eq:.0f}% Equity, Score={fx_sens:.1f}, Transmission P={p_trans:.0f}%, ρ={rho_fx:+.2f}) actively driving Nikkei forward momentum over Wall Street."})
-            elif regime == "DUAL_REINFORCING":
-                insights.append({"type": "bull" if "LONG" in ni["action"] else "bear", "text": f"🚀 🇯🇵 Nikkei Dual-Reinforced Momentum: USD/JPY currency impulse and Wall Street equity sentiment are mutually aligned, compounding Nikkei trend persistence."})
-            elif regime == "DECOUPLED_CHOP":
-                insights.append({"type": "warn", "text": f"⚠️ 🇯🇵 Nikkei Decoupled Cross-Currents: Conflicting signals between USD/JPY currency moves and US Equity Sentiment causing localized chop and mean-reverting drag."})
+
+            p_driver = decomp.get("primary_driver", regime)
+            r2_val = v_dec.get("r_squared_pct", 0.0)
+            b_fx = betas.get("beta_fx", 0.0)
+            b_eq = betas.get("beta_equity_ortho", 0.0)
+            fx_bps = h5.get("fx_impact_bps", 0.0)
+            eq_bps = h5.get("pure_equity_impact_bps", 0.0)
+            id_bps = h5.get("idiosyncratic_impact_bps", 0.0)
+            decomp_summary = f"(5m: {h5.get('ret_nikkei_bps', 0.0):+.0f} bps | FX: {fx_bps:+.0f} bps, Pure Eq: {eq_bps:+.0f} bps, Idio: {id_bps:+.0f} bps | R²: {r2_val:.1f}%, β_FX: {b_fx:+.2f}, β_SPX⊥: {b_eq:+.2f})"
+
+            if regime == "FX_DOMINANT" or p_driver == "FX_DOMINANT":
+                insights.append({"type": "bull" if "LONG" in ni["action"] else "bear", "text": f"💴 🇯🇵 Nikkei FX-Dominant Regime: USD/JPY currency dynamics ({w_fx:.0f}% FX Weight vs {w_eq:.0f}% Equity, Score={fx_sens:.1f}, Transmission P={p_trans:.0f}%, ρ={rho_fx:+.2f}) actively driving Nikkei forward momentum over Wall Street. {decomp_summary}"})
+            elif regime == "DUAL_REINFORCING" or p_driver == "DUAL_AMPLIFYING":
+                insights.append({"type": "bull" if "LONG" in ni["action"] else "bear", "text": f"🚀 🇯🇵 Nikkei Dual-Reinforced Momentum: USD/JPY currency impulse and Wall Street equity sentiment are mutually aligned, compounding Nikkei trend persistence. {decomp_summary}"})
+            elif regime == "DECOUPLED_CHOP" or p_driver == "CROSS_CANCELING":
+                insights.append({"type": "warn", "text": f"⚠️ 🇯🇵 Nikkei Decoupled Cross-Currents: Conflicting signals between USD/JPY currency moves and US Equity Sentiment causing localized chop and mean-reverting drag. {decomp_summary}"})
             else:
-                insights.append({"type": "neutral", "text": f"🌏 🇯🇵 Nikkei Equity-Dominant Regime: Global Wall Street risk appetite ({w_eq:.0f}% weight) leading over FX carry dynamics."})
+                insights.append({"type": "neutral", "text": f"🌏 🇯🇵 Nikkei Equity-Dominant Regime: Global Wall Street risk appetite ({w_eq:.0f}% weight) leading over FX carry dynamics. {decomp_summary}"})
 
     if "10Y Treasury (TNX)" in results:
         tnx = results["10Y Treasury (TNX)"]
@@ -1161,6 +1175,7 @@ def get_radar(timeframe: str = "1m", model_variant: str = "standalone", engine_m
                 results[name] = sig
 
     insights = generate_insights(results)
+    nikkei_decomp = results.get("Nikkei 225 (NI225)", {}).get("nikkei_fx_equity_dynamics", {}).get("decomposition") if "Nikkei 225 (NI225)" in results and results["Nikkei 225 (NI225)"].get("nikkei_fx_equity_dynamics") else None
 
     return {
         "status": "success",
@@ -1171,6 +1186,7 @@ def get_radar(timeframe: str = "1m", model_variant: str = "standalone", engine_m
         "results": results,
         "insights": insights,
         "confusion_matrix": confusion_matrix,
+        "nikkei_decomposition": nikkei_decomp,
         "jev_primitives_guide": JEV_PRIMITIVES_GUIDE
     }
 

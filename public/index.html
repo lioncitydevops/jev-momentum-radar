@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Global Multi-CFD Momentum Radar | 100% TradingView CFD</title>
-  <meta name="description" content="24-hour real-time S&P 500, Nasdaq 100, Russell 2000, Nikkei 225, and 10Y Treasury CFD momentum signals powered by TradingView & TypeSafe Jev.">
+  <meta name="description"
+    content="24-hour real-time S&P 500, Nasdaq 100, Russell 2000, Nikkei 225, and 10Y Treasury CFD momentum signals powered by TradingView & TypeSafe Jev.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg-dark: #0a0e17;
@@ -125,8 +129,17 @@
     }
 
     @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.4); opacity: 0.6; }
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.4);
+        opacity: 0.6;
+      }
     }
 
     /* Controls Bar */
@@ -230,7 +243,9 @@
     }
 
     @keyframes rotate {
-      100% { transform: rotate(360deg); }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     /* Cards Grid */
@@ -750,11 +765,13 @@
       margin: 28px 0;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
+
     .ais-grid {
       display: grid;
       grid-template-columns: 1.25fr 0.75fr;
       gap: 16px;
     }
+
     @media (max-width: 992px) {
       .ais-grid {
         grid-template-columns: 1fr;
@@ -762,6 +779,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <div class="container">
@@ -769,10 +787,12 @@
     <header>
       <div>
         <div class="brand-title">🌐 Global Multi-CFD Momentum Radar</div>
-        <div class="brand-subtitle">OANDA CFD Institutional Live Feeds (SPX, NDX, RUT, NI225, USD/JPY, TNX, Oil) • TypeSafe Jev System One</div>
+        <div class="brand-subtitle">OANDA CFD Institutional Live Feeds (SPX, NDX, RUT, NI225, USD/JPY, TNX, Oil) •
+          TypeSafe Jev System One</div>
       </div>
       <div class="header-badges">
-        <div class="tv-live-badge" style="background: rgba(0, 255, 136, 0.12); border-color: rgba(0, 255, 136, 0.35); color: #00ff88;">
+        <div class="tv-live-badge"
+          style="background: rgba(0, 255, 136, 0.12); border-color: rgba(0, 255, 136, 0.35); color: #00ff88;">
           <span>🟢</span> OANDA ZERO-LAG CFD FEED
         </div>
         <div class="system-status">
@@ -794,7 +814,8 @@
 
       <div class="model-selector" style="display:flex; align-items:center; gap:8px;">
         <span class="tf-label" style="font-size:12px; font-weight:600; color:var(--text-muted);">Macro Engine:</span>
-        <select id="model-variant-select" onchange="switchModelVariant(this.value)" style="background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600;">
+        <select id="model-variant-select" onchange="switchModelVariant(this.value)"
+          style="background: var(--bg-dark); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600;">
           <option value="macro_full">Model A: Full Macro (Yield + Brent + WTI)</option>
           <option value="rate_only">Model B: Rate-Only (Yield ONLY, excl Oil)</option>
           <option value="standalone">Standalone Microstructure (Single Asset)</option>
@@ -813,17 +834,20 @@
     </div>
 
     <!-- Quick Interpretation Guide -->
-    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 16px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-muted);">
+    <div
+      style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px 16px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--text-muted);">
       <div>
         <span style="font-weight: 700; color: #fff;">💡 Reading Signals:</span>
         <span style="color: #00ff88; font-weight: 700; margin-left: 8px;">BUY/LONG</span> (P &gt; 53%) &bull;
         <span style="color: #ffd166; font-weight: 700;">HOLD CASH</span> (47% &le; P &le; 53% chop filter) &bull;
         <span style="color: #ff4d6d; font-weight: 700;">SELL/SHORT</span> (P &lt; 47%) &bull;
-        <span style="color: #38bdf8; font-weight: 700;">🎯 Close Target (TP)</span>: Indicative price to close long/short &bull;
+        <span style="color: #38bdf8; font-weight: 700;">🎯 Close Target (TP)</span>: Indicative price to close
+        long/short &bull;
         <span style="color: #f87171; font-weight: 700;">🛡️ Stop-Loss</span>: Invalidation exit level
       </div>
       <div>
-        <span style="font-weight: 700; color: #fff;">Horizons:</span> 1m (1 bar) &bull; 10m (10 bars) &bull; 30m (30 bars) &bull; 1h (60 bars forward)
+        <span style="font-weight: 700; color: #fff;">Horizons:</span> 1m (1 bar) &bull; 10m (10 bars) &bull; 30m (30
+        bars) &bull; 1h (60 bars forward)
       </div>
     </div>
 
@@ -851,7 +875,9 @@
           </tr>
         </thead>
         <tbody id="multi-horizon-tbody">
-          <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Fetching multi-horizon signals...</td></tr>
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-muted);">Fetching multi-horizon signals...</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -864,12 +890,19 @@
             <span>🚢</span> Real-Time AIS Maritime Telemetry & Brent Price Impact Visualizer
           </div>
           <div class="cm-subtitle">
-            Bridged from Oil_Tanker_Traffic_AntiGravity • Quantifying the Physical Disruption Premium on Brent Forward Pricing
+            Bridged from Oil_Tanker_Traffic_AntiGravity • Quantifying the Physical Disruption Premium on Brent Forward
+            Pricing
           </div>
           <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
-            <a href="#ais-trajectory-chart" style="text-decoration:none; background:rgba(0,255,136,0.12); border:1px solid rgba(0,255,136,0.3); color:#00ff88; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700;">📈 Price Trajectory Cone</a>
-            <a href="#brent-curve-section" style="text-decoration:none; background:rgba(255,159,28,0.15); border:1px solid rgba(255,159,28,0.4); color:#ff9f1c; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700;">🕸️ Entire Futures Curve (M0-M36)</a>
-            <a href="#ais-confusion-matrix-card" style="text-decoration:none; background:rgba(56,189,248,0.18); border:1px solid rgba(56,189,248,0.45); color:#38bdf8; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; box-shadow:0 0 10px rgba(56,189,248,0.2);">🎯 AIS Confusion Matrix</a>
+            <a href="#ais-trajectory-chart"
+              style="text-decoration:none; background:rgba(0,255,136,0.12); border:1px solid rgba(0,255,136,0.3); color:#00ff88; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700;">📈
+              Price Trajectory Cone</a>
+            <a href="#brent-curve-section"
+              style="text-decoration:none; background:rgba(255,159,28,0.15); border:1px solid rgba(255,159,28,0.4); color:#ff9f1c; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700;">🕸️
+              Entire Futures Curve (M0-M36)</a>
+            <a href="#ais-confusion-matrix-card"
+              style="text-decoration:none; background:rgba(56,189,248,0.18); border:1px solid rgba(56,189,248,0.45); color:#38bdf8; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; box-shadow:0 0 10px rgba(56,189,248,0.2);">🎯
+              AIS Confusion Matrix</a>
           </div>
         </div>
         <div class="cm-kpi-bar" id="ais-kpi-bar">
@@ -891,32 +924,44 @@
           </div>
           <div class="cm-kpi-chip">
             <span class="chip-label">AIS Supply Wedge:</span>
-            <span class="chip-val" id="ais-kpi-wedge" style="color:var(--green-bull); font-weight:900;">+$1.35/bbl</span>
+            <span class="chip-val" id="ais-kpi-wedge"
+              style="color:var(--green-bull); font-weight:900;">+$1.35/bbl</span>
           </div>
         </div>
       </div>
 
       <!-- 📖 Interpretation & Analytics Guide -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 10px; padding: 14px 18px; margin-top: 14px; font-size: 12px; line-height: 1.6;">
-        <div style="font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+      <div
+        style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 10px; padding: 14px 18px; margin-top: 14px; font-size: 12px; line-height: 1.6;">
+        <div
+          style="font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
           <span>📖</span> How to Interpret the Numbers & Visual Analytics:
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; color: #cbd5e1;">
+        <div
+          style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; color: #cbd5e1;">
           <div>
             <strong style="color: #fff;">1. MPSI Index & Regime:</strong><br>
-            The <em>Maritime Physical Supply Index</em> is a composite Z-score (<span style="color:#38bdf8;">+2.61σ</span>). Scores above <span style="color:#38bdf8;">+1.5σ</span> denote acute maritime bottlenecks (dark fleet dominance in Hormuz + Red Sea blockades), pinning prompt prices higher.
+            The <em>Maritime Physical Supply Index</em> is a composite Z-score (<span
+              style="color:#38bdf8;">+2.61σ</span>). Scores above <span style="color:#38bdf8;">+1.5σ</span> denote acute
+            maritime bottlenecks (dark fleet dominance in Hormuz + Red Sea blockades), pinning prompt prices higher.
           </div>
           <div>
             <strong style="color: #fff;">2. Trajectory & Supply Wedge:</strong><br>
-            The dotted blue line is the <em>pure technical baseline</em> (microstructure only). The solid green line incorporates <em>AIS shipping flow</em>. The green shaded area is the <strong>Physical Supply Wedge</strong> (<span style="color:#00ff88;">+$1.35/bbl</span>), showing the exact premium added by physical shipping delays.
+            The dotted blue line is the <em>pure technical baseline</em> (microstructure only). The solid green line
+            incorporates <em>AIS shipping flow</em>. The green shaded area is the <strong>Physical Supply Wedge</strong>
+            (<span style="color:#00ff88;">+$1.35/bbl</span>), showing the exact premium added by physical shipping
+            delays.
           </div>
           <div>
             <strong style="color: #fff;">3. Factor Waterfall Breakdown:</strong><br>
-            Shows the exact dollar contribution of each physical factor to the 1-hour target price. Hormuz dark transits, Cape rerouting delays (+12 days), and high crack spreads (<span style="color:#fbbf24;">$28.51/bbl</span>) each add tangible $/bbl upside.
+            Shows the exact dollar contribution of each physical factor to the 1-hour target price. Hormuz dark
+            transits, Cape rerouting delays (+12 days), and high crack spreads (<span
+              style="color:#fbbf24;">$28.51/bbl</span>) each add tangible $/bbl upside.
           </div>
           <div>
             <strong style="color: #fff;">4. What-If Scenario Sliders:</strong><br>
-            Drag the sliders to stress-test the model. Notice how lowering the Hormuz dark fleet rate or reopening the Suez canal reduces the implied price delta (<span style="color:#ff4d6d;">ΔP</span>) in real time.
+            Drag the sliders to stress-test the model. Notice how lowering the Hormuz dark fleet rate or reopening the
+            Suez canal reduces the implied price delta (<span style="color:#ff4d6d;">ΔP</span>) in real time.
           </div>
         </div>
       </div>
@@ -924,26 +969,38 @@
       <!-- 2-Column Analytics Grid: Trajectory Cone & Attribution Waterfall -->
       <div class="ais-grid" style="margin-top:16px;">
         <!-- Left: Interactive Trajectory SVG -->
-        <div class="ais-card" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+        <div class="ais-card"
+          style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <span style="font-size:13px; font-weight:800; color:#fff;">📈 60-Minute Forward Price Trajectory & AIS Supply Wedge</span>
+            <span style="font-size:13px; font-weight:800; color:#fff;">📈 60-Minute Forward Price Trajectory & AIS
+              Supply Wedge</span>
             <span style="font-size:11px; color:#38bdf8; font-weight:600;">Technical vs. AIS-Conditioned</span>
           </div>
           <div id="ais-trajectory-chart" style="width:100%; height:200px; position:relative;">
             <!-- Rendered by JS SVG -->
           </div>
-          <div style="display:flex; justify-content:space-around; font-size:11px; color:var(--text-muted); margin-top:8px; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px;">
-            <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:2px; background:#60a5fa; border-top:1px dashed #60a5fa;"></span> Pure Technical Baseline</div>
-            <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:3px; background:#00ff88;"></span> Maritime AIS-Conditioned</div>
-            <div style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:8px; background:rgba(0,255,136,0.2); border:1px solid rgba(0,255,136,0.4);"></span> Physical Supply Wedge</div>
+          <div
+            style="display:flex; justify-content:space-around; font-size:11px; color:var(--text-muted); margin-top:8px; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px;">
+            <div style="display:flex; align-items:center; gap:6px;"><span
+                style="display:inline-block; width:12px; height:2px; background:#60a5fa; border-top:1px dashed #60a5fa;"></span>
+              Pure Technical Baseline</div>
+            <div style="display:flex; align-items:center; gap:6px;"><span
+                style="display:inline-block; width:12px; height:3px; background:#00ff88;"></span> Maritime
+              AIS-Conditioned</div>
+            <div style="display:flex; align-items:center; gap:6px;"><span
+                style="display:inline-block; width:12px; height:8px; background:rgba(0,255,136,0.2); border:1px solid rgba(0,255,136,0.4);"></span>
+              Physical Supply Wedge</div>
           </div>
         </div>
 
         <!-- Right: Factor Attribution Waterfall -->
-        <div class="ais-card" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+        <div class="ais-card"
+          style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <span style="font-size:13px; font-weight:800; color:#fff;">🌊 Factor $/bbl Price Attribution (1h Horizon)</span>
-            <span style="font-size:11px; color:var(--green-bull); font-weight:700;" id="ais-total-lift-badge">+1.84/bbl Lift</span>
+            <span style="font-size:13px; font-weight:800; color:#fff;">🌊 Factor $/bbl Price Attribution (1h
+              Horizon)</span>
+            <span style="font-size:11px; color:var(--green-bull); font-weight:700;" id="ais-total-lift-badge">+1.84/bbl
+              Lift</span>
           </div>
           <div id="ais-attribution-bars" style="display:flex; flex-direction:column; gap:10px;">
             <!-- Rendered by JS -->
@@ -952,48 +1009,63 @@
       </div>
 
       <!-- Bottom Interactive What-If Scenario Simulators -->
-      <div style="margin-top:16px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px 18px;">
-        <div style="font-size:12px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">
+      <div
+        style="margin-top:16px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px 18px;">
+        <div
+          style="font-size:12px; font-weight:800; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">
           🧭 Real-Time Chokepoint Elasticity & Scenario Simulator (What-If Analysis)
         </div>
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:20px;">
           <div>
             <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
               <span>Hormuz Clandestine Rate: <strong id="sim-hormuz-val" style="color:#ff4d6d;">93.8%</strong></span>
-              <span class="mono" id="sim-hormuz-delta" style="color:var(--green-bull); font-weight:700;">+$0.68/bbl</span>
+              <span class="mono" id="sim-hormuz-delta"
+                style="color:var(--green-bull); font-weight:700;">+$0.68/bbl</span>
             </div>
-            <input type="range" min="10" max="100" value="94" id="sim-hormuz-range" oninput="updateScenarioSim()" style="width:100%; accent-color:#ff4d6d; cursor:pointer;">
-            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>10% (Open)</span><span>50%</span><span>100% (Crisis)</span></div>
+            <input type="range" min="10" max="100" value="94" id="sim-hormuz-range" oninput="updateScenarioSim()"
+              style="width:100%; accent-color:#ff4d6d; cursor:pointer;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>10%
+                (Open)</span><span>50%</span><span>100% (Crisis)</span></div>
           </div>
           <div>
             <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
               <span>Cape Diversion Delay: <strong id="sim-cape-val" style="color:#38bdf8;">12 Days</strong></span>
               <span class="mono" id="sim-cape-delta" style="color:var(--green-bull); font-weight:700;">+$0.32/bbl</span>
             </div>
-            <input type="range" min="0" max="24" value="12" id="sim-cape-range" oninput="updateScenarioSim()" style="width:100%; accent-color:#38bdf8; cursor:pointer;">
-            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>0d (Suez Clear)</span><span>12d (Current)</span><span>24d (Severe)</span></div>
+            <input type="range" min="0" max="24" value="12" id="sim-cape-range" oninput="updateScenarioSim()"
+              style="width:100%; accent-color:#38bdf8; cursor:pointer;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>0d
+                (Suez Clear)</span><span>12d (Current)</span><span>24d (Severe)</span></div>
           </div>
           <div>
             <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
               <span>SG Gasoil Crack Spread: <strong id="sim-crack-val" style="color:#fbbf24;">$28.5/bbl</strong></span>
-              <span class="mono" id="sim-crack-delta" style="color:var(--green-bull); font-weight:700;">+$0.50/bbl</span>
+              <span class="mono" id="sim-crack-delta"
+                style="color:var(--green-bull); font-weight:700;">+$0.50/bbl</span>
             </div>
-            <input type="range" min="15" max="40" value="28" id="sim-crack-range" oninput="updateScenarioSim()" style="width:100%; accent-color:#fbbf24; cursor:pointer;">
-            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>$15 (Soft)</span><span>$28.5 (Current)</span><span>$40 (Spike)</span></div>
+            <input type="range" min="15" max="40" value="28" id="sim-crack-range" oninput="updateScenarioSim()"
+              style="width:100%; accent-color:#fbbf24; cursor:pointer;">
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted);"><span>$15
+                (Soft)</span><span>$28.5 (Current)</span><span>$40 (Spike)</span></div>
           </div>
         </div>
       </div>
 
       <!-- 🕸️ Entire ICE Brent Futures Curve Term Structure Explorer (M0 to M+36) -->
-      <div id="brent-curve-section" style="margin-top:16px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,159,28,0.3); border-radius:12px; padding:16px; box-shadow:0 0 16px rgba(255,159,28,0.08);">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+      <div id="brent-curve-section"
+        style="margin-top:16px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,159,28,0.3); border-radius:12px; padding:16px; box-shadow:0 0 16px rgba(255,159,28,0.08);">
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <div>
             <div style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
               <span>🕸️</span> Entire ICE Brent Futures Curve & Term Structure (M0 through M+36)
-              <span style="font-size:10px; background:rgba(255,159,28,0.15); color:#ff9f1c; border:1px solid rgba(255,159,28,0.35); border-radius:6px; padding:2px 8px; font-weight:700; text-transform:uppercase;">16 Forward Delivery Months</span>
+              <span
+                style="font-size:10px; background:rgba(255,159,28,0.15); color:#ff9f1c; border:1px solid rgba(255,159,28,0.35); border-radius:6px; padding:2px 8px; font-weight:700; text-transform:uppercase;">16
+                Forward Delivery Months</span>
             </div>
             <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
-              Full 36-Month Calendar Forward Strip, Annualized Roll Yield, and Floating Storage Arbitrage Carry Economics
+              Full 36-Month Calendar Forward Strip, Annualized Roll Yield, and Floating Storage Arbitrage Carry
+              Economics
             </div>
           </div>
           <div class="cm-kpi-bar" style="margin:0;">
@@ -1020,417 +1092,474 @@
             <div class="cm-kpi-chip">
               <span class="chip-label">Storage Carry Arb:</span>
               <span class="chip-val" id="curve-kpi-arb" style="color:#ff4d6d; font-weight:800;">-$21.80/bbl</span>
-          </div>
-        </div>
-
-        <!-- Jev AI & Loop Engineering Term Structure Conditioning Status -->
-        <div style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:8px 12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
-            <span style="color:#00ff88; font-weight:800;">🤖 Jev AI Curve Conditioning:</span>
-            <span id="curve-jev-badge" style="color:#fff; font-family:'JetBrains Mono',monospace;">ONLINE (Active 1h Tilt: +$0.55/bbl | P(Up)=55.0%)</span>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
-            <span style="color:#38bdf8; font-weight:800;">⚡ Closed-Loop Walk-Forward Engineering:</span>
-            <span id="curve-loop-badge" style="color:#cbd5e1; font-family:'JetBrains Mono',monospace;">ACTIVE (Autotuned Deadband δ*=0.030 | Bias +0.000)</span>
-          </div>
-        </div>
-
-        <!-- Interactive SVG Futures Curve Chart -->
-        <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; margin-bottom:14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px;">
-            <span style="font-weight:700; color:#fff;">📈 Futures Term Structure Curve (Inverted / Backwardation Profile)</span>
-            <div style="display:flex; align-items:center; gap:12px; font-size:10px; color:var(--text-muted); flex-wrap:wrap;">
-              <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:2px; background:#ff9f1c;"></span> Forward Curve</span>
-              <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:12px; height:1px; background:#fff; border-top:1px dashed #fff;"></span> Prompt Spot</span>
-              <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:8px; height:8px; background:rgba(255,159,28,0.2); border:1px solid #ff9f1c;"></span> Scarcity Wedge</span>
-              <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:6px; height:6px; background:#00ff88; border-radius:50%;"></span> Jev 1h Target</span>
-            </div>
-          </div>
-          <div id="brent-futures-curve-chart" style="width:100%; height:220px;">
-            <!-- Rendered by JS SVG -->
-          </div>
-        </div>
-
-        <!-- 2-Column Analytics: Left Table, Right Floating Storage -->
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:14px;">
-          <!-- Contract Strip Table -->
-          <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; overflow-x:auto;">
-            <div style="font-size:12px; font-weight:800; color:#ff9f1c; margin-bottom:8px; text-transform:uppercase; display:flex; justify-content:space-between;">
-              <span>📋 16 Delivery Months Strip</span>
-              <span style="font-size:10px; color:var(--text-muted);">ICE Brent Contract Units</span>
-            </div>
-            <div style="max-height:220px; overflow-y:auto;">
-              <table style="width:100%; border-collapse:collapse; font-size:11px;">
-                <thead>
-                  <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:var(--text-muted); font-size:10px;">
-                    <th style="padding:4px 8px; text-align:left;">Code</th>
-                    <th style="padding:4px 8px; text-align:left;">Tenor Month</th>
-                    <th style="padding:4px 8px; text-align:right;">Price</th>
-                    <th style="padding:4px 8px; text-align:right;">Spread</th>
-                    <th style="padding:4px 8px; text-align:right;">Roll Yield</th>
-                  </tr>
-                </thead>
-                <tbody id="brent-curve-strip-tbody">
-                  <!-- Rendered by JS -->
-                </tbody>
-              </table>
             </div>
           </div>
 
-          <!-- Floating Storage Carrying Arbitrage -->
-          <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px;">
-            <div style="font-size:12px; font-weight:800; color:#38bdf8; margin-bottom:8px; text-transform:uppercase;">
-              🚢 Floating Storage Carry Arbitrage Economics
+          <!-- Jev AI & Loop Engineering Term Structure Conditioning Status -->
+          <div
+            style="background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:8px 12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+              <span style="color:#00ff88; font-weight:800;">🤖 Jev AI Curve Conditioning:</span>
+              <span id="curve-jev-badge" style="color:#fff; font-family:'JetBrains Mono',monospace;">ONLINE (Active 1h
+                Tilt: +$0.55/bbl | P(Up)=55.0%)</span>
             </div>
-            <div style="font-size:11px; line-height:1.6; color:#cbd5e1;">
-              <div>• <strong>VLCC Charter Rate:</strong> $85,000/day (~$1.29/bbl/mo on a 2M bbl supertanker).</div>
-              <div>• <strong>Total Monthly Carry Cost:</strong> ~$1.90/bbl/mo (Financing 5.25% + Charter + Boil-off).</div>
-              <div>• <strong>6-Month Cumulative Carry:</strong> ~$11.40/bbl required forward premium to break even.</div>
-              <div style="margin-top:6px; padding:8px; background:rgba(255,77,109,0.1); border:1px solid rgba(255,77,109,0.3); border-radius:6px; color:#ff4d6d; font-weight:700;">
-                ⚡ 6M Net Storage Arbitrage P&L: -$21.80/bbl
-              </div>
-              <div style="margin-top:8px; font-size:10.5px; color:#94a3b8;" id="curve-storage-text">
-                Steep backwardation (+$10.40/bbl prompt premium) severely penalizes offshore hoarding, forcing immediate discharge of offshore tankers into prompt refining channels.
+            <div style="display:flex; align-items:center; gap:8px; font-size:11px;">
+              <span style="color:#38bdf8; font-weight:800;">⚡ Closed-Loop Walk-Forward Engineering:</span>
+              <span id="curve-loop-badge" style="color:#cbd5e1; font-family:'JetBrains Mono',monospace;">ACTIVE
+                (Autotuned Deadband δ*=0.030 | Bias +0.000)</span>
+            </div>
+          </div>
+
+          <!-- Interactive SVG Futures Curve Chart -->
+          <div
+            style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; margin-bottom:14px;">
+            <div
+              style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px;">
+              <span style="font-weight:700; color:#fff;">📈 Futures Term Structure Curve (Inverted / Backwardation
+                Profile)</span>
+              <div
+                style="display:flex; align-items:center; gap:12px; font-size:10px; color:var(--text-muted); flex-wrap:wrap;">
+                <span style="display:flex; align-items:center; gap:4px;"><span
+                    style="display:inline-block; width:12px; height:2px; background:#ff9f1c;"></span> Forward
+                  Curve</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span
+                    style="display:inline-block; width:12px; height:1px; background:#fff; border-top:1px dashed #fff;"></span>
+                  Prompt Spot</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span
+                    style="display:inline-block; width:8px; height:8px; background:rgba(255,159,28,0.2); border:1px solid #ff9f1c;"></span>
+                  Scarcity Wedge</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span
+                    style="display:inline-block; width:6px; height:6px; background:#00ff88; border-radius:50%;"></span>
+                  Jev 1h Target</span>
               </div>
             </div>
+            <div id="brent-futures-curve-chart" style="width:100%; height:220px;">
+              <!-- Rendered by JS SVG -->
+            </div>
+          </div>
+
+          <!-- 2-Column Analytics: Left Table, Right Floating Storage -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:14px;">
+            <!-- Contract Strip Table -->
+            <div
+              style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; overflow-x:auto;">
+              <div
+                style="font-size:12px; font-weight:800; color:#ff9f1c; margin-bottom:8px; text-transform:uppercase; display:flex; justify-content:space-between;">
+                <span>📋 16 Delivery Months Strip</span>
+                <span style="font-size:10px; color:var(--text-muted);">ICE Brent Contract Units</span>
+              </div>
+              <div style="max-height:220px; overflow-y:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                  <thead>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:var(--text-muted); font-size:10px;">
+                      <th style="padding:4px 8px; text-align:left;">Code</th>
+                      <th style="padding:4px 8px; text-align:left;">Tenor Month</th>
+                      <th style="padding:4px 8px; text-align:right;">Price</th>
+                      <th style="padding:4px 8px; text-align:right;">Spread</th>
+                      <th style="padding:4px 8px; text-align:right;">Roll Yield</th>
+                    </tr>
+                  </thead>
+                  <tbody id="brent-curve-strip-tbody">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Floating Storage Carrying Arbitrage -->
+            <div
+              style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px;">
+              <div style="font-size:12px; font-weight:800; color:#38bdf8; margin-bottom:8px; text-transform:uppercase;">
+                🚢 Floating Storage Carry Arbitrage Economics
+              </div>
+              <div style="font-size:11px; line-height:1.6; color:#cbd5e1;">
+                <div>• <strong>VLCC Charter Rate:</strong> $85,000/day (~$1.29/bbl/mo on a 2M bbl supertanker).</div>
+                <div>• <strong>Total Monthly Carry Cost:</strong> ~$1.90/bbl/mo (Financing 5.25% + Charter + Boil-off).
+                </div>
+                <div>• <strong>6-Month Cumulative Carry:</strong> ~$11.40/bbl required forward premium to break even.
+                </div>
+                <div
+                  style="margin-top:6px; padding:8px; background:rgba(255,77,109,0.1); border:1px solid rgba(255,77,109,0.3); border-radius:6px; color:#ff4d6d; font-weight:700;">
+                  ⚡ 6M Net Storage Arbitrage P&L: -$21.80/bbl
+                </div>
+                <div style="margin-top:8px; font-size:10.5px; color:#94a3b8;" id="curve-storage-text">
+                  Steep backwardation (+$10.40/bbl prompt premium) severely penalizes offshore hoarding, forcing
+                  immediate discharge of offshore tankers into prompt refining channels.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎯 AIS Predictive Efficacy Confusion Matrix (Pure Technical Baseline vs. AIS-Conditioned) -->
+        <div id="ais-confusion-matrix-card"
+          style="margin-top:16px; background:rgba(0,0,0,0.3); border:1px solid rgba(56, 189, 248, 0.35); border-radius:12px; padding:16px; box-shadow:0 0 20px rgba(56,189,248,0.12);">
+          <div
+            style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <div>
+              <div style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+                <span>🎯</span> AIS Predictive Efficacy Confusion Matrix
+                <span
+                  style="font-size:10px; background:rgba(0,255,136,0.15); color:#00ff88; border:1px solid rgba(0,255,136,0.3); border-radius:6px; padding:2px 8px; font-weight:700; text-transform:uppercase;">Walk-Forward
+                  Backtest</span>
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+                Statistical evaluation of real-time AIS shipping flows vs. pure technical microstructure in forecasting
+                Brent price direction
+              </div>
+            </div>
+            <div class="cm-kpi-bar" style="margin:0;">
+              <div class="cm-kpi-chip">
+                <span class="chip-label">Technical Win%:</span>
+                <span class="chip-val" id="ais-cm-base-hr" style="color:#60a5fa;">54.8%</span>
+              </div>
+              <div class="cm-kpi-chip">
+                <span class="chip-label">AIS Win%:</span>
+                <span class="chip-val" id="ais-cm-ais-hr" style="color:#00ff88; font-weight:800;">66.2%</span>
+              </div>
+              <div class="cm-kpi-chip">
+                <span class="chip-label">Directional Alpha Lift:</span>
+                <span class="chip-val" id="ais-cm-lift" style="color:#00ff88; font-weight:900;">+11.4%</span>
+              </div>
+              <div class="cm-kpi-chip">
+                <span class="chip-label">Traps Rescued:</span>
+                <span class="chip-val" id="ais-cm-rescued" style="color:#ffd166;">🛡️ 27 Shorts Vetoed</span>
+              </div>
+              <div class="cm-kpi-chip">
+                <span class="chip-label">Supply Breakouts:</span>
+                <span class="chip-val" id="ais-cm-confirmed" style="color:#38bdf8;">⚡ 43 Longs</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4-Horizon Confusion Matrix Comparison Table -->
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:11px; text-align:left;">
+              <thead>
+                <tr
+                  style="border-bottom:1px solid rgba(255,255,255,0.1); color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">
+                  <th style="padding:8px 10px;">Horizon</th>
+                  <th style="padding:8px 10px; text-align:center;">Base Win%</th>
+                  <th style="padding:8px 10px; text-align:center; color:#00ff88;">AIS Win%</th>
+                  <th style="padding:8px 10px; text-align:center; color:#38bdf8;">Alpha Lift (Δ)</th>
+                  <th style="padding:8px 10px; text-align:center;">AIS TP (Long Hit)</th>
+                  <th style="padding:8px 10px; text-align:center;">AIS FP (Long Miss)</th>
+                  <th style="padding:8px 10px; text-align:center;">AIS TN (Short Hit)</th>
+                  <th style="padding:8px 10px; text-align:center;">AIS FN (Short Miss)</th>
+                  <th style="padding:8px 10px; text-align:center; color:#ffd166;">Traps Rescued</th>
+                  <th style="padding:8px 10px; text-align:center;">Physical Drift</th>
+                  <th style="padding:8px 10px; text-align:center;">Verdict</th>
+                </tr>
+              </thead>
+              <tbody id="ais-cm-table-body">
+                <tr>
+                  <td colspan="11" style="text-align:center; padding:16px; color:var(--text-muted);">Evaluating
+                    walk-forward AIS confusion matrix...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); font-size:11px; color:#cbd5e1; display:flex; flex-direction:column; gap:6px;"
+            id="ais-cm-takeaways-box">
+            <div style="font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+              <span>💡</span> Quantitative Takeaways:
+            </div>
+            <div id="ais-cm-takeaway-1">• <strong>Microstructure vs Physical Anchor:</strong> At 1m, microstructure
+              noise dominates (AIS lift -2.0%). Over 10m to 1h, acute chokepoint tightness asserts persistent upward
+              price discovery.</div>
+            <div id="ais-cm-takeaway-2">• <strong>Whipsaw Trap Prevention:</strong> Pure technical momentum suffered
+              false breakdowns below VWAP. Real-time AIS shipping flows rescued false breakdown short trades.</div>
+            <div id="ais-cm-takeaway-3">• <strong>Supply Breakout Confirmation:</strong> AIS dark fleet rates and Cape
+              transit delays confirmed early bullish expansions before technical indicators lagged.</div>
           </div>
         </div>
       </div>
 
-      <!-- 🎯 AIS Predictive Efficacy Confusion Matrix (Pure Technical Baseline vs. AIS-Conditioned) -->
-      <div id="ais-confusion-matrix-card" style="margin-top:16px; background:rgba(0,0,0,0.3); border:1px solid rgba(56, 189, 248, 0.35); border-radius:12px; padding:16px; box-shadow:0 0 20px rgba(56,189,248,0.12);">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-          <div>
-            <div style="font-size:14px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
-              <span>🎯</span> AIS Predictive Efficacy Confusion Matrix
-              <span style="font-size:10px; background:rgba(0,255,136,0.15); color:#00ff88; border:1px solid rgba(0,255,136,0.3); border-radius:6px; padding:2px 8px; font-weight:700; text-transform:uppercase;">Walk-Forward Backtest</span>
+      <!-- Live Multi-Horizon Confusion Matrix (Hits & Misses for 1m, 10m, 30m, 1h) -->
+      <div class="cm-container" id="cm-section">
+        <div class="cm-header-row">
+          <div class="cm-title-wrap">
+            <div class="cm-title">
+              <span>🎯</span> Live Multi-Horizon Confusion Matrix (Hits & Misses)
             </div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
-              Statistical evaluation of real-time AIS shipping flows vs. pure technical microstructure in forecasting Brent price direction
+            <div class="cm-subtitle">
+              Walk-Forward Evaluation using State-Space Wave Propagator e^[A]·(τΔt) y(t) & Jev Decision Engine
             </div>
           </div>
-          <div class="cm-kpi-bar" style="margin:0;">
+          <div class="cm-kpi-bar" id="cm-kpi-bar">
             <div class="cm-kpi-chip">
-              <span class="chip-label">Technical Win%:</span>
-              <span class="chip-val" id="ais-cm-base-hr" style="color:#60a5fa;">54.8%</span>
+              <span class="chip-label">Active Signals:</span>
+              <span class="chip-val" id="cm-kpi-total">--</span>
             </div>
             <div class="cm-kpi-chip">
-              <span class="chip-label">AIS Win%:</span>
-              <span class="chip-val" id="ais-cm-ais-hr" style="color:#00ff88; font-weight:800;">66.2%</span>
+              <span class="chip-label">Hits (TP+TN):</span>
+              <span class="chip-val" style="color:var(--green-bull);" id="cm-kpi-hits">--</span>
             </div>
             <div class="cm-kpi-chip">
-              <span class="chip-label">Directional Alpha Lift:</span>
-              <span class="chip-val" id="ais-cm-lift" style="color:#00ff88; font-weight:900;">+11.4%</span>
+              <span class="chip-label">Misses (FP+FN):</span>
+              <span class="chip-val" style="color:var(--red-bear);" id="cm-kpi-misses">--</span>
             </div>
             <div class="cm-kpi-chip">
-              <span class="chip-label">Traps Rescued:</span>
-              <span class="chip-val" id="ais-cm-rescued" style="color:#ffd166;">🛡️ 27 Shorts Vetoed</span>
+              <span class="chip-label">Chop Purged (HOLD CASH):</span>
+              <span class="chip-val" style="color:#fbbf24;" id="cm-kpi-pruned">--</span>
             </div>
             <div class="cm-kpi-chip">
-              <span class="chip-label">Supply Breakouts:</span>
-              <span class="chip-val" id="ais-cm-confirmed" style="color:#38bdf8;">⚡ 43 Longs</span>
+              <span class="chip-label">Realized Win Rate:</span>
+              <span class="chip-val" id="cm-kpi-rate" style="color:#60a5fa;">--%</span>
+            </div>
+            <div class="cm-kpi-chip">
+              <span class="chip-label">Directional Edge:</span>
+              <span class="chip-val" id="cm-kpi-edge" style="color:var(--green-bull);">--%</span>
             </div>
           </div>
         </div>
 
-        <!-- 4-Horizon Confusion Matrix Comparison Table -->
-        <div style="overflow-x:auto;">
-          <table style="width:100%; border-collapse:collapse; font-size:11px; text-align:left;">
+        <div class="cm-selector-row">
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">View
+                Dataset:</span>
+              <select id="cm-asset-select" onchange="updateConfusionMatrixView(this.value)"
+                style="background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">
+                <option value="aggregate">🌐 All Tracked CFDs (Aggregate Portfolio)</option>
+              </select>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Decision
+                Kernel:</span>
+              <select id="cm-engine-select" onchange="updateConfusionMatrixEngine(this.value)"
+                style="background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">
+                <option value="jev_ai">🤖 Jev System One AI Engine (Active Alpha & Conviction Gated)</option>
+                <option value="ais_maritime">🚢 Maritime AIS-Conditioned Kernel (Shipping & Chokepoint Supply Prior)
+                </option>
+                <option value="baseline">📐 Raw Quant Oscillator (Unfiltered Baseline - 50% Coin-Toss)</option>
+              </select>
+            </div>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted);">
+            <span>Purged Walk-Forward • Zero-Lookahead Evaluated Realized Returns</span>
+          </div>
+        </div>
+
+        <!-- Jev AI Alpha Rescue & Diagnostics Card -->
+        <div id="cm-jev-banner"
+          style="background:linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.12)); border:1px solid rgba(16, 185, 129, 0.3); border-radius:10px; padding:12px 18px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-size:24px;">🧠</div>
+            <div>
+              <div
+                style="font-size:13px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span>TypeSafe Jev System One Alpha Rescue</span>
+                <span
+                  style="font-size:10px; font-weight:700; background:rgba(0,255,136,0.2); color:var(--green-bull); border:1px solid var(--green-bull); border-radius:4px; padding:1px 6px;"
+                  id="cm-banner-engine-status">ONLINE (AI GATED)</span>
+                <span
+                  style="font-size:10px; font-weight:700; background:rgba(96,165,250,0.2); color:#60a5fa; border:1px solid #60a5fa; border-radius:4px; padding:1px 6px;"
+                  id="cm-banner-loop-status">🔄 FULL HYBRID LOOP: ACTIVE</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; margin-top:2px;" id="cm-banner-summary">
+                Baseline suffered from forcing trades on micro-tick noise (38-46% hit rates on 1m/1h). Jev AI filters
+                consolidation chop with HOLD_CASH and trades only high-conviction momentum & wave restoring forces.
+              </div>
+              <div style="font-size:11px; color:#38bdf8; margin-top:4px; font-family:'JetBrains Mono', monospace;"
+                id="cm-banner-thresholds">
+                ⚡ Autotuned Deadbands (δ*): Computing walk-forward optimal thresholds...
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="text-align:right;">
+              <div style="font-size:10px; color:#94a3b8; font-weight:700;">EDGE LIFT vs BASELINE</div>
+              <div style="font-size:15px; font-weight:900; color:var(--green-bull);" id="cm-banner-edge-lift">+8.1%
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; color:#94a3b8; font-weight:700;">FALSE WHIPSAWS PRUNED</div>
+              <div style="font-size:15px; font-weight:900; color:#fbbf24;" id="cm-banner-pruned">125 bars</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px; color:#94a3b8; font-weight:700;">SYSTEM ONE MODEL</div>
+              <div style="font-size:12px; font-weight:800; color:#60a5fa;" id="cm-banner-model">jev-1.13.0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Horizon Confusion Matrix Cards -->
+        <div class="cm-cards-grid" id="cm-cards-grid">
+          <!-- Rendered by JS -->
+        </div>
+
+        <!-- Comparative Performance Table -->
+        <div
+          style="font-size:13px; font-weight:700; color:#e2e8f0; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <span>📋</span> Horizon Comparison & Precision Breakdown
+        </div>
+        <div class="table-container" style="margin-bottom:0;">
+          <table>
             <thead>
-              <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">
-                <th style="padding:8px 10px;">Horizon</th>
-                <th style="padding:8px 10px; text-align:center;">Base Win%</th>
-                <th style="padding:8px 10px; text-align:center; color:#00ff88;">AIS Win%</th>
-                <th style="padding:8px 10px; text-align:center; color:#38bdf8;">Alpha Lift (Δ)</th>
-                <th style="padding:8px 10px; text-align:center;">AIS TP (Long Hit)</th>
-                <th style="padding:8px 10px; text-align:center;">AIS FP (Long Miss)</th>
-                <th style="padding:8px 10px; text-align:center;">AIS TN (Short Hit)</th>
-                <th style="padding:8px 10px; text-align:center;">AIS FN (Short Miss)</th>
-                <th style="padding:8px 10px; text-align:center; color:#ffd166;">Traps Rescued</th>
-                <th style="padding:8px 10px; text-align:center;">Physical Drift</th>
-                <th style="padding:8px 10px; text-align:center;">Verdict</th>
+              <tr>
+                <th>Forward Horizon</th>
+                <th>Forward Span (τ)</th>
+                <th>Active Trials</th>
+                <th>Hits (TP + TN)</th>
+                <th>Misses (FP + FN)</th>
+                <th>Chop Filtered</th>
+                <th>Realized Win Rate</th>
+                <th>Tuned Deadband (δ*)</th>
+                <th>Dynamic Regime</th>
+                <th>Directional Edge (Δ)</th>
+                <th>Statistical Status</th>
               </tr>
             </thead>
-            <tbody id="ais-cm-table-body">
-              <tr><td colspan="11" style="text-align:center; padding:16px; color:var(--text-muted);">Evaluating walk-forward AIS confusion matrix...</td></tr>
+            <tbody id="cm-table-tbody">
+              <tr>
+                <td colspan="11" style="text-align:center; color:var(--text-muted);">Computing confusion matrix...</td>
+              </tr>
             </tbody>
           </table>
         </div>
-
-        <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06); font-size:11px; color:#cbd5e1; display:flex; flex-direction:column; gap:6px;" id="ais-cm-takeaways-box">
-          <div style="font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:6px;">
-            <span>💡</span> Quantitative Takeaways:
-          </div>
-          <div id="ais-cm-takeaway-1">• <strong>Microstructure vs Physical Anchor:</strong> At 1m, microstructure noise dominates (AIS lift -2.0%). Over 10m to 1h, acute chokepoint tightness asserts persistent upward price discovery.</div>
-          <div id="ais-cm-takeaway-2">• <strong>Whipsaw Trap Prevention:</strong> Pure technical momentum suffered false breakdowns below VWAP. Real-time AIS shipping flows rescued false breakdown short trades.</div>
-          <div id="ais-cm-takeaway-3">• <strong>Supply Breakout Confirmation:</strong> AIS dark fleet rates and Cape transit delays confirmed early bullish expansions before technical indicators lagged.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Live Multi-Horizon Confusion Matrix (Hits & Misses for 1m, 10m, 30m, 1h) -->
-    <div class="cm-container" id="cm-section">
-      <div class="cm-header-row">
-        <div class="cm-title-wrap">
-          <div class="cm-title">
-            <span>🎯</span> Live Multi-Horizon Confusion Matrix (Hits & Misses)
-          </div>
-          <div class="cm-subtitle">
-            Walk-Forward Evaluation using State-Space Wave Propagator e^[A]·(τΔt) y(t) & Jev Decision Engine
-          </div>
-        </div>
-        <div class="cm-kpi-bar" id="cm-kpi-bar">
-          <div class="cm-kpi-chip">
-            <span class="chip-label">Active Signals:</span>
-            <span class="chip-val" id="cm-kpi-total">--</span>
-          </div>
-          <div class="cm-kpi-chip">
-            <span class="chip-label">Hits (TP+TN):</span>
-            <span class="chip-val" style="color:var(--green-bull);" id="cm-kpi-hits">--</span>
-          </div>
-          <div class="cm-kpi-chip">
-            <span class="chip-label">Misses (FP+FN):</span>
-            <span class="chip-val" style="color:var(--red-bear);" id="cm-kpi-misses">--</span>
-          </div>
-          <div class="cm-kpi-chip">
-            <span class="chip-label">Chop Purged (HOLD CASH):</span>
-            <span class="chip-val" style="color:#fbbf24;" id="cm-kpi-pruned">--</span>
-          </div>
-          <div class="cm-kpi-chip">
-            <span class="chip-label">Realized Win Rate:</span>
-            <span class="chip-val" id="cm-kpi-rate" style="color:#60a5fa;">--%</span>
-          </div>
-          <div class="cm-kpi-chip">
-            <span class="chip-label">Directional Edge:</span>
-            <span class="chip-val" id="cm-kpi-edge" style="color:var(--green-bull);">--%</span>
-          </div>
-        </div>
       </div>
 
-      <div class="cm-selector-row">
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">View Dataset:</span>
-            <select id="cm-asset-select" onchange="updateConfusionMatrixView(this.value)" style="background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">
-              <option value="aggregate">🌐 All Tracked CFDs (Aggregate Portfolio)</option>
-            </select>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Decision Kernel:</span>
-            <select id="cm-engine-select" onchange="updateConfusionMatrixEngine(this.value)" style="background:var(--bg-dark); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">
-              <option value="jev_ai">🤖 Jev System One AI Engine (Active Alpha & Conviction Gated)</option>
-              <option value="ais_maritime">🚢 Maritime AIS-Conditioned Kernel (Shipping & Chokepoint Supply Prior)</option>
-              <option value="baseline">📐 Raw Quant Oscillator (Unfiltered Baseline - 50% Coin-Toss)</option>
-            </select>
-          </div>
-        </div>
-        <div style="font-size:11px; color:var(--text-muted);">
-          <span>Purged Walk-Forward • Zero-Lookahead Evaluated Realized Returns</span>
-        </div>
-      </div>
-
-      <!-- Jev AI Alpha Rescue & Diagnostics Card -->
-      <div id="cm-jev-banner" style="background:linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.12)); border:1px solid rgba(16, 185, 129, 0.3); border-radius:10px; padding:12px 18px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="font-size:24px;">🧠</div>
-          <div>
-            <div style="font-size:13px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <span>TypeSafe Jev System One Alpha Rescue</span>
-              <span style="font-size:10px; font-weight:700; background:rgba(0,255,136,0.2); color:var(--green-bull); border:1px solid var(--green-bull); border-radius:4px; padding:1px 6px;" id="cm-banner-engine-status">ONLINE (AI GATED)</span>
-              <span style="font-size:10px; font-weight:700; background:rgba(96,165,250,0.2); color:#60a5fa; border:1px solid #60a5fa; border-radius:4px; padding:1px 6px;" id="cm-banner-loop-status">🔄 FULL HYBRID LOOP: ACTIVE</span>
-            </div>
-            <div style="font-size:11px; color:#94a3b8; margin-top:2px;" id="cm-banner-summary">
-              Baseline suffered from forcing trades on micro-tick noise (38-46% hit rates on 1m/1h). Jev AI filters consolidation chop with HOLD_CASH and trades only high-conviction momentum & wave restoring forces.
-            </div>
-            <div style="font-size:11px; color:#38bdf8; margin-top:4px; font-family:'JetBrains Mono', monospace;" id="cm-banner-thresholds">
-              ⚡ Autotuned Deadbands (δ*): Computing walk-forward optimal thresholds...
-            </div>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:16px;">
-          <div style="text-align:right;">
-            <div style="font-size:10px; color:#94a3b8; font-weight:700;">EDGE LIFT vs BASELINE</div>
-            <div style="font-size:15px; font-weight:900; color:var(--green-bull);" id="cm-banner-edge-lift">+8.1%</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px; color:#94a3b8; font-weight:700;">FALSE WHIPSAWS PRUNED</div>
-            <div style="font-size:15px; font-weight:900; color:#fbbf24;" id="cm-banner-pruned">125 bars</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px; color:#94a3b8; font-weight:700;">SYSTEM ONE MODEL</div>
-            <div style="font-size:12px; font-weight:800; color:#60a5fa;" id="cm-banner-model">jev-1.13.0</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4 Horizon Confusion Matrix Cards -->
-      <div class="cm-cards-grid" id="cm-cards-grid">
-        <!-- Rendered by JS -->
-      </div>
-
-      <!-- Comparative Performance Table -->
-      <div style="font-size:13px; font-weight:700; color:#e2e8f0; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-        <span>📋</span> Horizon Comparison & Precision Breakdown
-      </div>
-      <div class="table-container" style="margin-bottom:0;">
+      <!-- Cross-Market Relative Strength Matrix -->
+      <div class="section-title">📊 Cross-Market 10-Minute Momentum Matrix (CFD)</div>
+      <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Forward Horizon</th>
-              <th>Forward Span (τ)</th>
-              <th>Active Trials</th>
-              <th>Hits (TP + TN)</th>
-              <th>Misses (FP + FN)</th>
-              <th>Chop Filtered</th>
-              <th>Realized Win Rate</th>
-              <th>Tuned Deadband (δ*)</th>
-              <th>Dynamic Regime</th>
-              <th>Directional Edge (Δ)</th>
-              <th>Statistical Status</th>
+              <th>Instrument</th>
+              <th>Signal</th>
+              <th>Indicative Close Target (TP)</th>
+              <th>Protective Stop Loss</th>
+              <th>Continuation Prob</th>
+              <th>Jev Confidence</th>
+              <th>3-Bar Momentum</th>
+              <th>6-Bar Momentum</th>
+              <th>VWAP Distance</th>
+              <th>14-RSI</th>
             </tr>
           </thead>
-          <tbody id="cm-table-tbody">
-            <tr><td colspan="11" style="text-align:center; color:var(--text-muted);">Computing confusion matrix...</td></tr>
+          <tbody id="matrix-tbody">
+            <tr>
+              <td colspan="10" style="text-align: center; color: var(--text-muted);">Fetching live feeds...</td>
+            </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Cross-Asset Intelligence Panel -->
+      <div class="insights-panel" id="insights-panel" style="display: none;">
+        <div class="insights-title">💡 Cross-Asset Macro & CFD Spread Intelligence</div>
+        <div id="insights-content"></div>
+      </div>
+
+      <!-- Footer -->
+      <footer>
+        <div id="last-updated-text">Last Updated: --</div>
+        <div style="margin-top: 6px; font-size: 11px;">OANDA Institutional Real-Time CFD Feeds (SPX, NDX, RUT, NI225,
+          USDJPY, USB10Y, WTI, BCO) • TypeSafe Jev System One • Vercel Serverless</div>
+      </footer>
     </div>
 
-    <!-- Cross-Market Relative Strength Matrix -->
-    <div class="section-title">📊 Cross-Market 10-Minute Momentum Matrix (CFD)</div>
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Instrument</th>
-            <th>Signal</th>
-            <th>Indicative Close Target (TP)</th>
-            <th>Protective Stop Loss</th>
-            <th>Continuation Prob</th>
-            <th>Jev Confidence</th>
-            <th>3-Bar Momentum</th>
-            <th>6-Bar Momentum</th>
-            <th>VWAP Distance</th>
-            <th>14-RSI</th>
-          </tr>
-        </thead>
-        <tbody id="matrix-tbody">
-          <tr><td colspan="10" style="text-align: center; color: var(--text-muted);">Fetching live feeds...</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <script>
+      let currentTimeframe = '1m';
+      let currentModelVariant = 'macro_full';
+      let currentEngineMode = 'jev_ai';
+      let latestData = null;
+      let autoRefreshInterval = null;
 
-    <!-- Cross-Asset Intelligence Panel -->
-    <div class="insights-panel" id="insights-panel" style="display: none;">
-      <div class="insights-title">💡 Cross-Asset Macro & CFD Spread Intelligence</div>
-      <div id="insights-content"></div>
-    </div>
+      async function fetchRadarData() {
+        const refreshBtn = document.getElementById('refresh-btn');
+        const refreshIcon = document.getElementById('refresh-icon');
+        refreshIcon.classList.add('spin');
+        refreshBtn.disabled = true;
 
-    <!-- Footer -->
-    <footer>
-      <div id="last-updated-text">Last Updated: --</div>
-      <div style="margin-top: 6px; font-size: 11px;">OANDA Institutional Real-Time CFD Feeds (SPX, NDX, RUT, NI225, USDJPY, USB10Y, WTI, BCO) • TypeSafe Jev System One • Vercel Serverless</div>
-    </footer>
-  </div>
-
-  <script>
-    let currentTimeframe = '1m';
-    let currentModelVariant = 'macro_full';
-    let currentEngineMode = 'jev_ai';
-    let latestData = null;
-    let autoRefreshInterval = null;
-
-    async function fetchRadarData() {
-      const refreshBtn = document.getElementById('refresh-btn');
-      const refreshIcon = document.getElementById('refresh-icon');
-      refreshIcon.classList.add('spin');
-      refreshBtn.disabled = true;
-
-      try {
-        const response = await fetch(`/api/radar?timeframe=${currentTimeframe}&model_variant=${currentModelVariant}&engine_mode=${currentEngineMode}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        latestData = data;
-        renderDashboard(data);
-        document.getElementById('last-updated-text').innerText = `Last Updated: ${new Date().toLocaleTimeString()} (UTC ${new Date().toISOString().substring(11,19)})`;
-      } catch (err) {
-        console.error("Fetch radar error:", err);
-      } finally {
-        refreshIcon.classList.remove('spin');
-        refreshBtn.disabled = false;
+        try {
+          const response = await fetch(`/api/radar?timeframe=${currentTimeframe}&model_variant=${currentModelVariant}&engine_mode=${currentEngineMode}`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const data = await response.json();
+          latestData = data;
+          renderDashboard(data);
+          document.getElementById('last-updated-text').innerText = `Last Updated: ${new Date().toLocaleTimeString()} (UTC ${new Date().toISOString().substring(11, 19)})`;
+        } catch (err) {
+          console.error("Fetch radar error:", err);
+        } finally {
+          refreshIcon.classList.remove('spin');
+          refreshBtn.disabled = false;
+        }
       }
-    }
 
-    function switchTimeframe(tf) {
-      currentTimeframe = tf;
-      document.querySelectorAll('.tf-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-tf') === tf);
-      });
-      fetchRadarData();
-    }
+      function switchTimeframe(tf) {
+        currentTimeframe = tf;
+        document.querySelectorAll('.tf-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-tf') === tf);
+        });
+        fetchRadarData();
+      }
 
-    function switchModelVariant(variant) {
-      currentModelVariant = variant;
-      fetchRadarData();
-    }
+      function switchModelVariant(variant) {
+        currentModelVariant = variant;
+        fetchRadarData();
+      }
 
-    function updateConfusionMatrixEngine(engineMode) {
-      currentEngineMode = engineMode;
-      fetchRadarData();
-    }
+      function updateConfusionMatrixEngine(engineMode) {
+        currentEngineMode = engineMode;
+        fetchRadarData();
+      }
 
-    function renderDashboard(data) {
-      const results = data.results || {};
-      const cardsContainer = document.getElementById('cards-container');
-      const matrixTbody = document.getElementById('matrix-tbody');
-      const mhTbody = document.getElementById('multi-horizon-tbody');
-      const insightsPanel = document.getElementById('insights-panel');
-      const insightsContent = document.getElementById('insights-content');
+      function renderDashboard(data) {
+        const results = data.results || {};
+        const cardsContainer = document.getElementById('cards-container');
+        const matrixTbody = document.getElementById('matrix-tbody');
+        const mhTbody = document.getElementById('multi-horizon-tbody');
+        const insightsPanel = document.getElementById('insights-panel');
+        const insightsContent = document.getElementById('insights-content');
 
-      cardsContainer.innerHTML = '';
-      matrixTbody.innerHTML = '';
-      if (mhTbody) mhTbody.innerHTML = '';
+        cardsContainer.innerHTML = '';
+        matrixTbody.innerHTML = '';
+        if (mhTbody) mhTbody.innerHTML = '';
 
-      for (const [name, sig] of Object.entries(results)) {
-        const isUp = sig.session_change >= 0;
-        const actionClass = sig.action.includes('BUY') ? 'badge-buy' : (sig.action.includes('SELL') ? 'badge-sell' : 'badge-neutral');
-        const probPct = (sig.prob_up * 100).toFixed(1);
-        const probColor = sig.action.includes('BUY') ? '#00ff88' : (sig.action.includes('SELL') ? '#ff4d6d' : '#ffd166');
-        const tvRatingText = sig.tv_rating || 'NEUTRAL';
-        const tvRatingColor = sig.tv_rating_color || '#ffd166';
-        const tvScoreStr = sig.tv_rating_score !== null && sig.tv_rating_score !== undefined ? (sig.tv_rating_score > 0 ? `+${sig.tv_rating_score}` : sig.tv_rating_score) : '--';
+        for (const [name, sig] of Object.entries(results)) {
+          const isUp = sig.session_change >= 0;
+          const actionClass = sig.action.includes('BUY') ? 'badge-buy' : (sig.action.includes('SELL') ? 'badge-sell' : 'badge-neutral');
+          const probPct = (sig.prob_up * 100).toFixed(1);
+          const probColor = sig.action.includes('BUY') ? '#00ff88' : (sig.action.includes('SELL') ? '#ff4d6d' : '#ffd166');
+          const tvRatingText = sig.tv_rating || 'NEUTRAL';
+          const tvRatingColor = sig.tv_rating_color || '#ffd166';
+          const tvScoreStr = sig.tv_rating_score !== null && sig.tv_rating_score !== undefined ? (sig.tv_rating_score > 0 ? `+${sig.tv_rating_score}` : sig.tv_rating_score) : '--';
 
-        const decimals = sig.symbol === '^TNX' ? 3 : 2;
-        const priceFormatted = sig.price.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
-        const vwapFormatted = sig.vwap.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+          const decimals = sig.symbol === '^TNX' ? 3 : 2;
+          const priceFormatted = sig.price.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+          const vwapFormatted = sig.vwap.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-        const indPrice = sig.indicative_price !== undefined && sig.indicative_price !== null ? sig.indicative_price : (sig.indicative_take_profit !== undefined && sig.indicative_take_profit !== null ? sig.indicative_take_profit : sig.price);
-        const indDeltaPct = sig.indicative_delta_pct !== undefined && sig.indicative_delta_pct !== null ? sig.indicative_delta_pct : (((indPrice / (sig.price + 1e-9)) - 1.0) * 100);
-        const indPriceFormatted = indPrice.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+          const indPrice = sig.indicative_price !== undefined && sig.indicative_price !== null ? sig.indicative_price : (sig.indicative_take_profit !== undefined && sig.indicative_take_profit !== null ? sig.indicative_take_profit : sig.price);
+          const indDeltaPct = sig.indicative_delta_pct !== undefined && sig.indicative_delta_pct !== null ? sig.indicative_delta_pct : (((indPrice / (sig.price + 1e-9)) - 1.0) * 100);
+          const indPriceFormatted = indPrice.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-        const defaultStop = sig.action.includes('SELL') ? (sig.price * 1.003) : (sig.price * 0.997);
-        const stopLoss = sig.indicative_stop_loss !== undefined && sig.indicative_stop_loss !== null ? sig.indicative_stop_loss : defaultStop;
-        const stopLossFormatted = stopLoss.toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+          const defaultStop = sig.action.includes('SELL') ? (sig.price * 1.003) : (sig.price * 0.997);
+          const stopLoss = sig.indicative_stop_loss !== undefined && sig.indicative_stop_loss !== null ? sig.indicative_stop_loss : defaultStop;
+          const stopLossFormatted = stopLoss.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-        const closeTargetLabel = sig.action.includes('BUY') ? 'Close Long Target (TP)' : (sig.action.includes('SELL') ? 'Close Short Target (TP)' : 'Equilibrium Exit Target');
-        const stopLossLabel = 'Protective Stop Loss';
+          const closeTargetLabel = sig.action.includes('BUY') ? 'Close Long Target (TP)' : (sig.action.includes('SELL') ? 'Close Short Target (TP)' : 'Equilibrium Exit Target');
+          const stopLossLabel = 'Protective Stop Loss';
 
-        const mh = sig.multi_horizon || {};
-        const s1 = mh.forward_1m || mh.forward_5m || {};
-        const s10 = mh.forward_10m || {};
-        const s30 = mh.forward_30m || mh.forward_15m || {};
-        const s1h = mh.forward_1h || {};
+          const mh = sig.multi_horizon || {};
+          const s1 = mh.forward_1m || mh.forward_5m || {};
+          const s10 = mh.forward_10m || {};
+          const s30 = mh.forward_30m || mh.forward_15m || {};
+          const s1h = mh.forward_1h || {};
 
-        const s1Ind = s1.indicative_price !== undefined ? s1.indicative_price : sig.price;
-        const s10Ind = s10.indicative_price !== undefined ? s10.indicative_price : sig.price;
-        const s30Ind = s30.indicative_price !== undefined ? s30.indicative_price : sig.price;
-        const s1hInd = s1h.indicative_price !== undefined ? s1h.indicative_price : sig.price;
+          const s1Ind = s1.indicative_price !== undefined ? s1.indicative_price : sig.price;
+          const s10Ind = s10.indicative_price !== undefined ? s10.indicative_price : sig.price;
+          const s30Ind = s30.indicative_price !== undefined ? s30.indicative_price : sig.price;
+          const s1hInd = s1h.indicative_price !== undefined ? s1h.indicative_price : sig.price;
 
-        const card = document.createElement('div');
-        card.className = `radar-card ${sig.badge_class}`;
-        card.title = `Click to view ${sig.tv_ticker} live on TradingView`;
-        card.onclick = () => window.open(`https://www.tradingview.com/chart/?symbol=${sig.tv_ticker}`, '_blank');
-        card.innerHTML = `
+          const card = document.createElement('div');
+          card.className = `radar-card ${sig.badge_class}`;
+          card.title = `Click to view ${sig.tv_ticker} live on TradingView`;
+          card.onclick = () => window.open(`https://www.tradingview.com/chart/?symbol=${sig.tv_ticker}`, '_blank');
+          card.innerHTML = `
           <div class="card-top">
             <div class="card-asset-name">${sig.flag} ${name}</div>
             <a class="card-symbol" href="https://www.tradingview.com/chart/?symbol=${sig.tv_ticker}" target="_blank" onclick="event.stopPropagation()">${sig.tv_ticker} ↗</a>
@@ -1500,26 +1629,26 @@
             <span>⚡ Jev System One</span>
           </div>
         `;
-        cardsContainer.appendChild(card);
+          cardsContainer.appendChild(card);
 
-        // Render Multi-Horizon Table Row (1m, 10m, 30m, 1h)
-        if (mhTbody) {
-          const mhtr = document.createElement('tr');
-          mhtr.innerHTML = `
+          // Render Multi-Horizon Table Row (1m, 10m, 30m, 1h)
+          if (mhTbody) {
+            const mhtr = document.createElement('tr');
+            mhtr.innerHTML = `
             <td><strong>${sig.flag} ${name}</strong></td>
-            <td><span style="color: ${s1.color || '#ffd166'}; font-weight:700;">${s1.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">($${s1Ind.toFixed(decimals)} | ${(s1.prob_up*100).toFixed(1)}%)</span></td>
-            <td><span style="color: ${s10.color || '#ffd166'}; font-weight:700;">${s10.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">($${s10Ind.toFixed(decimals)} | ${(s10.prob_up*100).toFixed(1)}%)</span></td>
-            <td><span style="color: ${s30.color || '#ffd166'}; font-weight:700;">${s30.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">($${s30Ind.toFixed(decimals)} | ${(s30.prob_up*100).toFixed(1)}%)</span></td>
-            <td><span style="color: ${s1h.color || '#ffd166'}; font-weight:700;">${s1h.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">($${s1hInd.toFixed(decimals)} | ${(s1h.prob_up*100).toFixed(1)}%)</span></td>
+            <td><span style="color: ${s1.color || '#ffd166'}; font-weight:700;">${s1.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">($${s1Ind.toFixed(decimals)} | ${(s1.prob_up * 100).toFixed(1)}%)</span></td>
+            <td><span style="color: ${s10.color || '#ffd166'}; font-weight:700;">${s10.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">($${s10Ind.toFixed(decimals)} | ${(s10.prob_up * 100).toFixed(1)}%)</span></td>
+            <td><span style="color: ${s30.color || '#ffd166'}; font-weight:700;">${s30.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">($${s30Ind.toFixed(decimals)} | ${(s30.prob_up * 100).toFixed(1)}%)</span></td>
+            <td><span style="color: ${s1h.color || '#ffd166'}; font-weight:700;">${s1h.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">($${s1hInd.toFixed(decimals)} | ${(s1h.prob_up * 100).toFixed(1)}%)</span></td>
             <td><span style="font-weight:600; color: #60a5fa;">${mh.alignment || 'NEUTRAL'}</span></td>
-            <td class="mono" style="font-weight:700;">${(mh.average_prob_up*100).toFixed(1)}%</td>
+            <td class="mono" style="font-weight:700;">${(mh.average_prob_up * 100).toFixed(1)}%</td>
           `;
-          mhTbody.appendChild(mhtr);
-        }
+            mhTbody.appendChild(mhtr);
+          }
 
-        // Render Matrix Table Row
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
+          // Render Matrix Table Row
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
           <td><strong>${sig.flag} ${name}</strong></td>
           <td><span style="color: ${sig.color}; font-weight: 700;">${sig.action}</span></td>
           <td class="mono" style="color: #60a5fa; font-weight:700;">$${indPriceFormatted} (${indDeltaPct >= 0 ? '+' : ''}${indDeltaPct.toFixed(2)}%)</td>
@@ -1531,184 +1660,279 @@
           <td class="mono">${sig.vwap_z >= 0 ? '+' : ''}${sig.vwap_z.toFixed(2)} ATR</td>
           <td class="mono">${Number(sig.rsi).toFixed(1)}</td>
         `;
-        matrixTbody.appendChild(tr);
+          matrixTbody.appendChild(tr);
+        }
+
+        // Insights
+        if (data.insights && data.insights.length > 0) {
+          insightsPanel.style.display = 'block';
+          insightsContent.innerHTML = data.insights.map(i => `<div class="insight-bullet">▸ ${i.text}</div>`).join('');
+        } else {
+          insightsPanel.style.display = 'none';
+        }
+
+        // Render Nikkei 225 Factor Decomposition
+        const nikDecomp = data.nikkei_decomposition || (results['Nikkei 225 (NI225)'] && results['Nikkei 225 (NI225)'].nikkei_fx_equity_dynamics && results['Nikkei 225 (NI225)'].nikkei_fx_equity_dynamics.decomposition);
+        renderNikkeiDecomposition(nikDecomp);
+
+        // Render Live Confusion Matrix
+        if (data.confusion_matrix) {
+          renderConfusionMatrix(data.confusion_matrix, selectedCmAsset);
+        }
       }
 
-      // Insights
-      if (data.insights && data.insights.length > 0) {
-        insightsPanel.style.display = 'block';
-        insightsContent.innerHTML = data.insights.map(i => `<div class="insight-bullet">▸ ${i.text}</div>`).join('');
-      } else {
-        insightsPanel.style.display = 'none';
-      }
+      function renderNikkeiDecomposition(decomp) {
+        const panel = document.getElementById('nikkei-decomp-panel');
+        if (!panel) return;
+        if (!decomp || !decomp.has_decomposition) {
+          panel.style.display = 'none';
+          return;
+        }
+        panel.style.display = 'block';
 
-      // Render Live Confusion Matrix
-      if (data.confusion_matrix) {
-        renderConfusionMatrix(data.confusion_matrix, selectedCmAsset);
-      }
-    }
+        const badges = document.getElementById('nikkei-decomp-badges');
+        const r2El = document.getElementById('nikkei-decomp-r2');
+        const barFx = document.getElementById('nikkei-bar-fx');
+        const barEq = document.getElementById('nikkei-bar-eq');
+        const barId = document.getElementById('nikkei-bar-id');
+        const lblFx = document.getElementById('lbl-var-fx');
+        const lblEq = document.getElementById('lbl-var-eq');
+        const lblId = document.getElementById('lbl-var-id');
+        const tbody = document.getElementById('nikkei-decomp-tbody');
 
-    let currentCmData = null;
-    let selectedCmAsset = 'aggregate';
+        const pDriver = decomp.primary_driver || 'NEUTRAL';
+        const vDec = decomp.variance_decomposition || {};
+        const betas = decomp.betas || {};
+        const qDyn = decomp.quanto_dynamics || {};
+        const horizons = decomp.horizons || {};
 
-    function updateConfusionMatrixView(assetKey) {
-      selectedCmAsset = assetKey;
-      if (currentCmData) {
-        renderConfusionMatrix(currentCmData, selectedCmAsset);
-      }
-    }
+        const driverColor = pDriver.includes('FX') ? '#38bdf8' : (pDriver.includes('EQUITY') ? '#818cf8' : (pDriver.includes('AMPLIFYING') ? '#00ff88' : (pDriver.includes('CANCELING') ? '#fbbf24' : '#e2e8f0')));
+        if (badges) {
+          badges.innerHTML = `
+            <span style="background: rgba(56, 189, 248, 0.12); border: 1px solid ${driverColor}; color: ${driverColor}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 800; font-family: 'JetBrains Mono', monospace;">
+              DRIVER: ${pDriver}
+            </span>
+            <span style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+              β_FX: <strong style="color: #38bdf8;">${betas.beta_fx !== undefined ? (betas.beta_fx >= 0 ? '+' : '') + betas.beta_fx.toFixed(2) : '--'}</strong>
+            </span>
+            <span style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+              β_SPX⊥: <strong style="color: #818cf8;">${betas.beta_equity_ortho !== undefined ? (betas.beta_equity_ortho >= 0 ? '+' : '') + betas.beta_equity_ortho.toFixed(2) : '--'}</strong>
+            </span>
+            <span style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #cbd5e1; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-family: 'JetBrains Mono', monospace;">
+              USD/JPY: <strong style="color: #f1f5f9;">${qDyn.usd_jpy_rate ? qDyn.usd_jpy_rate.toFixed(2) : '--'}</strong>
+            </span>
+          `;
+        }
 
-    function renderConfusionMatrix(cmData, selectedAsset = 'aggregate') {
-      if (!cmData) return;
-      currentCmData = cmData;
+        const fxPct = vDec.fx_var_pct || 0;
+        const eqPct = vDec.pure_equity_var_pct || 0;
+        const idPct = vDec.idiosyncratic_var_pct || 0;
+        const r2Pct = vDec.r_squared_pct || 0;
 
-      // Sync Decision Engine dropdown
-      const engineSelect = document.getElementById('cm-engine-select');
-      if (engineSelect && cmData.engine_mode) {
-        engineSelect.value = cmData.engine_mode;
-      }
+        if (r2El) r2El.innerText = `Model R²: ${r2Pct.toFixed(1)}%`;
+        if (barFx) barFx.style.width = `${fxPct}%`;
+        if (barEq) barEq.style.width = `${eqPct}%`;
+        if (barId) barId.style.width = `${idPct}%`;
+        if (lblFx) lblFx.innerText = `${fxPct.toFixed(1)}%`;
+        if (lblEq) lblEq.innerText = `${eqPct.toFixed(1)}%`;
+        if (lblId) lblId.innerText = `${idPct.toFixed(1)}%`;
 
-      // Populate asset select options once
-      const assetSelect = document.getElementById('cm-asset-select');
-      if (assetSelect && cmData.by_asset) {
-        const currentVal = assetSelect.value || selectedAsset;
-        const existingKeys = new Set(Array.from(assetSelect.options).map(o => o.value));
-        for (const assetName of Object.keys(cmData.by_asset)) {
-          if (!existingKeys.has(assetName)) {
-            const opt = document.createElement('option');
-            opt.value = assetName;
-            opt.innerText = assetName;
-            assetSelect.appendChild(opt);
+        if (tbody) {
+          tbody.innerHTML = '';
+          const order = ['1m', '5m', '10m', '30m', '60m'];
+          for (const h of order) {
+            if (horizons[h]) {
+              const row = horizons[h];
+              const tr = document.createElement('tr');
+              const nkColor = row.ret_nikkei_pct >= 0 ? 'var(--green-bull)' : 'var(--red-bear)';
+              const fxColor = row.fx_impact_pct >= 0 ? '#38bdf8' : '#f87171';
+              const eqColor = row.pure_equity_impact_pct >= 0 ? '#818cf8' : '#f87171';
+              const idColor = row.idiosyncratic_impact_pct >= 0 ? '#94a3b8' : '#64748b';
+
+              tr.innerHTML = `
+                <td><strong style="color: #f1f5f9;">${h}</strong> <span style="font-size:11px; color:#64748b;">(${row.span_bars} bar${row.span_bars > 1 ? 's' : ''})</span></td>
+                <td class="mono" style="color: ${nkColor}; font-weight: 700;">${row.ret_nikkei_pct >= 0 ? '+' : ''}${row.ret_nikkei_pct.toFixed(2)}% <span style="font-size:11px; opacity:0.8;">(${row.ret_nikkei_bps >= 0 ? '+' : ''}${row.ret_nikkei_bps.toFixed(0)} bps)</span></td>
+                <td class="mono" style="color: ${fxColor}; font-weight: 600;">${row.fx_impact_pct >= 0 ? '+' : ''}${row.fx_impact_pct.toFixed(2)}% <span style="font-size:11px; opacity:0.8;">(${row.fx_impact_bps >= 0 ? '+' : ''}${row.fx_impact_bps.toFixed(0)} bps)</span></td>
+                <td class="mono" style="color: ${eqColor}; font-weight: 600;">${row.pure_equity_impact_pct >= 0 ? '+' : ''}${row.pure_equity_impact_pct.toFixed(2)}% <span style="font-size:11px; opacity:0.8;">(${row.pure_equity_impact_bps >= 0 ? '+' : ''}${row.pure_equity_impact_bps.toFixed(0)} bps)</span></td>
+                <td class="mono" style="color: ${idColor}; font-weight: 500;">${row.idiosyncratic_impact_pct >= 0 ? '+' : ''}${row.idiosyncratic_impact_pct.toFixed(2)}% <span style="font-size:11px; opacity:0.8;">(${row.idiosyncratic_impact_bps >= 0 ? '+' : ''}${row.idiosyncratic_impact_bps.toFixed(0)} bps)</span></td>
+                <td>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <div style="flex:1; height:6px; background:#0f172a; border-radius:3px; overflow:hidden; display:flex;">
+                      <div style="width:${row.share_fx_pct}%; background:#38bdf8;" title="FX: ${row.share_fx_pct}%"></div>
+                      <div style="width:${row.share_equity_pct}%; background:#818cf8;" title="Equity: ${row.share_equity_pct}%"></div>
+                      <div style="width:${row.share_idiosyncratic_pct}%; background:#64748b;" title="Idio: ${row.share_idiosyncratic_pct}%"></div>
+                    </div>
+                    <span class="mono" style="font-size:11px; color:#cbd5e1; white-space:nowrap;">${row.share_fx_pct.toFixed(0)}% FX / ${row.share_equity_pct.toFixed(0)}% Eq</span>
+                  </div>
+                </td>
+              `;
+              tbody.appendChild(tr);
+            }
           }
         }
-        assetSelect.value = currentVal;
       }
 
-      // Update Jev AI Rescue & Diagnostics Banner
-      const comp = cmData.comparison || {};
-      const loopEng = comp.loop_engineering || {};
-      const bannerStatus = document.getElementById('cm-banner-engine-status');
-      const bannerLoopStatus = document.getElementById('cm-banner-loop-status');
-      const bannerSummary = document.getElementById('cm-banner-summary');
-      const bannerThresholds = document.getElementById('cm-banner-thresholds');
-      const bannerEdgeLift = document.getElementById('cm-banner-edge-lift');
-      const bannerPruned = document.getElementById('cm-banner-pruned');
-      const bannerModel = document.getElementById('cm-banner-model');
+      let currentCmData = null;
+      let selectedCmAsset = 'aggregate';
 
-      if (bannerStatus) bannerStatus.innerText = comp.engine_status || (cmData.engine_mode === 'jev_ai' ? 'ONLINE (AI GATED)' : 'BASELINE (UNFILTERED)');
-      if (bannerLoopStatus) {
-        if (cmData.engine_mode === 'baseline') {
-          bannerLoopStatus.innerText = '📐 LOOP: BYPASSED (BASELINE)';
-          bannerLoopStatus.style.background = 'rgba(255, 255, 255, 0.05)';
-          bannerLoopStatus.style.color = '#94a3b8';
-          bannerLoopStatus.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+      function updateConfusionMatrixView(assetKey) {
+        selectedCmAsset = assetKey;
+        if (currentCmData) {
+          renderConfusionMatrix(currentCmData, selectedCmAsset);
+        }
+      }
+
+      function renderConfusionMatrix(cmData, selectedAsset = 'aggregate') {
+        if (!cmData) return;
+        currentCmData = cmData;
+
+        // Sync Decision Engine dropdown
+        const engineSelect = document.getElementById('cm-engine-select');
+        if (engineSelect && cmData.engine_mode) {
+          engineSelect.value = cmData.engine_mode;
+        }
+
+        // Populate asset select options once
+        const assetSelect = document.getElementById('cm-asset-select');
+        if (assetSelect && cmData.by_asset) {
+          const currentVal = assetSelect.value || selectedAsset;
+          const existingKeys = new Set(Array.from(assetSelect.options).map(o => o.value));
+          for (const assetName of Object.keys(cmData.by_asset)) {
+            if (!existingKeys.has(assetName)) {
+              const opt = document.createElement('option');
+              opt.value = assetName;
+              opt.innerText = assetName;
+              assetSelect.appendChild(opt);
+            }
+          }
+          assetSelect.value = currentVal;
+        }
+
+        // Update Jev AI Rescue & Diagnostics Banner
+        const comp = cmData.comparison || {};
+        const loopEng = comp.loop_engineering || {};
+        const bannerStatus = document.getElementById('cm-banner-engine-status');
+        const bannerLoopStatus = document.getElementById('cm-banner-loop-status');
+        const bannerSummary = document.getElementById('cm-banner-summary');
+        const bannerThresholds = document.getElementById('cm-banner-thresholds');
+        const bannerEdgeLift = document.getElementById('cm-banner-edge-lift');
+        const bannerPruned = document.getElementById('cm-banner-pruned');
+        const bannerModel = document.getElementById('cm-banner-model');
+
+        if (bannerStatus) bannerStatus.innerText = comp.engine_status || (cmData.engine_mode === 'jev_ai' ? 'ONLINE (AI GATED)' : 'BASELINE (UNFILTERED)');
+        if (bannerLoopStatus) {
+          if (cmData.engine_mode === 'baseline') {
+            bannerLoopStatus.innerText = '📐 LOOP: BYPASSED (BASELINE)';
+            bannerLoopStatus.style.background = 'rgba(255, 255, 255, 0.05)';
+            bannerLoopStatus.style.color = '#94a3b8';
+            bannerLoopStatus.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+          } else {
+            bannerLoopStatus.innerText = loopEng.status === 'CONVERGED_OPTIMAL' ? '🔄 FULL HYBRID LOOP: CONVERGED' : '🔄 FULL HYBRID LOOP: ACTIVE';
+            bannerLoopStatus.style.background = 'rgba(96, 165, 250, 0.2)';
+            bannerLoopStatus.style.color = '#60a5fa';
+            bannerLoopStatus.style.borderColor = '#60a5fa';
+          }
+        }
+        if (bannerSummary) bannerSummary.innerText = comp.rescue_summary || 'Jev AI filters consolidation chop with HOLD_CASH and trades only high-conviction setups.';
+        if (bannerThresholds) {
+          if (cmData.engine_mode === 'baseline') {
+            bannerThresholds.innerText = '⚡ Deadbands: None (Zero-threshold forced binary bets on every micro-tick).';
+            bannerThresholds.style.color = '#94a3b8';
+          } else if (loopEng.autotuned_thresholds) {
+            const t = loopEng.autotuned_thresholds;
+            bannerThresholds.innerText = `⚡ Autotuned Deadbands (δ*): 1m=${t['1m'] ? t['1m'].toFixed(3) : '0.015'}σ | 10m=${t['10m'] ? t['10m'].toFixed(3) : '0.030'}σ | 30m=${t['30m'] ? t['30m'].toFixed(3) : '0.035'}σ | 1h=${t['1h'] ? t['1h'].toFixed(3) : '0.040'}σ`;
+            bannerThresholds.style.color = '#38bdf8';
+          }
+        }
+        if (bannerEdgeLift) {
+          const lift = comp.edge_lift !== undefined ? comp.edge_lift : 0;
+          bannerEdgeLift.innerText = `${lift >= 0 ? '+' : ''}${lift}%`;
+          bannerEdgeLift.style.color = lift >= 0 ? 'var(--green-bull)' : 'var(--red-bear)';
+        }
+        if (bannerPruned) bannerPruned.innerText = `${(comp.false_whipsaws_avoided || 0).toLocaleString()} bars`;
+        if (bannerModel) bannerModel.innerText = comp.jev_model || 'jev-1.13.0';
+
+        // Determine dataset to display
+        let horizonData = {};
+        let totalEval = 0;
+        let totalHits = 0;
+        let totalMisses = 0;
+        let totalNeutrals = 0;
+        let overallHitRate = 0;
+        let overallEdge = 0;
+
+        if (selectedAsset === 'aggregate' || !cmData.by_asset[selectedAsset]) {
+          horizonData = cmData.aggregate || {};
+          const overall = cmData.overall || {};
+          totalEval = overall.total_evaluations || 0;
+          totalHits = overall.total_hits || 0;
+          totalMisses = overall.total_misses || 0;
+          totalNeutrals = overall.total_neutrals || 0;
+          overallHitRate = overall.overall_hit_rate || 0;
+          overallEdge = overall.overall_edge || 0;
         } else {
-          bannerLoopStatus.innerText = loopEng.status === 'CONVERGED_OPTIMAL' ? '🔄 FULL HYBRID LOOP: CONVERGED' : '🔄 FULL HYBRID LOOP: ACTIVE';
-          bannerLoopStatus.style.background = 'rgba(96, 165, 250, 0.2)';
-          bannerLoopStatus.style.color = '#60a5fa';
-          bannerLoopStatus.style.borderColor = '#60a5fa';
+          horizonData = cmData.by_asset[selectedAsset] || {};
+          for (const h of Object.values(horizonData)) {
+            totalEval += h.total;
+            totalHits += h.hits;
+            totalMisses += h.misses;
+            totalNeutrals += (h.neutrals || 0);
+          }
+          overallHitRate = totalEval > 0 ? (totalHits / totalEval * 100).toFixed(1) : 0;
+          overallEdge = (overallHitRate - 50.0).toFixed(1);
         }
-      }
-      if (bannerSummary) bannerSummary.innerText = comp.rescue_summary || 'Jev AI filters consolidation chop with HOLD_CASH and trades only high-conviction setups.';
-      if (bannerThresholds) {
-        if (cmData.engine_mode === 'baseline') {
-          bannerThresholds.innerText = '⚡ Deadbands: None (Zero-threshold forced binary bets on every micro-tick).';
-          bannerThresholds.style.color = '#94a3b8';
-        } else if (loopEng.autotuned_thresholds) {
-          const t = loopEng.autotuned_thresholds;
-          bannerThresholds.innerText = `⚡ Autotuned Deadbands (δ*): 1m=${t['1m'] ? t['1m'].toFixed(3) : '0.015'}σ | 10m=${t['10m'] ? t['10m'].toFixed(3) : '0.030'}σ | 30m=${t['30m'] ? t['30m'].toFixed(3) : '0.035'}σ | 1h=${t['1h'] ? t['1h'].toFixed(3) : '0.040'}σ`;
-          bannerThresholds.style.color = '#38bdf8';
+
+        // Update KPI Header chips
+        const kpiTotal = document.getElementById('cm-kpi-total');
+        const kpiHits = document.getElementById('cm-kpi-hits');
+        const kpiMisses = document.getElementById('cm-kpi-misses');
+        const kpiPruned = document.getElementById('cm-kpi-pruned');
+        const kpiRate = document.getElementById('cm-kpi-rate');
+        const kpiEdge = document.getElementById('cm-kpi-edge');
+
+        if (kpiTotal) kpiTotal.innerText = totalEval.toLocaleString();
+        if (kpiHits) kpiHits.innerText = totalHits.toLocaleString();
+        if (kpiMisses) kpiMisses.innerText = totalMisses.toLocaleString();
+        if (kpiPruned) kpiPruned.innerText = totalNeutrals.toLocaleString();
+        if (kpiRate) kpiRate.innerText = `${overallHitRate}%`;
+        if (kpiEdge) {
+          kpiEdge.innerText = `${overallEdge >= 0 ? '+' : ''}${overallEdge}%`;
+          kpiEdge.style.color = overallEdge >= 0 ? 'var(--green-bull)' : 'var(--red-bear)';
         }
-      }
-      if (bannerEdgeLift) {
-        const lift = comp.edge_lift !== undefined ? comp.edge_lift : 0;
-        bannerEdgeLift.innerText = `${lift >= 0 ? '+' : ''}${lift}%`;
-        bannerEdgeLift.style.color = lift >= 0 ? 'var(--green-bull)' : 'var(--red-bear)';
-      }
-      if (bannerPruned) bannerPruned.innerText = `${(comp.false_whipsaws_avoided || 0).toLocaleString()} bars`;
-      if (bannerModel) bannerModel.innerText = comp.jev_model || 'jev-1.13.0';
 
-      // Determine dataset to display
-      let horizonData = {};
-      let totalEval = 0;
-      let totalHits = 0;
-      let totalMisses = 0;
-      let totalNeutrals = 0;
-      let overallHitRate = 0;
-      let overallEdge = 0;
+        // Render 4 Horizon Cards
+        const cardsGrid = document.getElementById('cm-cards-grid');
+        const tableTbody = document.getElementById('cm-table-tbody');
+        if (!cardsGrid) return;
+        cardsGrid.innerHTML = '';
+        if (tableTbody) tableTbody.innerHTML = '';
 
-      if (selectedAsset === 'aggregate' || !cmData.by_asset[selectedAsset]) {
-        horizonData = cmData.aggregate || {};
-        const overall = cmData.overall || {};
-        totalEval = overall.total_evaluations || 0;
-        totalHits = overall.total_hits || 0;
-        totalMisses = overall.total_misses || 0;
-        totalNeutrals = overall.total_neutrals || 0;
-        overallHitRate = overall.overall_hit_rate || 0;
-        overallEdge = overall.overall_edge || 0;
-      } else {
-        horizonData = cmData.by_asset[selectedAsset] || {};
-        for (const h of Object.values(horizonData)) {
-          totalEval += h.total;
-          totalHits += h.hits;
-          totalMisses += h.misses;
-          totalNeutrals += (h.neutrals || 0);
-        }
-        overallHitRate = totalEval > 0 ? (totalHits / totalEval * 100).toFixed(1) : 0;
-        overallEdge = (overallHitRate - 50.0).toFixed(1);
-      }
+        const horizonOrder = ['1m', '10m', '30m', '1h'];
+        const horizonIcons = { '1m': '⚡', '10m': '⏱️', '30m': '📈', '1h': '🏛️' };
 
-      // Update KPI Header chips
-      const kpiTotal = document.getElementById('cm-kpi-total');
-      const kpiHits = document.getElementById('cm-kpi-hits');
-      const kpiMisses = document.getElementById('cm-kpi-misses');
-      const kpiPruned = document.getElementById('cm-kpi-pruned');
-      const kpiRate = document.getElementById('cm-kpi-rate');
-      const kpiEdge = document.getElementById('cm-kpi-edge');
+        for (const hKey of horizonOrder) {
+          const h = horizonData[hKey];
+          if (!h) continue;
 
-      if (kpiTotal) kpiTotal.innerText = totalEval.toLocaleString();
-      if (kpiHits) kpiHits.innerText = totalHits.toLocaleString();
-      if (kpiMisses) kpiMisses.innerText = totalMisses.toLocaleString();
-      if (kpiPruned) kpiPruned.innerText = totalNeutrals.toLocaleString();
-      if (kpiRate) kpiRate.innerText = `${overallHitRate}%`;
-      if (kpiEdge) {
-        kpiEdge.innerText = `${overallEdge >= 0 ? '+' : ''}${overallEdge}%`;
-        kpiEdge.style.color = overallEdge >= 0 ? 'var(--green-bull)' : 'var(--red-bear)';
-      }
+          const hr = h.hit_rate;
+          const badgeColor = hr >= 56.0 ? 'rgba(0, 255, 136, 0.15)' : (hr >= 51.5 ? 'rgba(96, 165, 250, 0.15)' : 'rgba(255, 77, 109, 0.15)');
+          const badgeTextColor = hr >= 56.0 ? 'var(--green-bull)' : (hr >= 51.5 ? '#60a5fa' : 'var(--red-bear)');
+          const hitsPct = h.total > 0 ? ((h.hits / h.total) * 100).toFixed(1) : 50;
+          const missesPct = (100 - hitsPct).toFixed(1);
 
-      // Render 4 Horizon Cards
-      const cardsGrid = document.getElementById('cm-cards-grid');
-      const tableTbody = document.getElementById('cm-table-tbody');
-      if (!cardsGrid) return;
-      cardsGrid.innerHTML = '';
-      if (tableTbody) tableTbody.innerHTML = '';
+          const tpPct = h.total > 0 ? ((h.tp / h.total) * 100).toFixed(1) : 0;
+          const tnPct = h.total > 0 ? ((h.tn / h.total) * 100).toFixed(1) : 0;
+          const fpPct = h.total > 0 ? ((h.fp / h.total) * 100).toFixed(1) : 0;
+          const fnPct = h.total > 0 ? ((h.fn / h.total) * 100).toFixed(1) : 0;
 
-      const horizonOrder = ['1m', '10m', '30m', '1h'];
-      const horizonIcons = { '1m': '⚡', '10m': '⏱️', '30m': '📈', '1h': '🏛️' };
-
-      for (const hKey of horizonOrder) {
-        const h = horizonData[hKey];
-        if (!h) continue;
-
-        const hr = h.hit_rate;
-        const badgeColor = hr >= 56.0 ? 'rgba(0, 255, 136, 0.15)' : (hr >= 51.5 ? 'rgba(96, 165, 250, 0.15)' : 'rgba(255, 77, 109, 0.15)');
-        const badgeTextColor = hr >= 56.0 ? 'var(--green-bull)' : (hr >= 51.5 ? '#60a5fa' : 'var(--red-bear)');
-        const hitsPct = h.total > 0 ? ((h.hits / h.total) * 100).toFixed(1) : 50;
-        const missesPct = (100 - hitsPct).toFixed(1);
-
-        const tpPct = h.total > 0 ? ((h.tp / h.total) * 100).toFixed(1) : 0;
-        const tnPct = h.total > 0 ? ((h.tn / h.total) * 100).toFixed(1) : 0;
-        const fpPct = h.total > 0 ? ((h.fp / h.total) * 100).toFixed(1) : 0;
-        const fnPct = h.total > 0 ? ((h.fn / h.total) * 100).toFixed(1) : 0;
-
-        const card = document.createElement('div');
-        card.className = 'cm-horizon-card';
-        card.innerHTML = `
+          const card = document.createElement('div');
+          card.className = 'cm-horizon-card';
+          card.innerHTML = `
           <div class="cm-card-head">
             <div class="cm-horizon-name">
               <span>${horizonIcons[hKey] || '⏱️'}</span>
               <span>${h.label}</span>
-              <span style="font-size:10px; color:var(--text-muted); font-weight:normal;">(${h.tau_bars} bar${h.tau_bars>1?'s':''})</span>
+              <span style="font-size:10px; color:var(--text-muted); font-weight:normal;">(${h.tau_bars} bar${h.tau_bars > 1 ? 's' : ''})</span>
             </div>
             <div class="cm-rate-badge" style="background:${badgeColor}; color:${badgeTextColor};">
               ${h.hit_rate}% Hit
@@ -1779,95 +2003,95 @@
             <span>Win L: <strong style="color:#fff;">${h.precision_long}%</strong></span>
             <span>Win S: <strong style="color:#fff;">${h.precision_short}%</strong></span>
             <span>δ*: <strong style="color:#38bdf8;">${h.autotuned_threshold ? h.autotuned_threshold.toFixed(3) : '0.000'}</strong></span>
-            <span>Edge: <strong style="color:${h.edge>=0?'var(--green-bull)':'var(--red-bear)'};">${h.edge>=0?'+':''}${h.edge}%</strong></span>
+            <span>Edge: <strong style="color:${h.edge >= 0 ? 'var(--green-bull)' : 'var(--red-bear)'};">${h.edge >= 0 ? '+' : ''}${h.edge}%</strong></span>
           </div>
         `;
-        cardsGrid.appendChild(card);
+          cardsGrid.appendChild(card);
 
-        // Add to comparison table
-        if (tableTbody) {
-          const statusBadge = h.hit_rate >= 62.0 
-            ? '<span class="badge-buy" style="padding:2px 8px; border-radius:4px; font-weight:700;">👑 ALPHA DOMINANT</span>'
-            : (h.hit_rate >= 56.0 
+          // Add to comparison table
+          if (tableTbody) {
+            const statusBadge = h.hit_rate >= 62.0
+              ? '<span class="badge-buy" style="padding:2px 8px; border-radius:4px; font-weight:700;">👑 ALPHA DOMINANT</span>'
+              : (h.hit_rate >= 56.0
                 ? '<span class="badge-buy" style="padding:2px 8px; border-radius:4px; font-weight:700;">🟢 ALPHA STRONG</span>'
-                : (h.hit_rate >= 51.5 
-                    ? '<span class="badge-neutral" style="padding:2px 8px; border-radius:4px; font-weight:700; color:#60a5fa; border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.1);">🔵 PERSISTENT</span>'
-                    : '<span class="badge-sell" style="padding:2px 8px; border-radius:4px; font-weight:700;">🔴 MEAN REVERTING</span>'));
+                : (h.hit_rate >= 51.5
+                  ? '<span class="badge-neutral" style="padding:2px 8px; border-radius:4px; font-weight:700; color:#60a5fa; border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.1);">🔵 PERSISTENT</span>'
+                  : '<span class="badge-sell" style="padding:2px 8px; border-radius:4px; font-weight:700;">🔴 MEAN REVERTING</span>'));
 
-          const regimeLabel = h.autotuned_regime ? h.autotuned_regime.replace(/_/g, ' ') : 'baseline';
+            const regimeLabel = h.autotuned_regime ? h.autotuned_regime.replace(/_/g, ' ') : 'baseline';
 
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
             <td><strong>${horizonIcons[hKey] || '⏱️'} ${h.label}</strong></td>
-            <td class="mono">${h.tau_bars} bar${h.tau_bars>1?'s':''}</td>
+            <td class="mono">${h.tau_bars} bar${h.tau_bars > 1 ? 's' : ''}</td>
             <td class="mono" style="font-weight:700;">${h.total}</td>
             <td class="mono" style="color:var(--green-bull); font-weight:700;">${h.hits}</td>
             <td class="mono" style="color:var(--red-bear); font-weight:700;">${h.misses}</td>
             <td class="mono" style="color:#fbbf24; font-weight:700;">${h.neutrals || 0}</td>
-            <td class="mono" style="color:${h.hit_rate>=50?'var(--green-bull)':'var(--red-bear)'}; font-weight:800;">${h.hit_rate}%</td>
+            <td class="mono" style="color:${h.hit_rate >= 50 ? 'var(--green-bull)' : 'var(--red-bear)'}; font-weight:800;">${h.hit_rate}%</td>
             <td class="mono" style="color:#38bdf8; font-weight:700;">${h.autotuned_threshold ? h.autotuned_threshold.toFixed(3) : '0.000'}</td>
             <td class="mono" style="font-size:10px; color:#cbd5e1; text-transform:uppercase;">${regimeLabel}</td>
-            <td class="mono" style="color:${h.edge>=0?'var(--green-bull)':'var(--red-bear)'}; font-weight:700;">${h.edge>=0?'+':''}${h.edge}%</td>
+            <td class="mono" style="color:${h.edge >= 0 ? 'var(--green-bull)' : 'var(--red-bear)'}; font-weight:700;">${h.edge >= 0 ? '+' : ''}${h.edge}%</td>
             <td>${statusBadge}</td>
           `;
-          tableTbody.appendChild(tr);
+            tableTbody.appendChild(tr);
+          }
         }
       }
-    }
 
-    function toggleAutoRefresh(enable) {
-      if (enable) {
-        autoRefreshInterval = setInterval(fetchRadarData, 30000);
-      } else {
-        clearInterval(autoRefreshInterval);
-      }
-    }
-
-    // Render AIS Visual Analytics
-    function renderAISAnalytics(brentSig) {
-      const vAn = brentSig.visual_analytics;
-      const mpsi = brentSig.maritime_supply_index;
-      const telem = brentSig.shipping_telemetry;
-      if (!vAn || !mpsi) return;
-
-      const zVal = mpsi.z_maritime || 2.61;
-      document.getElementById('ais-kpi-mpsi').innerText = `${zVal >= 0 ? '+' : ''}${zVal.toFixed(2)}σ`;
-      if (telem && telem.hormuz) {
-        document.getElementById('ais-kpi-hormuz').innerText = `${telem.hormuz.clandestine_rate_pct.toFixed(1)}%`;
-      }
-      if (telem && telem.redsea_bab_el_mandeb) {
-        document.getElementById('ais-kpi-delay').innerText = `+${telem.redsea_bab_el_mandeb.cape_diversion_delay_days.toFixed(0)}d`;
-      }
-      if (telem && telem.energy_state) {
-        document.getElementById('ais-kpi-crack').innerText = `$${telem.energy_state.singapore_gasoil_crack_usd.toFixed(2)}/bbl`;
+      function toggleAutoRefresh(enable) {
+        if (enable) {
+          autoRefreshInterval = setInterval(fetchRadarData, 30000);
+        } else {
+          clearInterval(autoRefreshInterval);
+        }
       }
 
-      // 1. Render Trajectory SVG
-      const traj = vAn.trajectory_comparison;
-      if (traj && traj.maritime_ais_path) {
-        const svgContainer = document.getElementById('ais-trajectory-chart');
-        const minP = Math.min(...traj.lower_band_1sigma, ...traj.pure_technical_path) - 0.10;
-        const maxP = Math.max(...traj.upper_band_1sigma, ...traj.maritime_ais_path) + 0.10;
-        const width = 500;
-        const height = 180;
-        const padX = 40;
-        const padY = 20;
+      // Render AIS Visual Analytics
+      function renderAISAnalytics(brentSig) {
+        const vAn = brentSig.visual_analytics;
+        const mpsi = brentSig.maritime_supply_index;
+        const telem = brentSig.shipping_telemetry;
+        if (!vAn || !mpsi) return;
 
-        const scaleX = (idx) => padX + (idx / (traj.steps_minutes.length - 1)) * (width - 2 * padX);
-        const scaleY = (p) => height - padY - ((p - minP) / (maxP - minP)) * (height - 2 * padY);
+        const zVal = mpsi.z_maritime || 2.61;
+        document.getElementById('ais-kpi-mpsi').innerText = `${zVal >= 0 ? '+' : ''}${zVal.toFixed(2)}σ`;
+        if (telem && telem.hormuz) {
+          document.getElementById('ais-kpi-hormuz').innerText = `${telem.hormuz.clandestine_rate_pct.toFixed(1)}%`;
+        }
+        if (telem && telem.redsea_bab_el_mandeb) {
+          document.getElementById('ais-kpi-delay').innerText = `+${telem.redsea_bab_el_mandeb.cape_diversion_delay_days.toFixed(0)}d`;
+        }
+        if (telem && telem.energy_state) {
+          document.getElementById('ais-kpi-crack').innerText = `$${telem.energy_state.singapore_gasoil_crack_usd.toFixed(2)}/bbl`;
+        }
 
-        // Build path strings
-        let techPoints = traj.pure_technical_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ');
-        let marPoints = traj.maritime_ais_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ');
+        // 1. Render Trajectory SVG
+        const traj = vAn.trajectory_comparison;
+        if (traj && traj.maritime_ais_path) {
+          const svgContainer = document.getElementById('ais-trajectory-chart');
+          const minP = Math.min(...traj.lower_band_1sigma, ...traj.pure_technical_path) - 0.10;
+          const maxP = Math.max(...traj.upper_band_1sigma, ...traj.maritime_ais_path) + 0.10;
+          const width = 500;
+          const height = 180;
+          const padX = 40;
+          const padY = 20;
 
-        // Wedge polygon
-        let wedgePoly = traj.maritime_ais_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ') + ' ' +
-                        traj.pure_technical_path.slice().reverse().map((p, i) => `${scaleX(traj.steps_minutes.length - 1 - i)},${scaleY(p)}`).join(' ');
+          const scaleX = (idx) => padX + (idx / (traj.steps_minutes.length - 1)) * (width - 2 * padX);
+          const scaleY = (p) => height - padY - ((p - minP) / (maxP - minP)) * (height - 2 * padY);
 
-        const wedge1h = traj.physical_supply_wedge_usd[traj.physical_supply_wedge_usd.length - 1];
-        document.getElementById('ais-kpi-wedge').innerText = `+$${wedge1h.toFixed(2)}/bbl`;
+          // Build path strings
+          let techPoints = traj.pure_technical_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ');
+          let marPoints = traj.maritime_ais_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ');
 
-        svgContainer.innerHTML = `
+          // Wedge polygon
+          let wedgePoly = traj.maritime_ais_path.map((p, i) => `${scaleX(i)},${scaleY(p)}`).join(' ') + ' ' +
+            traj.pure_technical_path.slice().reverse().map((p, i) => `${scaleX(traj.steps_minutes.length - 1 - i)},${scaleY(p)}`).join(' ');
+
+          const wedge1h = traj.physical_supply_wedge_usd[traj.physical_supply_wedge_usd.length - 1];
+          document.getElementById('ais-kpi-wedge').innerText = `+$${wedge1h.toFixed(2)}/bbl`;
+
+          svgContainer.innerHTML = `
           <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:100%; overflow:visible;">
             <polygon points="${wedgePoly}" fill="rgba(0, 255, 136, 0.18)" stroke="none" />
             <polyline points="${techPoints}" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="4,4" />
@@ -1879,22 +2103,22 @@
             <text x="${scaleX(traj.steps_minutes.length - 1)}" y="${scaleY(traj.maritime_ais_path[traj.steps_minutes.length - 1]) - 10}" font-size="10" font-weight="700" fill="#00ff88" text-anchor="end">+$${wedge1h.toFixed(2)}/bbl AIS Wedge</text>
           </svg>
         `;
-      }
+        }
 
-      // 2. Render Attribution Bars
-      const wf = vAn.attribution_waterfall;
-      if (wf) {
-        document.getElementById('ais-total-lift-badge').innerText = `+$${wf.total_ais_physical_premium_usd.toFixed(2)}/bbl Lift`;
-        const barsContainer = document.getElementById('ais-attribution-bars');
-        const factors = [
-          { name: "Hormuz Clandestine Constriction", val: wf.hormuz_constriction_lift_usd, color: "#ff4d6d" },
-          { name: "Red Sea Cape Rerouting Lag", val: wf.redsea_cape_rerouting_lift_usd, color: "#38bdf8" },
-          { name: "Singapore Gasoil Crack Pull", val: wf.gasoil_crack_refinery_lift_usd, color: "#fbbf24" },
-          { name: "Futures Curve Backwardation Roll", val: wf.backwardation_roll_lift_usd, color: "#00ff88" },
-          { name: "Microstructure Trend Baseline", val: wf.pure_technical_drift_usd, color: "#94a3b8" }
-        ];
+        // 2. Render Attribution Bars
+        const wf = vAn.attribution_waterfall;
+        if (wf) {
+          document.getElementById('ais-total-lift-badge').innerText = `+$${wf.total_ais_physical_premium_usd.toFixed(2)}/bbl Lift`;
+          const barsContainer = document.getElementById('ais-attribution-bars');
+          const factors = [
+            { name: "Hormuz Clandestine Constriction", val: wf.hormuz_constriction_lift_usd, color: "#ff4d6d" },
+            { name: "Red Sea Cape Rerouting Lag", val: wf.redsea_cape_rerouting_lift_usd, color: "#38bdf8" },
+            { name: "Singapore Gasoil Crack Pull", val: wf.gasoil_crack_refinery_lift_usd, color: "#fbbf24" },
+            { name: "Futures Curve Backwardation Roll", val: wf.backwardation_roll_lift_usd, color: "#00ff88" },
+            { name: "Microstructure Trend Baseline", val: wf.pure_technical_drift_usd, color: "#94a3b8" }
+          ];
 
-        barsContainer.innerHTML = factors.map(f => `
+          barsContainer.innerHTML = factors.map(f => `
           <div>
             <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
               <span style="color:#cbd5e1;">${f.name}</span>
@@ -1905,43 +2129,43 @@
             </div>
           </div>
         `).join('');
-      }
-
-      // 3. Render AIS Predictive Efficacy Confusion Matrix
-      const aisCm = vAn.ais_confusion_matrix || brentSig.ais_confusion_matrix;
-      if (aisCm && aisCm.summary && aisCm.horizons) {
-        const sum = aisCm.summary;
-        const horiz = aisCm.horizons;
-
-        if (document.getElementById('ais-cm-base-hr')) {
-          document.getElementById('ais-cm-base-hr').innerText = `${sum.overall_baseline_hit_rate.toFixed(1)}%`;
-        }
-        if (document.getElementById('ais-cm-ais-hr')) {
-          document.getElementById('ais-cm-ais-hr').innerText = `${sum.overall_ais_hit_rate.toFixed(1)}%`;
-        }
-        if (document.getElementById('ais-cm-lift')) {
-          document.getElementById('ais-cm-lift').innerText = `${sum.overall_hit_rate_lift_pct >= 0 ? '+' : ''}${sum.overall_hit_rate_lift_pct.toFixed(1)}%`;
-        }
-        if (document.getElementById('ais-cm-rescued')) {
-          document.getElementById('ais-cm-rescued').innerText = `🛡️ ${sum.total_whipsaws_rescued} Shorts Vetoed`;
-        }
-        if (document.getElementById('ais-cm-confirmed')) {
-          document.getElementById('ais-cm-confirmed').innerText = `⚡ ${sum.total_breakouts_confirmed} Longs`;
         }
 
-        const tbody = document.getElementById('ais-cm-table-body');
-        if (tbody) {
-          const order = ["1m", "10m", "30m", "1h"];
-          tbody.innerHTML = order.map(hKey => {
-            const h = horiz[hKey];
-            if (!h) return '';
-            const b = h.baseline;
-            const a = h.ais_conditioned;
-            const liftColor = h.delta_hit_rate >= 5.0 ? '#00ff88' : (h.delta_hit_rate >= 0 ? '#38bdf8' : '#ff4d6d');
-            const statusBg = h.delta_hit_rate >= 10.0 ? 'rgba(0,255,136,0.15)' : 'rgba(56,189,248,0.15)';
-            const statusColor = h.delta_hit_rate >= 10.0 ? '#00ff88' : '#38bdf8';
+        // 3. Render AIS Predictive Efficacy Confusion Matrix
+        const aisCm = vAn.ais_confusion_matrix || brentSig.ais_confusion_matrix;
+        if (aisCm && aisCm.summary && aisCm.horizons) {
+          const sum = aisCm.summary;
+          const horiz = aisCm.horizons;
 
-            return `
+          if (document.getElementById('ais-cm-base-hr')) {
+            document.getElementById('ais-cm-base-hr').innerText = `${sum.overall_baseline_hit_rate.toFixed(1)}%`;
+          }
+          if (document.getElementById('ais-cm-ais-hr')) {
+            document.getElementById('ais-cm-ais-hr').innerText = `${sum.overall_ais_hit_rate.toFixed(1)}%`;
+          }
+          if (document.getElementById('ais-cm-lift')) {
+            document.getElementById('ais-cm-lift').innerText = `${sum.overall_hit_rate_lift_pct >= 0 ? '+' : ''}${sum.overall_hit_rate_lift_pct.toFixed(1)}%`;
+          }
+          if (document.getElementById('ais-cm-rescued')) {
+            document.getElementById('ais-cm-rescued').innerText = `🛡️ ${sum.total_whipsaws_rescued} Shorts Vetoed`;
+          }
+          if (document.getElementById('ais-cm-confirmed')) {
+            document.getElementById('ais-cm-confirmed').innerText = `⚡ ${sum.total_breakouts_confirmed} Longs`;
+          }
+
+          const tbody = document.getElementById('ais-cm-table-body');
+          if (tbody) {
+            const order = ["1m", "10m", "30m", "1h"];
+            tbody.innerHTML = order.map(hKey => {
+              const h = horiz[hKey];
+              if (!h) return '';
+              const b = h.baseline;
+              const a = h.ais_conditioned;
+              const liftColor = h.delta_hit_rate >= 5.0 ? '#00ff88' : (h.delta_hit_rate >= 0 ? '#38bdf8' : '#ff4d6d');
+              const statusBg = h.delta_hit_rate >= 10.0 ? 'rgba(0,255,136,0.15)' : 'rgba(56,189,248,0.15)';
+              const statusColor = h.delta_hit_rate >= 10.0 ? '#00ff88' : '#38bdf8';
+
+              return `
               <tr style="border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
                 <td style="padding:8px 10px; font-weight:700; color:#fff;">${h.label}</td>
                 <td style="padding:8px 10px; text-align:center; color:#94a3b8;">${b.hit_rate.toFixed(1)}% <span style="font-size:9px; color:var(--text-muted);">(${b.hits}/${b.total})</span></td>
@@ -1960,76 +2184,76 @@
                 </td>
               </tr>
             `;
-          }).join('');
+            }).join('');
+          }
+
+          const takeaways = aisCm.analytical_takeaways;
+          if (takeaways && takeaways.length >= 3) {
+            const t1 = document.getElementById('ais-cm-takeaway-1');
+            const t2 = document.getElementById('ais-cm-takeaway-2');
+            const t3 = document.getElementById('ais-cm-takeaway-3');
+            if (t1) t1.innerHTML = `• <strong>Microstructure vs Physical Anchor:</strong> ${takeaways[0]}`;
+            if (t2) t2.innerHTML = `• <strong>Whipsaw Trap Prevention:</strong> ${takeaways[1]}`;
+            if (t3) t3.innerHTML = `• <strong>Supply Breakout Confirmation:</strong> ${takeaways[2]}`;
+          }
         }
 
-        const takeaways = aisCm.analytical_takeaways;
-        if (takeaways && takeaways.length >= 3) {
-          const t1 = document.getElementById('ais-cm-takeaway-1');
-          const t2 = document.getElementById('ais-cm-takeaway-2');
-          const t3 = document.getElementById('ais-cm-takeaway-3');
-          if (t1) t1.innerHTML = `• <strong>Microstructure vs Physical Anchor:</strong> ${takeaways[0]}`;
-          if (t2) t2.innerHTML = `• <strong>Whipsaw Trap Prevention:</strong> ${takeaways[1]}`;
-          if (t3) t3.innerHTML = `• <strong>Supply Breakout Confirmation:</strong> ${takeaways[2]}`;
+        // 4. Render Entire Brent Futures Curve Term Structure
+        const curveData = vAn.entire_brent_futures_curve || brentSig.entire_brent_futures_curve;
+        const j1h = brentSig.forward_projections ? brentSig.forward_projections.pred_1h : (brentSig.price ? brentSig.price * 1.008 : null);
+        if (curveData) {
+          renderEntireFuturesCurve(curveData, j1h);
         }
       }
 
-      // 4. Render Entire Brent Futures Curve Term Structure
-      const curveData = vAn.entire_brent_futures_curve || brentSig.entire_brent_futures_curve;
-      const j1h = brentSig.forward_projections ? brentSig.forward_projections.pred_1h : (brentSig.price ? brentSig.price * 1.008 : null);
-      if (curveData) {
-        renderEntireFuturesCurve(curveData, j1h);
-      }
-    }
+      function renderEntireFuturesCurve(curveData, j1hPrice) {
+        if (!curveData || !curveData.strip) return;
+        const strip = curveData.strip;
+        const spreads = curveData.calendar_spreads || {};
+        const storage = curveData.floating_storage_arbitrage || {};
+        const diag = curveData.term_structure_diagnostics || {};
+        const P0 = curveData.prompt_price || 104.59;
 
-    function renderEntireFuturesCurve(curveData, j1hPrice) {
-      if (!curveData || !curveData.strip) return;
-      const strip = curveData.strip;
-      const spreads = curveData.calendar_spreads || {};
-      const storage = curveData.floating_storage_arbitrage || {};
-      const diag = curveData.term_structure_diagnostics || {};
-      const P0 = curveData.prompt_price || 104.59;
+        if (document.getElementById('curve-kpi-prompt')) document.getElementById('curve-kpi-prompt').innerText = `$${P0.toFixed(2)}`;
+        if (document.getElementById('curve-kpi-m1')) document.getElementById('curve-kpi-m1').innerText = `+$${(spreads.prompt_to_m1_usd || 1.70).toFixed(2)}/bbl`;
+        if (document.getElementById('curve-kpi-m6')) document.getElementById('curve-kpi-m6').innerText = `+$${(spreads.prompt_to_m6_usd || 10.40).toFixed(2)}/bbl`;
+        if (document.getElementById('curve-kpi-m12')) document.getElementById('curve-kpi-m12').innerText = `+$${(spreads.prompt_to_m12_usd || 14.60).toFixed(2)}/bbl`;
+        if (document.getElementById('curve-kpi-roll')) document.getElementById('curve-kpi-roll').innerText = `+${(diag.front_roll_yield_annualized_pct || 19.8).toFixed(1)}% p.a.`;
+        if (document.getElementById('curve-kpi-arb')) document.getElementById('curve-kpi-arb').innerText = `$${(storage.m6_storage_net_pnl_usd || -21.80).toFixed(2)}/bbl`;
 
-      if (document.getElementById('curve-kpi-prompt')) document.getElementById('curve-kpi-prompt').innerText = `$${P0.toFixed(2)}`;
-      if (document.getElementById('curve-kpi-m1')) document.getElementById('curve-kpi-m1').innerText = `+$${(spreads.prompt_to_m1_usd || 1.70).toFixed(2)}/bbl`;
-      if (document.getElementById('curve-kpi-m6')) document.getElementById('curve-kpi-m6').innerText = `+$${(spreads.prompt_to_m6_usd || 10.40).toFixed(2)}/bbl`;
-      if (document.getElementById('curve-kpi-m12')) document.getElementById('curve-kpi-m12').innerText = `+$${(spreads.prompt_to_m12_usd || 14.60).toFixed(2)}/bbl`;
-      if (document.getElementById('curve-kpi-roll')) document.getElementById('curve-kpi-roll').innerText = `+${(diag.front_roll_yield_annualized_pct || 19.8).toFixed(1)}% p.a.`;
-      if (document.getElementById('curve-kpi-arb')) document.getElementById('curve-kpi-arb').innerText = `$${(storage.m6_storage_net_pnl_usd || -21.80).toFixed(2)}/bbl`;
+        const jevCond = curveData.jev_ai_conditioning || {};
+        const loopEng = curveData.loop_engineering || {};
+        if (document.getElementById('curve-jev-badge')) {
+          const tilt = jevCond.prompt_tilt_usd !== undefined ? (jevCond.prompt_tilt_usd >= 0 ? '+' : '') + `$${jevCond.prompt_tilt_usd.toFixed(2)}/bbl` : '+$0.00/bbl';
+          const pUp = jevCond.prob_up_pct !== undefined ? `${jevCond.prob_up_pct.toFixed(1)}%` : '50.0%';
+          const act = jevCond.action || 'HOLD_CASH';
+          document.getElementById('curve-jev-badge').innerText = `${jevCond.engine_status || 'ONLINE'} (${act} | P(Up)=${pUp} | Tilt: ${tilt})`;
+        }
+        if (document.getElementById('curve-loop-badge')) {
+          const delta = loopEng.deadband_delta !== undefined ? `δ*=${loopEng.deadband_delta.toFixed(3)}` : 'δ*=0.030';
+          const bias = loopEng.autotuned_bias_usd !== undefined ? (loopEng.autotuned_bias_usd >= 0 ? '+' : '') + loopEng.autotuned_bias_usd.toFixed(3) : '+0.000';
+          document.getElementById('curve-loop-badge').innerText = `${loopEng.status || 'ACTIVE'} (${delta} | Bias: ${bias})`;
+        }
 
-      const jevCond = curveData.jev_ai_conditioning || {};
-      const loopEng = curveData.loop_engineering || {};
-      if (document.getElementById('curve-jev-badge')) {
-        const tilt = jevCond.prompt_tilt_usd !== undefined ? (jevCond.prompt_tilt_usd >= 0 ? '+' : '') + `$${jevCond.prompt_tilt_usd.toFixed(2)}/bbl` : '+$0.00/bbl';
-        const pUp = jevCond.prob_up_pct !== undefined ? `${jevCond.prob_up_pct.toFixed(1)}%` : '50.0%';
-        const act = jevCond.action || 'HOLD_CASH';
-        document.getElementById('curve-jev-badge').innerText = `${jevCond.engine_status || 'ONLINE'} (${act} | P(Up)=${pUp} | Tilt: ${tilt})`;
-      }
-      if (document.getElementById('curve-loop-badge')) {
-        const delta = loopEng.deadband_delta !== undefined ? `δ*=${loopEng.deadband_delta.toFixed(3)}` : 'δ*=0.030';
-        const bias = loopEng.autotuned_bias_usd !== undefined ? (loopEng.autotuned_bias_usd >= 0 ? '+' : '') + loopEng.autotuned_bias_usd.toFixed(3) : '+0.000';
-        document.getElementById('curve-loop-badge').innerText = `${loopEng.status || 'ACTIVE'} (${delta} | Bias: ${bias})`;
-      }
+        const svgContainer = document.getElementById('brent-futures-curve-chart');
+        if (svgContainer) {
+          const minP = Math.min(...strip.map(s => s.price)) - 2.0;
+          const maxP = Math.max(P0, ...strip.map(s => s.price)) + 2.0;
+          const width = 640;
+          const height = 220;
+          const padX = 45;
+          const padY = 25;
 
-      const svgContainer = document.getElementById('brent-futures-curve-chart');
-      if (svgContainer) {
-        const minP = Math.min(...strip.map(s => s.price)) - 2.0;
-        const maxP = Math.max(P0, ...strip.map(s => s.price)) + 2.0;
-        const width = 640;
-        const height = 220;
-        const padX = 45;
-        const padY = 25;
+          const scaleX = (idx) => padX + (idx / (strip.length - 1)) * (width - 2 * padX);
+          const scaleY = (p) => height - padY - ((p - minP) / (maxP - minP)) * (height - 2 * padY);
 
-        const scaleX = (idx) => padX + (idx / (strip.length - 1)) * (width - 2 * padX);
-        const scaleY = (p) => height - padY - ((p - minP) / (maxP - minP)) * (height - 2 * padY);
+          const curvePoints = strip.map((s, i) => `${scaleX(i)},${scaleY(s.price)}`).join(' ');
+          const wedgePoints = strip.map((s, i) => `${scaleX(i)},${scaleY(s.price)}`).join(' ') + ' ' +
+            strip.slice().reverse().map((s, i) => `${scaleX(strip.length - 1 - i)},${scaleY(P0)}`).join(' ');
 
-        const curvePoints = strip.map((s, i) => `${scaleX(i)},${scaleY(s.price)}`).join(' ');
-        const wedgePoints = strip.map((s, i) => `${scaleX(i)},${scaleY(s.price)}`).join(' ') + ' ' +
-                            strip.slice().reverse().map((s, i) => `${scaleX(strip.length - 1 - i)},${scaleY(P0)}`).join(' ');
+          const p1hY = j1hPrice ? scaleY(j1hPrice) : scaleY(P0);
 
-        const p1hY = j1hPrice ? scaleY(j1hPrice) : scaleY(P0);
-
-        svgContainer.innerHTML = `
+          svgContainer.innerHTML = `
           <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:100%; overflow:visible;">
             <line x1="${padX}" y1="${scaleY(P0)}" x2="${width - padX}" y2="${scaleY(P0)}" stroke="rgba(255,255,255,0.25)" stroke-dasharray="4,4" stroke-width="1.5" />
             <text x="${width - padX + 5}" y="${scaleY(P0) + 3}" font-size="9" fill="#cbd5e1">Spot $${P0.toFixed(2)}</text>
@@ -2046,11 +2270,11 @@
             ` : ''}
           </svg>
         `;
-      }
+        }
 
-      const tbody = document.getElementById('brent-curve-strip-tbody');
-      if (tbody) {
-        tbody.innerHTML = strip.map(s => `
+        const tbody = document.getElementById('brent-curve-strip-tbody');
+        if (tbody) {
+          tbody.innerHTML = strip.map(s => `
           <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
             <td style="padding:4px 8px; font-weight:800; color:#ff9f1c;">${s.code}</td>
             <td style="padding:4px 8px; color:#cbd5e1;">${s.label}</td>
@@ -2059,42 +2283,43 @@
             <td style="padding:4px 8px; text-align:right; color:#00ff88; font-weight:700;">+${s.annualized_roll_yield_pct.toFixed(1)}%</td>
           </tr>
         `).join('');
+        }
+
+        if (document.getElementById('curve-storage-text') && storage.mechanism) {
+          document.getElementById('curve-storage-text').innerText = storage.mechanism;
+        }
       }
 
-      if (document.getElementById('curve-storage-text') && storage.mechanism) {
-        document.getElementById('curve-storage-text').innerText = storage.mechanism;
+      function updateScenarioSim() {
+        const hVal = parseFloat(document.getElementById('sim-hormuz-range').value);
+        const cVal = parseFloat(document.getElementById('sim-cape-range').value);
+        const crVal = parseFloat(document.getElementById('sim-crack-range').value);
+
+        document.getElementById('sim-hormuz-val').innerText = `${hVal}%`;
+        document.getElementById('sim-cape-val').innerText = `${cVal} Days`;
+        document.getElementById('sim-crack-val').innerText = `$${crVal}/bbl`;
+
+        const hDelta = ((hVal - 35.0) / 35.0) * 0.75;
+        const cDelta = ((cVal - 0.0) / 12.0) * 0.65;
+        const crDelta = ((crVal - 18.0) / 5.0) * 0.45;
+
+        document.getElementById('sim-hormuz-delta').innerText = `${hDelta >= 0 ? '+' : ''}$${hDelta.toFixed(2)}/bbl`;
+        document.getElementById('sim-cape-delta').innerText = `${cDelta >= 0 ? '+' : ''}$${cDelta.toFixed(2)}/bbl`;
+        document.getElementById('sim-crack-delta').innerText = `${crDelta >= 0 ? '+' : ''}$${crDelta.toFixed(2)}/bbl`;
       }
-    }
 
-    function updateScenarioSim() {
-      const hVal = parseFloat(document.getElementById('sim-hormuz-range').value);
-      const cVal = parseFloat(document.getElementById('sim-cape-range').value);
-      const crVal = parseFloat(document.getElementById('sim-crack-range').value);
+      // Call renderAISAnalytics inside renderDashboard
+      const origRenderDashboard = renderDashboard;
+      renderDashboard = function (data) {
+        origRenderDashboard(data);
+        if (data && data.results && data.results["Brent Crude (BRENT)"]) {
+          renderAISAnalytics(data.results["Brent Crude (BRENT)"]);
+        }
+      };
 
-      document.getElementById('sim-hormuz-val').innerText = `${hVal}%`;
-      document.getElementById('sim-cape-val').innerText = `${cVal} Days`;
-      document.getElementById('sim-crack-val').innerText = `$${crVal}/bbl`;
-
-      const hDelta = ((hVal - 35.0) / 35.0) * 0.75;
-      const cDelta = ((cVal - 0.0) / 12.0) * 0.65;
-      const crDelta = ((crVal - 18.0) / 5.0) * 0.45;
-
-      document.getElementById('sim-hormuz-delta').innerText = `${hDelta >= 0 ? '+' : ''}$${hDelta.toFixed(2)}/bbl`;
-      document.getElementById('sim-cape-delta').innerText = `${cDelta >= 0 ? '+' : ''}$${cDelta.toFixed(2)}/bbl`;
-      document.getElementById('sim-crack-delta').innerText = `${crDelta >= 0 ? '+' : ''}$${crDelta.toFixed(2)}/bbl`;
-    }
-
-    // Call renderAISAnalytics inside renderDashboard
-    const origRenderDashboard = renderDashboard;
-    renderDashboard = function(data) {
-      origRenderDashboard(data);
-      if (data && data.results && data.results["Brent Crude (BRENT)"]) {
-        renderAISAnalytics(data.results["Brent Crude (BRENT)"]);
-      }
-    };
-
-    // Initial load
-    fetchRadarData();
-  </script>
+      // Initial load
+      fetchRadarData();
+    </script>
 </body>
+
 </html>

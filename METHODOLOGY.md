@@ -198,35 +198,87 @@ To model macro spillover and inter-market feedback loops, the system provides tw
 
 ---
 
-### 3.5 Dynamic USD/JPY FX vs Equity Sentiment Conditioning Engine for Nikkei 225
+### 3.5 Dynamic USD/JPY FX vs Equity Sentiment Conditioning & Econometric Decomposition Engine for Nikkei 225
 
 The Nikkei 225 index (`JP225_USD`) exhibits a time-varying structural dependence on two distinct macro transmission channels:
 1. **USD/JPY Currency Channel (Yen Carry & Exporter Translation)**: A depreciating Yen (rising USD/JPY) boosts overseas repatriated profits for Japanese multinational exporters (Toyota, Sony, Keyence, Tokyo Electron) and incentivizes cross-border Yen carry trade leverage. Conversely, sudden Yen appreciation induces violent carry trade unwinds and equity liquidation.
 2. **Global Equity Sentiment Channel (Wall Street Beta)**: Overnight US and European equity sentiment (S&P 500 / Nasdaq momentum) dictates baseline global risk appetite across the Tokyo trading session.
 
-Because the relative dominance of these two drivers shifts across market regimes, the model employs a **Dynamic Time-Varying Beta & Allocation Engine**:
+Because USD/JPY and US equity markets often co-move during global risk-on/risk-off regimes, a naive multi-variable model suffers from severe multicollinearity and conflates currency carry with pure equity sentiment. To resolve this, the system executes a **Rigorous 2-Factor Orthogonalized Decomposition & Multi-Horizon Attribution**:
 
-#### 1. Rolling Micro-Correlation Tracking ($\rho_{\text{NK, FX}}$ and $\rho_{\text{NK, SPX}}$):
-$$\rho_{\text{NK, FX}}(t) = \text{Corr}\left(\mathbf{r}_{\text{NI225}, 30m}, \mathbf{r}_{\text{USDJPY}, 30m}\right)$$
-$$\rho_{\text{NK, SPX}}(t) = \text{Corr}\left(\mathbf{r}_{\text{NI225}, 30m}, \mathbf{r}_{\text{SPX}, 30m}\right)$$
+---
 
-#### 2. Dynamic Driver Intensity & Weights ($w_{\text{FX}}$ vs $w_{\text{Eq}}$):
-$$I_{\text{FX}}(t) = \max\left(0.15, |\rho_{\text{NK, FX}}|\right) \cdot \left(1.0 + \min\left(2.5, 2.0 \cdot |r_{\text{FX}, 5m}| + 0.5 \cdot |Z_{\text{VWAP, FX}}|\right)\right)$$
-$$I_{\text{Eq}}(t) = \max\left(0.15, |\rho_{\text{NK, SPX}}|\right) \cdot \left(1.0 + \min\left(2.5, 1.5 \cdot |r_{\text{SPX}, 5m}| + 0.4 \cdot |Z_{\text{VWAP, SPX}}|\right)\right)$$
+#### 1. Gram-Schmidt Orthogonalization (Pure Equity Sentiment Isolation)
+To isolate true global equity risk appetite independent of currency movements, S&P 500 1-minute returns $\mathbf{r}_{\text{SPX}}$ are projected onto the orthogonal complement of USD/JPY returns $\mathbf{r}_{\text{FX}}$:
 
-Normalized driver allocation weights (constrained to $[0.10, 0.90]$):
-$$w_{\text{FX}}(t) = \text{clip}\left(\frac{I_{\text{FX}}(t)}{I_{\text{FX}}(t) + I_{\text{Eq}}(t)}, 0.10, 0.90\right), \quad w_{\text{Eq}}(t) = 1.0 - w_{\text{FX}}(t)$$
+$$\gamma_{\text{SPX, FX}} = \frac{\text{Cov}\left(\mathbf{r}_{\text{SPX}}, \mathbf{r}_{\text{FX}}\right)}{\text{Var}\left(\mathbf{r}_{\text{FX}}\right) + \epsilon}$$
 
-#### 3. Four Dynamic Driver Regimes (Choice Primitive):
-- **`FX_DOMINANT`** ($w_{\text{FX}} \ge 0.56$): USD/JPY currency momentum and Yen carry trade flows are the leading primary driver of Nikkei 225 price action.
-- **`EQUITY_SENTIMENT_DOMINANT`** ($w_{\text{FX}} < 0.56$): Wall Street risk appetite and S&P 500 equity sentiment dominate over FX currency dynamics.
-- **`DUAL_REINFORCING`**: Both USD/JPY and S&P 500 move in the same direction, compounding directional impulse and expanding Nikkei momentum.
-- **`DECOUPLED_CHOP`**: USD/JPY and S&P 500 exert opposing forces (e.g. Yen strengthening while US stocks surge), dampening trend velocity and causing mean-reverting chop.
+$$\mathbf{r}_{\text{SPX}}^{\perp}(t) = \mathbf{r}_{\text{SPX}}(t) - \gamma_{\text{SPX, FX}} \cdot \mathbf{r}_{\text{FX}}(t)$$
 
-#### 4. Macro Impulse Transmission:
-$$\Delta_{\text{FX}} = (0.35 \cdot r_{\text{FX}, 5m} + 0.15 \cdot Z_{\text{VWAP, FX}}) \cdot \text{sign}(\rho_{\text{NK, FX}})$$
-$$\Delta_{\text{Eq}} = (0.32 \cdot r_{\text{SPX}, 5m} + 0.12 \cdot Z_{\text{VWAP, SPX}}) \cdot \text{sign}(\rho_{\text{NK, SPX}})$$
-$$\text{NetMacroImpact}_{\text{Nikkei}} = w_{\text{FX}} \cdot \Delta_{\text{FX}} + w_{\text{Eq}} \cdot \Delta_{\text{Eq}}$$
+By mathematical construction:
+$$\text{Corr}\left(\mathbf{r}_{\text{SPX}}^{\perp}, \mathbf{r}_{\text{FX}}\right) \equiv 0$$
+$\mathbf{r}_{\text{SPX}}^{\perp}$ represents **Pure Equity Sentiment**, purged of any foreign exchange carry transmission.
+
+---
+
+#### 2. Dynamic Factor Beta Estimation
+Over a rolling 45-minute window $W$, the model estimates instantaneous elasticities via Ordinary Least Squares:
+
+$$\beta_{\text{FX}}(t) = \frac{\text{Cov}\left(\mathbf{r}_{\text{NI225}}, \mathbf{r}_{\text{FX}}\right)}{\text{Var}\left(\mathbf{r}_{\text{FX}}\right) + \epsilon}$$
+
+$$\beta_{\text{Eq}}^{\perp}(t) = \frac{\text{Cov}\left(\mathbf{r}_{\text{NI225}}, \mathbf{r}_{\text{SPX}}^{\perp}\right)}{\text{Var}\left(\mathbf{r}_{\text{SPX}}^{\perp}\right) + \epsilon}$$
+
+$$\alpha_{\text{Idio}}(t) = \mathbb{E}[\mathbf{r}_{\text{NI225}}] - \beta_{\text{FX}} \mathbb{E}[\mathbf{r}_{\text{FX}}] - \beta_{\text{Eq}}^{\perp} \mathbb{E}[\mathbf{r}_{\text{SPX}}^{\perp}]$$
+
+Where:
+- $\beta_{\text{FX}}$ measures Nikkei price elasticity with respect to a 1% move in USD/JPY (typically $+0.6$ to $+1.4$ for exporter-heavy Nikkei).
+- $\beta_{\text{Eq}}^{\perp}$ measures Nikkei price elasticity with respect to pure, currency-neutral Wall Street equity sentiment.
+
+---
+
+#### 3. Exact Multi-Horizon Additive Return Attribution
+For every forward horizon $\tau \in \{1m, 5m, 10m, 30m, 60m\}$, total realized Nikkei movement $\Delta_{\text{NK}}(\tau)$ is decomposed into exact additive components:
+
+$$\Delta_{\text{FX}}(\tau) = \beta_{\text{FX}} \cdot r_{\text{FX}}(\tau)$$
+
+$$\Delta_{\text{PureEquity}}(\tau) = \beta_{\text{Eq}}^{\perp} \cdot \left[r_{\text{SPX}}(\tau) - \gamma_{\text{SPX, FX}} \cdot r_{\text{FX}}(\tau)\right]$$
+
+$$\Delta_{\text{Idio}}(\tau) = \Delta_{\text{NK}}(\tau) - \left[\Delta_{\text{FX}}(\tau) + \Delta_{\text{PureEquity}}(\tau)\right]$$
+
+This enforces the strict econometric identity:
+$$\Delta_{\text{NK}}(\tau) \equiv \Delta_{\text{FX}}(\tau) + \Delta_{\text{PureEquity}}(\tau) + \Delta_{\text{Idio}}(\tau)$$
+
+Both percentage movements ($\%$) and basis point impacts ($\text{bps} = \% \times 100$) are reported alongside factor contribution shares:
+$$\text{Share}_{\text{FX}}(\tau) = \frac{|\Delta_{\text{FX}}(\tau)|}{|\Delta_{\text{FX}}| + |\Delta_{\text{PureEquity}}| + |\Delta_{\text{Idio}}|} \times 100\%$$
+
+---
+
+#### 4. ANOVA Variance Decomposition & Explanatory Power ($R^2$)
+Because the regressors $\mathbf{r}_{\text{FX}}$ and $\mathbf{r}_{\text{SPX}}^{\perp}$ are strictly orthogonal, total Nikkei return variance partitions cleanly:
+
+$$\sigma^2_{\text{Total}} = \beta_{\text{FX}}^2 \sigma^2_{\text{FX}} + (\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{SPX}\perp} + \sigma^2_{\text{Idio}}$$
+
+$$\text{Share}_{\text{Var, FX}} = \frac{\beta_{\text{FX}}^2 \sigma^2_{\text{FX}}}{\sigma^2_{\text{Total}}} \times 100\%, \quad \text{Share}_{\text{Var, PureEquity}} = \frac{(\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{SPX}\perp}}{\sigma^2_{\text{Total}}} \times 100\%$$
+
+$$\text{Share}_{\text{Var, Idio}} = 100\% - (\text{Share}_{\text{Var, FX}} + \text{Share}_{\text{Var, PureEquity}})$$
+
+$$R^2 = \frac{\beta_{\text{FX}}^2 \sigma^2_{\text{FX}} + (\beta_{\text{Eq}}^{\perp})^2 \sigma^2_{\text{SPX}\perp}}{\sigma^2_{\text{Total}}}$$
+
+---
+
+#### 5. Five Primary Movement Driver Regimes (Choice Primitive):
+- **`FX_DOMINANT`** ($\text{Share}_{\text{FX}} \ge 55\%$): USD/JPY currency translation and Yen carry flows are the primary driver of the current move.
+- **`PURE_EQUITY_SENTIMENT`** ($\text{Share}_{\text{PureEquity}} \ge 55\%$): Global equity risk appetite (Wall Street beta) is the primary driver.
+- **`DOMESTIC_IDIOSYNCRATIC`** ($\text{Share}_{\text{Idio}} \ge 55\%$): Local Japanese alpha (BoJ policy, TSE corporate announcements, domestic earnings) is driving price action.
+- **`DUAL_AMPLIFYING`**: Both USD/JPY and Pure Equity Sentiment exert directional pushes in the same direction, expanding trend velocity.
+- **`CROSS_CANCELING`**: USD/JPY and Pure Equity Sentiment pull in opposing directions (e.g. Yen strengthening while US stocks rally), inducing localized chop and spread compression.
+
+---
+
+#### 6. Quanto Quotation & Exporter Margin Dynamics
+For traders utilizing USD-denominated Nikkei CFDs (`JP225_USD` on OANDA vs local Tokyo cash Nikkei `^N225` in JPY):
+$$R_{\text{Local, JPY}} = R_{\text{USD CFD}} + R_{\text{USDJPY}}$$
+The system continuously tracks the **Exporter Margin Translation Spread** (in basis points), isolating the real operational exporter profit expansion from mechanical FX denomination drift.
 
 ---
 

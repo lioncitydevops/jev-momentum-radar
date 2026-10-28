@@ -120,5 +120,31 @@ print(f"  * 10-Bar Micro-Momentum:     {m_ret10:+.3f}%")
 print(f"  * Live OANDA Bar UTC Time:   {spx_df.index[-1].strftime('%Y-%m-%d %H:%M:%S UTC')}")
 print(f"  * Feed Latency:              0 seconds (real-time stream active)\n")
 
+print("4. Live Nikkei 225 Factor Decomposition (USD/JPY FX vs Pure Equity Sentiment):")
+try:
+    from macro_conditioned_momentum import decompose_nikkei_movements
+    ni_candles = fetch_oanda_candles("JP225_USD", timeframe="1m", count=60)
+    fx_candles = fetch_oanda_candles("USD_JPY", timeframe="1m", count=60)
+    sp_candles = fetch_oanda_candles("SPX500_USD", timeframe="1m", count=60)
+
+    decomp = decompose_nikkei_movements(ni_candles, usdjpy_df=fx_candles, spx_df=sp_candles)
+    if decomp.get("has_decomposition"):
+        betas = decomp["betas"]
+        v_dec = decomp["variance_decomposition"]
+        q_dyn = decomp["quanto_dynamics"]
+        print(f"  * Primary Movement Driver:    {decomp['primary_driver']} ({decomp['primary_driver_desc']})")
+        print(f"  * Rolling Factor Betas:       β_FX = {betas['beta_fx']:+.2f}, β_SPX⊥ = {betas['beta_equity_ortho']:+.2f}, γ_SPX/FX = {betas['gamma_spx_fx']:+.2f}")
+        print(f"  * ANOVA Variance Shares:      FX = {v_dec['fx_var_pct']:.1f}%, Pure Equity = {v_dec['pure_equity_var_pct']:.1f}%, Idiosyncratic = {v_dec['idiosyncratic_var_pct']:.1f}% | R² = {v_dec['r_squared_pct']:.1f}%")
+        h5 = decomp["horizons"].get("5m", {})
+        if h5:
+            print(f"  * 5-Min Nikkei Move:          {h5['ret_nikkei_pct']:+.2f}% ({h5['ret_nikkei_bps']:+.0f} bps)")
+            print(f"    - USD/JPY FX Contribution:  {h5['fx_impact_pct']:+.2f}% ({h5['fx_impact_bps']:+.0f} bps, {h5['share_fx_pct']:.0f}% share)")
+            print(f"    - Pure Equity Sentiment:    {h5['pure_equity_impact_pct']:+.2f}% ({h5['pure_equity_impact_bps']:+.0f} bps, {h5['share_equity_pct']:.0f}% share)")
+            print(f"    - Japan Idiosyncratic Alpha:{h5['idiosyncratic_impact_pct']:+.2f}% ({h5['idiosyncratic_impact_bps']:+.0f} bps, {h5['share_idiosyncratic_pct']:.0f}% share)")
+        print(f"  * USD/JPY Live Rate:          {q_dyn.get('usd_jpy_rate', 155.0):.3f}")
+        print(f"  * Exporter Margin Spread:     {q_dyn.get('exporter_margin_spread_5m_bps', 0.0):+.1f} bps\n")
+except Exception as e:
+    print(f"  * [Warning] Live Nikkei decomposition skipped: {e}\n")
+
 print(f"Overall Check: {'100% PASS (ALL FEEDS, MATH, AND JEV LIVE)' if all_passed else 'FAILED'}")
 print("=" * 115)

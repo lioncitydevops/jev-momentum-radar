@@ -855,15 +855,64 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
     if insights:
         st.info("💡 **Cross-Asset Intelligence:**\n\n" + "\n\n".join(insights))
 
-    # Dedicated Nikkei 225 Dynamic Driver Radar Card
+    # Dedicated Nikkei 225 Dynamic Driver Radar & Econometric Decomposition Card
     if nik_dyn and nik_dyn.get("has_fx_driver"):
-        st.markdown("#### 🇯🇵 Nikkei 225 Dynamic Driver Radar: USD/JPY FX vs Global Equity Sentiment")
+        st.markdown("#### 🇯🇵 Nikkei 225 Factor Decomposition: USD/JPY FX vs Pure Equity Sentiment")
+        decomp = nik_dyn.get("decomposition", {})
+        betas = decomp.get("betas", {})
+        v_dec = decomp.get("variance_decomposition", {})
+        q_dyn = decomp.get("quanto_dynamics", {})
+        
         c1, c2, c3, c4 = st.columns(4)
         regime_name = nik_dyn.get("regime", "N/A")
-        c1.metric("Active Driver Regime (Choice)", regime_name, help=nik_dyn.get("regime_desc", ""))
-        c2.metric("USD/JPY FX Weight", f"{nik_dyn.get('fx_weight', 0.5)*100:.1f}%", f"ρ(NK,FX): {nik_dyn.get('rho_nikkei_fx', 0):+.2f}")
-        c3.metric("Equity Sentiment Weight", f"{nik_dyn.get('equity_weight', 0.5)*100:.1f}%", f"ρ(NK,SPX): {nik_dyn.get('rho_nikkei_spx', 0):+.2f}")
-        c4.metric("FX Sensitivity Score / Transmission", f"{nik_dyn.get('fx_sensitivity_score', 50):.1f} / 100", f"P(Trans Noul): {nik_dyn.get('prob_fx_transmission', 0.5)*100:.0f}%")
+        primary_dr = decomp.get("primary_driver", regime_name)
+        c1.metric("Active Driver Regime (Choice)", primary_dr, f"Sub-regime: {regime_name}", help=decomp.get("primary_driver_desc", nik_dyn.get("regime_desc", "")))
+        
+        b_fx = betas.get("beta_fx", 0.0)
+        c2.metric("USD/JPY FX Beta & Weight", f"β={b_fx:+.2f} ({nik_dyn.get('fx_weight', 0.5)*100:.0f}%)", f"ρ(NK,FX): {nik_dyn.get('rho_nikkei_fx', 0):+.2f}")
+        
+        b_eq = betas.get("beta_equity_ortho", 0.0)
+        c3.metric("Pure US Equity Beta & Weight", f"β⊥={b_eq:+.2f} ({nik_dyn.get('equity_weight', 0.5)*100:.0f}%)", f"ρ(NK,SPX): {nik_dyn.get('rho_nikkei_spx', 0):+.2f}")
+        
+        r2_pct = v_dec.get("r_squared_pct", 0.0)
+        c4.metric("Model R² & FX Transmission", f"R²={r2_pct:.1f}%", f"P(Trans Noul): {nik_dyn.get('prob_fx_transmission', 0.5)*100:.0f}%")
+
+        # Multi-Horizon Return Attribution Table & Variance Breakdown
+        horizons_dict = decomp.get("horizons", {})
+        if horizons_dict:
+            with st.expander("🔬 View Multi-Horizon Econometric Attribution & Variance Decomposition Matrix", expanded=True):
+                fx_v = v_dec.get("fx_var_pct", 50.0)
+                eq_v = v_dec.get("pure_equity_var_pct", 30.0)
+                id_v = v_dec.get("idiosyncratic_var_pct", 20.0)
+                st.markdown(
+                    f"**Variance Attribution (ANOVA):** "
+                    f"`USD/JPY FX: {fx_v:.1f}%` • "
+                    f"`Pure Equity Sentiment: {eq_v:.1f}%` • "
+                    f"`Japan Domestic Alpha / Noise: {id_v:.1f}%` • "
+                    f"`Total Model Explanatory Power R²: {r2_pct:.1f}%`"
+                )
+                
+                rows = []
+                for h_k in ["1m", "5m", "10m", "30m", "60m"]:
+                    if h_k in horizons_dict:
+                        h_data = horizons_dict[h_k]
+                        rows.append({
+                            "Forward Horizon": f"{h_k} ({h_data['span_bars']} bars)",
+                            "Total Nikkei Return": f"{h_data['ret_nikkei_pct']:+.2f}% ({h_data['ret_nikkei_bps']:+.0f} bps)",
+                            "USD/JPY FX Impact": f"{h_data['fx_impact_pct']:+.2f}% ({h_data['fx_impact_bps']:+.0f} bps)",
+                            "Pure Equity Sentiment": f"{h_data['pure_equity_impact_pct']:+.2f}% ({h_data['pure_equity_impact_bps']:+.0f} bps)",
+                            "Japan Domestic Alpha": f"{h_data['idiosyncratic_impact_pct']:+.2f}% ({h_data['idiosyncratic_impact_bps']:+.0f} bps)",
+                            "FX Share": f"{h_data['share_fx_pct']:.0f}%",
+                            "Equity Share": f"{h_data['share_equity_pct']:.0f}%",
+                            "Idiosyncratic Share": f"{h_data['share_idiosyncratic_pct']:.0f}%"
+                        })
+                if rows:
+                    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+                st.caption(
+                    f"💡 **Econometric Identity:** Total Nikkei Move ≡ USD/JPY FX Contribution + Pure Equity Sentiment (Orthogonalized SPX) + Japan Domestic Alpha. "
+                    f"USD/JPY FX Quote: {q_dyn.get('usd_jpy_rate', 155.0):.3f} | Exporter Margin Translation Spread: {q_dyn.get('exporter_margin_spread_5m_bps', 0.0):+.1f} bps."
+                )
 
     # Comprehensive JEV Primitives Guide
     with st.expander("📘 TypeSafe Jev System One Output Variables Reference: Score, Choice, and Noul", expanded=False):

@@ -27,6 +27,7 @@ from macro_conditioned_momentum import (
     generate_macro_full_signals,
     generate_rate_only_signals,
     compute_nikkei_dynamic_fx_equity_regime,
+    decompose_nikkei_movements,
     JEV_PRIMITIVES_GUIDE
 )
 
@@ -142,6 +143,63 @@ def run_tests():
     print(f"  * Regime:             {dyn_c['regime']} (Choice)")
     print(f"  * Description:        {dyn_c['regime_desc']}")
     assert dyn_c["regime"] == "DECOUPLED_CHOP", f"Expected DECOUPLED_CHOP, got {dyn_c['regime']}"
+
+    # -------------------------------------------------------------
+    # 2B. Nikkei 225 USD/JPY FX vs Pure Equity Decomposition Engine
+    # -------------------------------------------------------------
+    print("\n[2B] Testing Econometric 2-Factor Decomposition & Multi-Horizon Attribution:")
+    print("-" * 110)
+    decomp = decompose_nikkei_movements(ni_df, usdjpy_df=usdjpy_surging, spx_df=spx_surging, all_dfs=None)
+    assert decomp["has_decomposition"] is True, "Decomposition flagged as inactive"
+    assert "betas" in decomp, "Missing betas dictionary"
+    assert "variance_decomposition" in decomp, "Missing variance_decomposition dictionary"
+    assert "horizons" in decomp, "Missing horizons attribution dictionary"
+
+    betas = decomp["betas"]
+    v_dec = decomp["variance_decomposition"]
+    print(f"  * Rolling Factor Betas:   β_FX={betas['beta_fx']:+.4f}, β_SPX_ortho={betas['beta_equity_ortho']:+.4f}, γ_SPX_on_FX={betas['gamma_spx_fx']:+.4f}")
+    print(f"  * ANOVA Variance Shares:  FX={v_dec['fx_var_pct']:.1f}%, Pure Equity={v_dec['pure_equity_var_pct']:.1f}%, Idiosyncratic={v_dec['idiosyncratic_var_pct']:.1f}% | R²={v_dec['r_squared_pct']:.1f}%")
+    print(f"  * Primary Driver Choice:  {decomp['primary_driver']} ({decomp['primary_driver_desc']})")
+
+    # Verify variance shares sum to ~100%
+    var_total_pct = v_dec["fx_var_pct"] + v_dec["pure_equity_var_pct"] + v_dec["idiosyncratic_var_pct"]
+    assert abs(var_total_pct - 100.0) < 1.0, f"Expected variance shares ~100%, got {var_total_pct}%"
+    assert 0.0 <= v_dec["r_squared"] <= 1.0, f"Invalid R^2: {v_dec['r_squared']}"
+
+    # Verify Exact Additive Horizon Identity: Delta_NK == Delta_FX + Delta_PureEquity + Delta_Idiosyncratic
+    for h_name, h_vals in decomp["horizons"].items():
+        delta_nk = h_vals["ret_nikkei_pct"]
+        delta_sum = h_vals["fx_impact_pct"] + h_vals["pure_equity_impact_pct"] + h_vals["idiosyncratic_impact_pct"]
+        assert abs(delta_nk - delta_sum) < 1e-4, f"Additive identity violated for {h_name}: NK={delta_nk} != sum={delta_sum}"
+        print(f"  * Horizon {h_name:>3} Attribution:  Nikkei={delta_nk:+.3f}% (FX={h_vals['fx_impact_pct']:+.3f}%, Eq={h_vals['pure_equity_impact_pct']:+.3f}%, Idio={h_vals['idiosyncratic_impact_pct']:+.3f}%) [Shares: {h_vals['share_fx_pct']:.0f}% FX, {h_vals['share_equity_pct']:.0f}% Eq]")
+
+    # Verify Quanto / Exporter Margin dynamics
+    q_dyn = decomp.get("quanto_dynamics", {})
+    assert "usd_jpy_rate" in q_dyn, "Missing USD/JPY rate in quanto dynamics"
+    assert "exporter_margin_spread_5m_bps" in q_dyn, "Missing exporter margin spread"
+    print(f"  * Quanto / Exporter Spread: USD/JPY={q_dyn['usd_jpy_rate']}, Exporter Margin={q_dyn['exporter_margin_spread_5m_bps']:+.1f} bps")
+
+    # Synthetic Known Factor Loadings Recovery Test (Beta_FX = 0.85, Beta_SPX = 0.65)
+    np.random.seed(123)
+    dates_synth = pd.date_range(end=pd.Timestamp.now(), periods=50, freq="1min")
+    fx_rets_known = np.random.normal(0.0005, 0.002, 50)
+    sp_rets_known = np.random.normal(0.0003, 0.003, 50)
+    noise_known = np.random.normal(0.0, 0.0004, 50)
+    ni_rets_known = 0.85 * fx_rets_known + 0.65 * sp_rets_known + noise_known
+
+    fx_series = 155.0 * np.cumprod(1.0 + fx_rets_known)
+    sp_series = 5800.0 * np.cumprod(1.0 + sp_rets_known)
+    ni_series = 38000.0 * np.cumprod(1.0 + ni_rets_known)
+
+    df_fx = pd.DataFrame({"Close": fx_series, "High": fx_series+0.1, "Low": fx_series-0.1, "Open": fx_series, "Volume": 1000}, index=dates_synth)
+    df_sp = pd.DataFrame({"Close": sp_series, "High": sp_series+1.0, "Low": sp_series-1.0, "Open": sp_series, "Volume": 1000}, index=dates_synth)
+    df_ni = pd.DataFrame({"Close": ni_series, "High": ni_series+10.0, "Low": ni_series-10.0, "Open": ni_series, "Volume": 1000}, index=dates_synth)
+
+    decomp_synth = decompose_nikkei_movements(df_ni, usdjpy_df=df_fx, spx_df=df_sp)
+    print(f"  * Ground Truth Recovery:  β_FX={decomp_synth['betas']['beta_fx']:.2f} (Target 0.85), β_SPX_raw={decomp_synth['betas']['beta_equity_raw']:.2f} (Target 0.65), R²={decomp_synth['variance_decomposition']['r_squared_pct']:.1f}%")
+    assert decomp_synth['variance_decomposition']['r_squared'] > 0.60, f"Expected R^2 > 0.60, got {decomp_synth['variance_decomposition']['r_squared']}"
+    assert decomp_synth['betas']['beta_fx'] > 0.50, f"Expected Beta_FX > 0.50, got {decomp_synth['betas']['beta_fx']}"
+    assert decomp_synth['betas']['beta_equity_raw'] > 0.40, f"Expected Beta_SPX > 0.40, got {decomp_synth['betas']['beta_equity_raw']}"
 
     # -------------------------------------------------------------
     # 3. TypeSafe Jev System One Output Variables Specification
