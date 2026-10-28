@@ -1422,6 +1422,138 @@
         </div>
       </div>
 
+      <!-- 🇯🇵 Nikkei 225 Econometric Factor Decomposition Panel & Visual Chart -->
+      <div id="nikkei-decomp-panel" style="display: none; margin: 28px 0; background: linear-gradient(180deg, rgba(20, 28, 48, 0.85) 0%, rgba(10, 15, 28, 0.95) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 14px; padding: 22px; box-shadow: 0 12px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);">
+        
+        <!-- Header row with title, subtitle, and live metric badges -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <div>
+            <div style="font-size:16px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+              <span>🇯🇵</span> Nikkei 225 Factor Decomposition Chart & Radar
+              <span style="font-size:10px; background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:6px; padding:2px 8px; font-weight:700; text-transform:uppercase;">Orthogonal 2-Factor OLS</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">
+              Gram-Schmidt Orthogonalization: Separating USD/JPY FX Impact, Pure US Equity Sentiment (SPX⊥), and Japan Domestic Alpha
+            </div>
+          </div>
+          <div id="nikkei-decomp-badges" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- 4 Top KPI Metric Cards -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:18px;">
+          <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(56,189,248,0.2); border-radius:10px; padding:12px;">
+            <div style="font-size:10px; font-weight:700; color:#38bdf8; text-transform:uppercase;">Active Driver Regime (Choice)</div>
+            <div id="kpi-nikkei-regime" style="font-size:15px; font-weight:800; color:#fff; margin-top:4px;">--</div>
+            <div id="kpi-nikkei-regime-desc" style="font-size:10px; color:var(--text-muted); margin-top:2px;">Detecting market driver...</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(56,189,248,0.2); border-radius:10px; padding:12px;">
+            <div style="font-size:10px; font-weight:700; color:#38bdf8; text-transform:uppercase;">USD/JPY FX Beta (β_FX)</div>
+            <div id="kpi-nikkei-beta-fx" style="font-size:15px; font-weight:800; color:#38bdf8; margin-top:4px;">--</div>
+            <div id="kpi-nikkei-corr-fx" style="font-size:10px; color:var(--text-muted); margin-top:2px;">Rolling ρ(NK, FX): --</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(129,140,248,0.2); border-radius:10px; padding:12px;">
+            <div style="font-size:10px; font-weight:700; color:#818cf8; text-transform:uppercase;">Pure US Equity Beta (β_SPX⊥)</div>
+            <div id="kpi-nikkei-beta-spx" style="font-size:15px; font-weight:800; color:#818cf8; margin-top:4px;">--</div>
+            <div id="kpi-nikkei-corr-spx" style="font-size:10px; color:var(--text-muted); margin-top:2px;">Rolling ρ(NK, SPX): --</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(0,255,136,0.2); border-radius:10px; padding:12px;">
+            <div style="font-size:10px; font-weight:700; color:#00ff88; text-transform:uppercase;">Model R² & FX Transmission</div>
+            <div id="kpi-nikkei-r2" style="font-size:15px; font-weight:800; color:#00ff88; margin-top:4px;">--</div>
+            <div id="kpi-nikkei-transmission" style="font-size:10px; color:var(--text-muted); margin-top:2px;">Transmission Likelihood: --</div>
+          </div>
+        </div>
+
+        <!-- Visual Analytics Grid: Left = Multi-Horizon Factor Attribution Waterfall/Bar Chart (SVG); Right = ANOVA Variance Donut Gauge (SVG) -->
+        <div style="display:grid; grid-template-columns:1.4fr 0.6fr; gap:16px; margin-bottom:18px;">
+          
+          <!-- Factor Attribution Bar Chart Container -->
+          <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+              <div style="font-size:12px; font-weight:800; color:#fff;">📊 Multi-Horizon Factor Return Attribution (Basis Points bps)</div>
+              <!-- Legend -->
+              <div style="display:flex; align-items:center; gap:12px; font-size:10px; color:#cbd5e1; flex-wrap:wrap;">
+                <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#fff;"></span> Total Nikkei Move</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#38bdf8;"></span> USD/JPY FX</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#818cf8;"></span> Pure Equity (SPX⊥)</span>
+                <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; border-radius:2px; background:#fbbf24;"></span> Japan Idiosyncratic</span>
+              </div>
+            </div>
+            <div id="nikkei-decomp-chart-svg" style="width:100%; min-height:220px;">
+              <!-- Rendered by SVG -->
+            </div>
+          </div>
+
+          <!-- Variance Attribution ANOVA Gauge & Stacked Progress -->
+          <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-size:12px; font-weight:800; color:#fff;">🎯 ANOVA Variance Breakdown</span>
+                <span id="nikkei-decomp-r2" style="font-size:11px; font-weight:700; color:#00ff88; font-family:'JetBrains Mono',monospace;">Model R²: --</span>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); margin-bottom:12px;">
+                Variance explained by exogenous macro drivers vs domestic idiosyncratic orderflow
+              </div>
+              
+              <!-- Circular Donut SVG Gauge -->
+              <div id="nikkei-variance-donut-svg" style="width:100%; height:130px; display:flex; justify-content:center; align-items:center;">
+                <!-- Rendered by SVG -->
+              </div>
+            </div>
+
+            <!-- Variance Breakdown Chips / Legend -->
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+                <span style="color:#38bdf8; font-weight:600;">USD/JPY FX Driver:</span>
+                <span id="lbl-var-fx" class="mono" style="color:#38bdf8; font-weight:800;">--</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+                <span style="color:#818cf8; font-weight:600;">Pure US Equity Sentiment:</span>
+                <span id="lbl-var-eq" class="mono" style="color:#818cf8; font-weight:800;">--</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+                <span style="color:#fbbf24; font-weight:600;">Japan Domestic Alpha:</span>
+                <span id="lbl-var-id" class="mono" style="color:#fbbf24; font-weight:800;">--</span>
+              </div>
+              <!-- Horizontal Stacked Progress Bar -->
+              <div style="width:100%; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; display:flex; margin-top:4px;">
+                <div id="nikkei-bar-fx" style="width:0%; background:#38bdf8; transition:width 0.4s ease;"></div>
+                <div id="nikkei-bar-eq" style="width:0%; background:#818cf8; transition:width 0.4s ease;"></div>
+                <div id="nikkei-bar-id" style="width:0%; background:#fbbf24; transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Horizon Econometric Attribution Matrix Table -->
+        <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; overflow-x:auto;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:12px; font-weight:800; color:#38bdf8; text-transform:uppercase;">📋 Multi-Horizon Econometric Additive Attribution Matrix</span>
+            <span style="font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">Δ_NK ≡ Δ_FX + Δ_PureEquity + Δ_Idio</span>
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:11px;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:var(--text-muted); font-size:10px; text-transform:uppercase;">
+                <th style="padding:6px 8px; text-align:left;">Horizon</th>
+                <th style="padding:6px 8px; text-align:left;">Total Nikkei Move</th>
+                <th style="padding:6px 8px; text-align:left;">USD/JPY FX Impact</th>
+                <th style="padding:6px 8px; text-align:left;">Pure Equity (SPX⊥)</th>
+                <th style="padding:6px 8px; text-align:left;">Japan Domestic Alpha</th>
+                <th style="padding:6px 8px; text-align:left;">Factor Variance Share</th>
+              </tr>
+            </thead>
+            <tbody id="nikkei-decomp-tbody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+          <div style="margin-top:8px; font-size:10px; color:#94a3b8; line-height:1.5;" id="nikkei-decomp-quanto-caption">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+      </div>
+
       <!-- Cross-Market Relative Strength Matrix -->
       <div class="section-title">📊 Cross-Market 10-Minute Momentum Matrix (CFD)</div>
       <div class="table-container">
@@ -1705,8 +1837,11 @@
         const betas = decomp.betas || {};
         const qDyn = decomp.quanto_dynamics || {};
         const horizons = decomp.horizons || {};
+        const corrs = decomp.rolling_correlations || {};
 
         const driverColor = pDriver.includes('FX') ? '#38bdf8' : (pDriver.includes('EQUITY') ? '#818cf8' : (pDriver.includes('AMPLIFYING') ? '#00ff88' : (pDriver.includes('CANCELING') ? '#fbbf24' : '#e2e8f0')));
+        
+        // 1. Badges
         if (badges) {
           badges.innerHTML = `
             <span style="background: rgba(56, 189, 248, 0.12); border: 1px solid ${driverColor}; color: ${driverColor}; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 800; font-family: 'JetBrains Mono', monospace;">
@@ -1724,11 +1859,51 @@
           `;
         }
 
+        // 2. Top KPI Cards
+        const kpiRegime = document.getElementById('kpi-nikkei-regime');
+        const kpiRegimeDesc = document.getElementById('kpi-nikkei-regime-desc');
+        const kpiBetaFx = document.getElementById('kpi-nikkei-beta-fx');
+        const kpiCorrFx = document.getElementById('kpi-nikkei-corr-fx');
+        const kpiBetaSpx = document.getElementById('kpi-nikkei-beta-spx');
+        const kpiCorrSpx = document.getElementById('kpi-nikkei-corr-spx');
+        const kpiR2 = document.getElementById('kpi-nikkei-r2');
+        const kpiTrans = document.getElementById('kpi-nikkei-transmission');
+
         const fxPct = vDec.fx_var_pct || 0;
         const eqPct = vDec.pure_equity_var_pct || 0;
         const idPct = vDec.idiosyncratic_var_pct || 0;
         const r2Pct = vDec.r_squared_pct || 0;
 
+        if (kpiRegime) {
+          kpiRegime.innerText = pDriver.replace(/_/g, ' ');
+          kpiRegime.style.color = driverColor;
+        }
+        if (kpiRegimeDesc) {
+          kpiRegimeDesc.innerText = decomp.primary_driver_desc || 'Dynamic multi-factor regime.';
+        }
+        if (kpiBetaFx) {
+          kpiBetaFx.innerText = `β=${betas.beta_fx !== undefined ? (betas.beta_fx >= 0 ? '+' : '') + betas.beta_fx.toFixed(2) : '--'}`;
+        }
+        if (kpiCorrFx) {
+          const rFx = corrs.rho_nikkei_fx_30m !== undefined ? (corrs.rho_nikkei_fx_30m >= 0 ? '+' : '') + corrs.rho_nikkei_fx_30m.toFixed(2) : '--';
+          kpiCorrFx.innerText = `Rolling ρ(NK, FX): ${rFx}`;
+        }
+        if (kpiBetaSpx) {
+          kpiBetaSpx.innerText = `β⊥=${betas.beta_equity_ortho !== undefined ? (betas.beta_equity_ortho >= 0 ? '+' : '') + betas.beta_equity_ortho.toFixed(2) : '--'}`;
+        }
+        if (kpiCorrSpx) {
+          const rSpx = corrs.rho_nikkei_spx_30m !== undefined ? (corrs.rho_nikkei_spx_30m >= 0 ? '+' : '') + corrs.rho_nikkei_spx_30m.toFixed(2) : '--';
+          kpiCorrSpx.innerText = `Rolling ρ(NK, SPX): ${rSpx}`;
+        }
+        if (kpiR2) {
+          kpiR2.innerText = `R² = ${r2Pct.toFixed(1)}%`;
+        }
+        if (kpiTrans) {
+          const pTrans = qDyn.prob_fx_transmission !== undefined ? `${(qDyn.prob_fx_transmission * 100).toFixed(0)}%` : '50%';
+          kpiTrans.innerText = `FX Trans P(Noul): ${pTrans}`;
+        }
+
+        // 3. Variance Numbers & Progress Bar
         if (r2El) r2El.innerText = `Model R²: ${r2Pct.toFixed(1)}%`;
         if (barFx) barFx.style.width = `${fxPct}%`;
         if (barEq) barEq.style.width = `${eqPct}%`;
@@ -1737,6 +1912,13 @@
         if (lblEq) lblEq.innerText = `${eqPct.toFixed(1)}%`;
         if (lblId) lblId.innerText = `${idPct.toFixed(1)}%`;
 
+        // 4. Render SVG Factor Attribution Bar Chart
+        renderNikkeiChart(horizons);
+
+        // 5. Render SVG ANOVA Variance Donut Gauge
+        renderNikkeiDonut(vDec);
+
+        // 6. Multi-Horizon Table
         if (tbody) {
           tbody.innerHTML = '';
           const order = ['1m', '5m', '10m', '30m', '60m'];
@@ -1747,22 +1929,22 @@
               const nkColor = row.ret_nikkei_pct >= 0 ? 'var(--green-bull)' : 'var(--red-bear)';
               const fxColor = row.fx_impact_pct >= 0 ? '#38bdf8' : '#f87171';
               const eqColor = row.pure_equity_impact_pct >= 0 ? '#818cf8' : '#f87171';
-              const idColor = row.idiosyncratic_impact_pct >= 0 ? '#94a3b8' : '#64748b';
+              const idColor = row.idiosyncratic_impact_pct >= 0 ? '#fbbf24' : '#f59e0b';
 
               tr.innerHTML = `
-                <td><strong style="color: #f1f5f9;">${h}</strong> <span style="font-size:11px; color:#64748b;">(${row.span_bars} bar${row.span_bars > 1 ? 's' : ''})</span></td>
-                <td class="mono" style="color: ${nkColor}; font-weight: 700;">${row.ret_nikkei_pct >= 0 ? '+' : ''}${row.ret_nikkei_pct.toFixed(2)}% <span style="font-size:11px; opacity:0.8;">(${row.ret_nikkei_bps >= 0 ? '+' : ''}${row.ret_nikkei_bps.toFixed(0)} bps)</span></td>
-                <td class="mono" style="color: ${fxColor}; font-weight: 600;">${row.fx_impact_pct >= 0 ? '+' : ''}${row.fx_impact_pct.toFixed(2)}% <span style="font-size:11px; opacity:0.8;">(${row.fx_impact_bps >= 0 ? '+' : ''}${row.fx_impact_bps.toFixed(0)} bps)</span></td>
-                <td class="mono" style="color: ${eqColor}; font-weight: 600;">${row.pure_equity_impact_pct >= 0 ? '+' : ''}${row.pure_equity_impact_pct.toFixed(2)}% <span style="font-size:11px; opacity:0.8;">(${row.pure_equity_impact_bps >= 0 ? '+' : ''}${row.pure_equity_impact_bps.toFixed(0)} bps)</span></td>
-                <td class="mono" style="color: ${idColor}; font-weight: 500;">${row.idiosyncratic_impact_pct >= 0 ? '+' : ''}${row.idiosyncratic_impact_pct.toFixed(2)}% <span style="font-size:11px; opacity:0.8;">(${row.idiosyncratic_impact_bps >= 0 ? '+' : ''}${row.idiosyncratic_impact_bps.toFixed(0)} bps)</span></td>
-                <td>
+                <td style="padding:6px 8px;"><strong style="color: #f1f5f9;">${h}</strong> <span style="font-size:10px; color:#64748b;">(${row.span_bars} bar${row.span_bars > 1 ? 's' : ''})</span></td>
+                <td class="mono" style="padding:6px 8px; color: ${nkColor}; font-weight: 700;">${row.ret_nikkei_pct >= 0 ? '+' : ''}${row.ret_nikkei_pct.toFixed(2)}% <span style="font-size:10px; opacity:0.8;">(${row.ret_nikkei_bps >= 0 ? '+' : ''}${row.ret_nikkei_bps.toFixed(0)} bps)</span></td>
+                <td class="mono" style="padding:6px 8px; color: ${fxColor}; font-weight: 600;">${row.fx_impact_pct >= 0 ? '+' : ''}${row.fx_impact_pct.toFixed(2)}% <span style="font-size:10px; opacity:0.8;">(${row.fx_impact_bps >= 0 ? '+' : ''}${row.fx_impact_bps.toFixed(0)} bps)</span></td>
+                <td class="mono" style="padding:6px 8px; color: ${eqColor}; font-weight: 600;">${row.pure_equity_impact_pct >= 0 ? '+' : ''}${row.pure_equity_impact_pct.toFixed(2)}% <span style="font-size:10px; opacity:0.8;">(${row.pure_equity_impact_bps >= 0 ? '+' : ''}${row.pure_equity_impact_bps.toFixed(0)} bps)</span></td>
+                <td class="mono" style="padding:6px 8px; color: ${idColor}; font-weight: 500;">${row.idiosyncratic_impact_pct >= 0 ? '+' : ''}${row.idiosyncratic_impact_pct.toFixed(2)}% <span style="font-size:10px; opacity:0.8;">(${row.idiosyncratic_impact_bps >= 0 ? '+' : ''}${row.idiosyncratic_impact_bps.toFixed(0)} bps)</span></td>
+                <td style="padding:6px 8px;">
                   <div style="display:flex; align-items:center; gap:6px;">
                     <div style="flex:1; height:6px; background:#0f172a; border-radius:3px; overflow:hidden; display:flex;">
                       <div style="width:${row.share_fx_pct}%; background:#38bdf8;" title="FX: ${row.share_fx_pct}%"></div>
                       <div style="width:${row.share_equity_pct}%; background:#818cf8;" title="Equity: ${row.share_equity_pct}%"></div>
-                      <div style="width:${row.share_idiosyncratic_pct}%; background:#64748b;" title="Idio: ${row.share_idiosyncratic_pct}%"></div>
+                      <div style="width:${row.share_idiosyncratic_pct}%; background:#fbbf24;" title="Idio: ${row.share_idiosyncratic_pct}%"></div>
                     </div>
-                    <span class="mono" style="font-size:11px; color:#cbd5e1; white-space:nowrap;">${row.share_fx_pct.toFixed(0)}% FX / ${row.share_equity_pct.toFixed(0)}% Eq</span>
+                    <span class="mono" style="font-size:10px; color:#cbd5e1; white-space:nowrap;">${row.share_fx_pct.toFixed(0)}% FX / ${row.share_equity_pct.toFixed(0)}% Eq</span>
                   </div>
                 </td>
               `;
@@ -1770,6 +1952,143 @@
             }
           }
         }
+
+        // 7. Quanto Caption
+        const qCaption = document.getElementById('nikkei-decomp-quanto-caption');
+        if (qCaption) {
+          const spreadStr = qDyn.exporter_margin_spread_5m_bps !== undefined ? (qDyn.exporter_margin_spread_5m_bps >= 0 ? '+' : '') + qDyn.exporter_margin_spread_5m_bps.toFixed(1) : '0.0';
+          qCaption.innerHTML = `💡 <strong>Econometric Identity:</strong> Total Nikkei Return ≡ USD/JPY FX Contribution + Pure Equity Sentiment (Orthogonalized SPX⊥) + Japan Domestic Alpha. USD/JPY FX: <strong style="color:#fff;">${qDyn.usd_jpy_rate ? qDyn.usd_jpy_rate.toFixed(3) : '157.94'}</strong> | Exporter Margin Translation Spread (5m): <strong style="color:#38bdf8;">${spreadStr} bps</strong>.`;
+        }
+      }
+
+      function renderNikkeiChart(horizons) {
+        const container = document.getElementById('nikkei-decomp-chart-svg');
+        if (!container) return;
+
+        const order = ['1m', '5m', '10m', '30m', '60m'];
+        const validHorizons = order.filter(h => horizons[h]);
+        if (validHorizons.length === 0) {
+          container.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:20px;">No horizon attribution data available</div>';
+          return;
+        }
+
+        // Find max absolute bps to scale Y axis symmetrically
+        let maxBps = 10;
+        validHorizons.forEach(h => {
+          const d = horizons[h];
+          const localMax = Math.max(
+            Math.abs(d.ret_nikkei_bps || 0),
+            Math.abs(d.fx_impact_bps || 0),
+            Math.abs(d.pure_equity_impact_bps || 0),
+            Math.abs(d.idiosyncratic_impact_bps || 0)
+          );
+          if (localMax > maxBps) maxBps = localMax;
+        });
+        maxBps = Math.ceil(maxBps * 1.25); // 25% headroom
+
+        const width = 640;
+        const height = 210;
+        const padX = 52;
+        const padY = 22;
+        const chartH = height - 2 * padY;
+        const zeroY = padY + chartH / 2;
+
+        const scaleY = (bps) => zeroY - (bps / maxBps) * (chartH / 2);
+
+        const groupCount = validHorizons.length;
+        const availableW = width - 2 * padX;
+        const groupW = availableW / groupCount;
+        const barW = Math.max(7, Math.min(13, (groupW - 18) / 4));
+
+        let svgHtml = `
+          <svg viewBox="0 0 ${width} ${height}" style="width:100%; height:100%; overflow:visible; font-family:'JetBrains Mono',monospace;">
+            <!-- Grid lines & Y axis ticks -->
+            <line x1="${padX}" y1="${zeroY}" x2="${width - 15}" y2="${zeroY}" stroke="rgba(255,255,255,0.3)" stroke-width="1.2" />
+            <text x="${padX - 8}" y="${zeroY + 3}" font-size="9" fill="#94a3b8" text-anchor="end">0</text>
+
+            <line x1="${padX}" y1="${scaleY(maxBps)}" x2="${width - 15}" y2="${scaleY(maxBps)}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+            <text x="${padX - 8}" y="${scaleY(maxBps) + 3}" font-size="8.5" fill="#94a3b8" text-anchor="end">+${maxBps.toFixed(0)}b</text>
+
+            <line x1="${padX}" y1="${scaleY(-maxBps)}" x2="${width - 15}" y2="${scaleY(-maxBps)}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+            <text x="${padX - 8}" y="${scaleY(-maxBps) + 3}" font-size="8.5" fill="#94a3b8" text-anchor="end">-${maxBps.toFixed(0)}b</text>
+        `;
+
+        validHorizons.forEach((h, gIdx) => {
+          const d = horizons[h];
+          const gCenterX = padX + gIdx * groupW + groupW / 2;
+          const startX = gCenterX - (4 * barW + 3 * 2) / 2;
+
+          const items = [
+            { bps: d.ret_nikkei_bps || 0, color: '#f8fafc', label: 'Total Move' },
+            { bps: d.fx_impact_bps || 0, color: '#38bdf8', label: 'USD/JPY FX' },
+            { bps: d.pure_equity_impact_bps || 0, color: '#818cf8', label: 'Pure Equity' },
+            { bps: d.idiosyncratic_impact_bps || 0, color: '#fbbf24', label: 'Japan Alpha' }
+          ];
+
+          items.forEach((item, bIdx) => {
+            const bx = startX + bIdx * (barW + 2);
+            const valY = scaleY(item.bps);
+            const bHeight = Math.max(1.5, Math.abs(valY - zeroY));
+            const by = item.bps >= 0 ? valY : zeroY;
+
+            svgHtml += `
+              <rect x="${bx}" y="${by}" width="${barW}" height="${bHeight}" fill="${item.color}" rx="1.5">
+                <title>${h} ${item.label}: ${item.bps >= 0 ? '+' : ''}${item.bps.toFixed(1)} bps</title>
+              </rect>
+            `;
+          });
+
+          // Horizon X Label & Total Nikkei badge text
+          svgHtml += `
+            <text x="${gCenterX}" y="${height - 4}" font-size="9.5" font-weight="700" fill="#cbd5e1" text-anchor="middle">${h}</text>
+            <text x="${gCenterX}" y="${zeroY + (d.ret_nikkei_bps >= 0 ? 14 : -6)}" font-size="8" fill="#f8fafc" font-weight="800" text-anchor="middle">
+              ${d.ret_nikkei_bps >= 0 ? '+' : ''}${d.ret_nikkei_bps.toFixed(0)}b
+            </text>
+          `;
+        });
+
+        svgHtml += `</svg>`;
+        container.innerHTML = svgHtml;
+      }
+
+      function renderNikkeiDonut(vDec) {
+        const container = document.getElementById('nikkei-variance-donut-svg');
+        if (!container) return;
+
+        const fxPct = Math.max(0, vDec.fx_var_pct || 0);
+        const eqPct = Math.max(0, vDec.pure_equity_var_pct || 0);
+        const idPct = Math.max(0, vDec.idiosyncratic_var_pct || 0);
+        const r2Pct = vDec.r_squared_pct || 0;
+
+        const r = 38;
+        const circ = 2 * Math.PI * r;
+
+        const fxLen = (fxPct / 100) * circ;
+        const eqLen = (eqPct / 100) * circ;
+        const idLen = (idPct / 100) * circ;
+
+        const fxOffset = 0;
+        const eqOffset = -fxLen;
+        const idOffset = -(fxLen + eqLen);
+
+        container.innerHTML = `
+          <svg viewBox="0 0 120 120" style="width:115px; height:115px; transform: rotate(-90deg); overflow:visible;">
+            <circle cx="60" cy="60" r="${r}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14" />
+            <circle cx="60" cy="60" r="${r}" fill="none" stroke="#38bdf8" stroke-width="14" stroke-dasharray="${fxLen} ${circ - fxLen}" stroke-dashoffset="${fxOffset}">
+              <title>USD/JPY FX: ${fxPct.toFixed(1)}%</title>
+            </circle>
+            <circle cx="60" cy="60" r="${r}" fill="none" stroke="#818cf8" stroke-width="14" stroke-dasharray="${eqLen} ${circ - eqLen}" stroke-dashoffset="${eqOffset}">
+              <title>Pure US Equity: ${eqPct.toFixed(1)}%</title>
+            </circle>
+            <circle cx="60" cy="60" r="${r}" fill="none" stroke="#fbbf24" stroke-width="14" stroke-dasharray="${idLen} ${circ - idLen}" stroke-dashoffset="${idOffset}">
+              <title>Japan Idiosyncratic: ${idPct.toFixed(1)}%</title>
+            </circle>
+            <g style="transform: rotate(90deg); transform-origin: 60px 60px; text-anchor: middle;">
+              <text x="60" y="56" font-size="12" font-weight="900" fill="#00ff88" font-family="'JetBrains Mono',monospace;">${r2Pct.toFixed(0)}%</text>
+              <text x="60" y="68" font-size="7.5" font-weight="700" fill="#94a3b8" letter-spacing="0.5">R² POWER</text>
+            </g>
+          </svg>
+        `;
       }
 
       let currentCmData = null;

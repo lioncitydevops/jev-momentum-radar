@@ -893,9 +893,21 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
                 )
                 
                 rows = []
+                chart_horizons = []
+                chart_nk_bps = []
+                chart_fx_bps = []
+                chart_eq_bps = []
+                chart_id_bps = []
+
                 for h_k in ["1m", "5m", "10m", "30m", "60m"]:
                     if h_k in horizons_dict:
                         h_data = horizons_dict[h_k]
+                        chart_horizons.append(f"{h_k} ({h_data['span_bars']}b)")
+                        chart_nk_bps.append(h_data['ret_nikkei_bps'])
+                        chart_fx_bps.append(h_data['fx_impact_bps'])
+                        chart_eq_bps.append(h_data['pure_equity_impact_bps'])
+                        chart_id_bps.append(h_data['idiosyncratic_impact_bps'])
+
                         rows.append({
                             "Forward Horizon": f"{h_k} ({h_data['span_bars']} bars)",
                             "Total Nikkei Return": f"{h_data['ret_nikkei_pct']:+.2f}% ({h_data['ret_nikkei_bps']:+.0f} bps)",
@@ -906,6 +918,71 @@ if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 200
                             "Equity Share": f"{h_data['share_equity_pct']:.0f}%",
                             "Idiosyncratic Share": f"{h_data['share_idiosyncratic_pct']:.0f}%"
                         })
+                
+                # Interactive Plotly Charts
+                col_chart1, col_chart2 = st.columns([1.5, 0.7])
+                with col_chart1:
+                    fig_bars = go.Figure()
+                    fig_bars.add_trace(go.Bar(
+                        x=chart_horizons,
+                        y=chart_nk_bps,
+                        name="Total Nikkei Move",
+                        marker_color="#f8fafc",
+                        opacity=0.9
+                    ))
+                    fig_bars.add_trace(go.Bar(
+                        x=chart_horizons,
+                        y=chart_fx_bps,
+                        name="USD/JPY FX Impact",
+                        marker_color="#38bdf8"
+                    ))
+                    fig_bars.add_trace(go.Bar(
+                        x=chart_horizons,
+                        y=chart_eq_bps,
+                        name="Pure Equity (SPX⊥)",
+                        marker_color="#818cf8"
+                    ))
+                    fig_bars.add_trace(go.Bar(
+                        x=chart_horizons,
+                        y=chart_id_bps,
+                        name="Japan Domestic Alpha",
+                        marker_color="#fbbf24"
+                    ))
+                    fig_bars.update_layout(
+                        title="📊 Multi-Horizon Factor Return Attribution (Basis Points bps)",
+                        barmode="group",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color="#cbd5e1", size=11),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                        yaxis=dict(title="Return Impact (bps)", gridcolor="rgba(255,255,255,0.08)", zerolinecolor="#cbd5e1"),
+                        xaxis=dict(title="Forward Horizon", gridcolor="rgba(255,255,255,0.08)"),
+                        height=280,
+                        margin=dict(l=40, r=20, t=50, b=30)
+                    )
+                    st.plotly_chart(fig_bars, use_container_width=True)
+
+                with col_chart2:
+                    fig_donut = go.Figure(data=[go.Pie(
+                        labels=["USD/JPY FX", "Pure US Equity", "Japan Idiosyncratic"],
+                        values=[max(0.1, fx_v), max(0.1, eq_v), max(0.1, id_v)],
+                        hole=0.58,
+                        marker_colors=["#38bdf8", "#818cf8", "#fbbf24"],
+                        textinfo="percent+label",
+                        textfont_size=10
+                    )])
+                    fig_donut.update_layout(
+                        title=f"🎯 ANOVA Variance (R²={r2_pct:.1f}%)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color="#cbd5e1", size=11),
+                        showlegend=False,
+                        height=280,
+                        margin=dict(l=20, r=20, t=50, b=20),
+                        annotations=[dict(text=f"R²<br><b>{r2_pct:.1f}%</b>", x=0.5, y=0.5, font_size=14, font_color="#00ff88", showarrow=False)]
+                    )
+                    st.plotly_chart(fig_donut, use_container_width=True)
+
                 if rows:
                     st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 

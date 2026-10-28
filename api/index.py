@@ -433,7 +433,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         mh_data = generate_maritime_brent_signals(df, wti_df=wti_df, loop_feedback=loop_feedback)
         mh_sigs = mh_data["signals"]
     else:
-        mh_data = generate_multi_horizon_signals(df, asset_name=name, tv_rating_score=tv_rating_score, loop_feedback=loop_feedback)
+        mh_data = generate_multi_horizon_signals(df, asset_name=name, tv_rating_score=tv_rating_score, loop_feedback=loop_feedback, all_dfs=macro_dfs)
         mh_sigs = mh_data["signals"]
 
     sig_1m = mh_sigs["forward_1m"]
@@ -1129,11 +1129,11 @@ def serve_home():
 @app.get("/api/radar")
 @app.get("/api/signals")
 @app.get("/radar")
-def get_radar(timeframe: str = "1m", model_variant: str = "standalone", engine_mode: str = "jev_ai"):
+def get_radar(timeframe: str = "1m", model_variant: str = "macro_full", engine_mode: str = "jev_ai"):
     if timeframe not in ["1m", "5m", "1h", "1d"]:
         timeframe = "1m"
     if model_variant not in ["standalone", "rate_only", "macro_full"]:
-        model_variant = "standalone"
+        model_variant = "macro_full"
     if engine_mode not in ["jev_ai", "baseline", "ais_maritime"]:
         engine_mode = "jev_ai"
 
@@ -1176,6 +1176,14 @@ def get_radar(timeframe: str = "1m", model_variant: str = "standalone", engine_m
 
     insights = generate_insights(results)
     nikkei_decomp = results.get("Nikkei 225 (NI225)", {}).get("nikkei_fx_equity_dynamics", {}).get("decomposition") if "Nikkei 225 (NI225)" in results and results["Nikkei 225 (NI225)"].get("nikkei_fx_equity_dynamics") else None
+
+    # Fallback guarantee: if nikkei_decomp is not yet populated, compute directly from raw_dfs
+    if not nikkei_decomp and "Nikkei 225 (NI225)" in raw_dfs and "USD/JPY (USDJPY)" in raw_dfs and "S&P 500 (SPX)" in raw_dfs:
+        try:
+            from macro_conditioned_momentum import decompose_nikkei_movements
+            nikkei_decomp = decompose_nikkei_movements(raw_dfs["Nikkei 225 (NI225)"], raw_dfs["USD/JPY (USDJPY)"], raw_dfs["S&P 500 (SPX)"], all_dfs=raw_dfs)
+        except Exception as _e_dec:
+            print(f"Error computing fallback nikkei decomposition: {_e_dec}")
 
     return {
         "status": "success",
