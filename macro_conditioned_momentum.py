@@ -789,6 +789,18 @@ def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, b
             **res["forward_projections"],
             **bayes_sim["forward_projections"]
         }
+        for hk in ["1m", "10m", "30m", "1h"]:
+            fhk = f"forward_{hk}"
+            if fhk in res and hk in bayes_sim["horizons"]:
+                b_h = bayes_sim["horizons"][hk]
+                res[fhk]["bayes_factor"] = b_h["bayes_factor"]
+                res[fhk]["evidence_badge"] = b_h["evidence_badge"]
+                res[fhk]["evidence_color"] = b_h["evidence_color"]
+                res[fhk]["ci_95"] = b_h["beta_posterior"]["ci_95"]
+                res[fhk]["epistemic_entropy_bits"] = b_h["epistemic_entropy_bits"]
+                res[fhk]["predictive_distribution"] = b_h["predictive_distribution"]
+                res[fhk]["credible_price_interval"] = b_h["predictive_distribution"].get("credible_price_interval_95")
+                res[fhk]["uncertainty_decomposition"] = b_h.get("uncertainty_decomposition")
     except Exception as _e_bsim:
         pass
 
@@ -890,6 +902,18 @@ def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, ni
             **res["forward_projections"],
             **bayes_sim["forward_projections"]
         }
+        for hk in ["1m", "10m", "30m", "1h"]:
+            fhk = f"forward_{hk}"
+            if fhk in res and hk in bayes_sim["horizons"]:
+                b_h = bayes_sim["horizons"][hk]
+                res[fhk]["bayes_factor"] = b_h["bayes_factor"]
+                res[fhk]["evidence_badge"] = b_h["evidence_badge"]
+                res[fhk]["evidence_color"] = b_h["evidence_color"]
+                res[fhk]["ci_95"] = b_h["beta_posterior"]["ci_95"]
+                res[fhk]["epistemic_entropy_bits"] = b_h["epistemic_entropy_bits"]
+                res[fhk]["predictive_distribution"] = b_h["predictive_distribution"]
+                res[fhk]["credible_price_interval"] = b_h["predictive_distribution"].get("credible_price_interval_95")
+                res[fhk]["uncertainty_decomposition"] = b_h.get("uncertainty_decomposition")
     except Exception as _e_bsim:
         pass
 
@@ -1074,10 +1098,10 @@ def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func, 
                 **ip_data["forward_projections"],
                 **bayes_res["forward_projections"]
             }
-            h1m_ext = {**ip_data["h1m"], "bayes_factor": b_1m["bayes_factor"], "evidence_badge": b_1m["evidence_badge"], "ci_95": b_1m["beta_posterior"]["ci_95"]}
-            h10m_ext = {**ip_data["h10m"], "bayes_factor": b_10m["bayes_factor"], "evidence_badge": b_10m["evidence_badge"], "ci_95": b_10m["beta_posterior"]["ci_95"]}
-            h30m_ext = {**ip_data["h30m"], "bayes_factor": b_30m["bayes_factor"], "evidence_badge": b_30m["evidence_badge"], "ci_95": b_30m["beta_posterior"]["ci_95"]}
-            h1h_ext = {**ip_data["h1h"], "bayes_factor": b_1h["bayes_factor"], "evidence_badge": b_1h["evidence_badge"], "ci_95": b_1h["beta_posterior"]["ci_95"]}
+            h1m_ext = {**ip_data["h1m"], "bayes_factor": b_1m["bayes_factor"], "evidence_badge": b_1m["evidence_badge"], "ci_95": b_1m["beta_posterior"]["ci_95"], "epistemic_entropy_bits": b_1m.get("epistemic_entropy_bits"), "credible_price_interval": b_1m["predictive_distribution"].get("credible_price_interval_95"), "uncertainty_decomposition": b_1m.get("uncertainty_decomposition")}
+            h10m_ext = {**ip_data["h10m"], "bayes_factor": b_10m["bayes_factor"], "evidence_badge": b_10m["evidence_badge"], "ci_95": b_10m["beta_posterior"]["ci_95"], "epistemic_entropy_bits": b_10m.get("epistemic_entropy_bits"), "credible_price_interval": b_10m["predictive_distribution"].get("credible_price_interval_95"), "uncertainty_decomposition": b_10m.get("uncertainty_decomposition")}
+            h30m_ext = {**ip_data["h30m"], "bayes_factor": b_30m["bayes_factor"], "evidence_badge": b_30m["evidence_badge"], "ci_95": b_30m["beta_posterior"]["ci_95"], "epistemic_entropy_bits": b_30m.get("epistemic_entropy_bits"), "credible_price_interval": b_30m["predictive_distribution"].get("credible_price_interval_95"), "uncertainty_decomposition": b_30m.get("uncertainty_decomposition")}
+            h1h_ext = {**ip_data["h1h"], "bayes_factor": b_1h["bayes_factor"], "evidence_badge": b_1h["evidence_badge"], "ci_95": b_1h["beta_posterior"]["ci_95"], "epistemic_entropy_bits": b_1h.get("epistemic_entropy_bits"), "credible_price_interval": b_1h["predictive_distribution"].get("credible_price_interval_95"), "uncertainty_decomposition": b_1h.get("uncertainty_decomposition")}
         else:
             h1m_ext = h10m_ext = h30m_ext = h1h_ext = {}
 

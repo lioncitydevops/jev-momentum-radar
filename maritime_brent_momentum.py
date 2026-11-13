@@ -601,6 +601,7 @@ def simulate_calibrated_maritime_brent_prior(
             "evidence_badge": b_1m["evidence_badge"],
             "ci_95": b_1m["beta_posterior"]["ci_95"],
             "credible_price_interval": b_1m["continuous_predictive"]["credible_price_interval_95"],
+            "uncertainty_decomposition": b_1m.get("uncertainty_decomposition"),
             "epistemic_entropy_bits": b_1m["epistemic_entropy_bits"]
         },
         "forward_10m": {
@@ -613,6 +614,7 @@ def simulate_calibrated_maritime_brent_prior(
             "evidence_badge": b_10m["evidence_badge"],
             "ci_95": b_10m["beta_posterior"]["ci_95"],
             "credible_price_interval": b_10m["continuous_predictive"]["credible_price_interval_95"],
+            "uncertainty_decomposition": b_10m.get("uncertainty_decomposition"),
             "epistemic_entropy_bits": b_10m["epistemic_entropy_bits"]
         },
         "forward_30m": {
@@ -625,6 +627,7 @@ def simulate_calibrated_maritime_brent_prior(
             "evidence_badge": b_30m["evidence_badge"],
             "ci_95": b_30m["beta_posterior"]["ci_95"],
             "credible_price_interval": b_30m["continuous_predictive"]["credible_price_interval_95"],
+            "uncertainty_decomposition": b_30m.get("uncertainty_decomposition"),
             "epistemic_entropy_bits": b_30m["epistemic_entropy_bits"]
         },
         "forward_1h": {
@@ -637,6 +640,7 @@ def simulate_calibrated_maritime_brent_prior(
             "evidence_badge": b_1h["evidence_badge"],
             "ci_95": b_1h["beta_posterior"]["ci_95"],
             "credible_price_interval": b_1h["continuous_predictive"]["credible_price_interval_95"],
+            "uncertainty_decomposition": b_1h.get("uncertainty_decomposition"),
             "epistemic_entropy_bits": b_1h["epistemic_entropy_bits"]
         }
     }
@@ -804,6 +808,7 @@ def query_typesafe_jev_maritime_brent(
                 "evidence_badge": b_1m["evidence_badge"],
                 "ci_95": b_1m["beta_posterior"]["ci_95"],
                 "credible_price_interval": b_1m["continuous_predictive"]["credible_price_interval_95"],
+                "uncertainty_decomposition": b_1m.get("uncertainty_decomposition"),
                 "epistemic_entropy_bits": b_1m["epistemic_entropy_bits"]
             },
             "forward_10m": {
@@ -816,6 +821,7 @@ def query_typesafe_jev_maritime_brent(
                 "evidence_badge": b_10m["evidence_badge"],
                 "ci_95": b_10m["beta_posterior"]["ci_95"],
                 "credible_price_interval": b_10m["continuous_predictive"]["credible_price_interval_95"],
+                "uncertainty_decomposition": b_10m.get("uncertainty_decomposition"),
                 "epistemic_entropy_bits": b_10m["epistemic_entropy_bits"]
             },
             "forward_30m": {
@@ -828,6 +834,7 @@ def query_typesafe_jev_maritime_brent(
                 "evidence_badge": b_30m["evidence_badge"],
                 "ci_95": b_30m["beta_posterior"]["ci_95"],
                 "credible_price_interval": b_30m["continuous_predictive"]["credible_price_interval_95"],
+                "uncertainty_decomposition": b_30m.get("uncertainty_decomposition"),
                 "epistemic_entropy_bits": b_30m["epistemic_entropy_bits"]
             },
             "forward_1h": {
@@ -840,6 +847,7 @@ def query_typesafe_jev_maritime_brent(
                 "evidence_badge": b_1h["evidence_badge"],
                 "ci_95": b_1h["beta_posterior"]["ci_95"],
                 "credible_price_interval": b_1h["continuous_predictive"]["credible_price_interval_95"],
+                "uncertainty_decomposition": b_1h.get("uncertainty_decomposition"),
                 "epistemic_entropy_bits": b_1h["epistemic_entropy_bits"]
             },
             "raw_response": data
