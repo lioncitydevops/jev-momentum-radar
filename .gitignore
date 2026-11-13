@@ -26,3 +26,5 @@ scratch/
 
 .vercel
 .env*
+
+audit_results.json

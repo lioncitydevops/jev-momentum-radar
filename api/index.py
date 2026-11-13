@@ -45,7 +45,8 @@ ASSETS = {
         "tv_scan_ticker": "SP:SPX",
         "flag": "🇺🇸",
         "desc": "S&P 500 Index / CFD",
-        "market": "cfd"
+        "market": "cfd",
+        "group": "equity"
     },
     "Nasdaq 100 (NDX)": {
         "symbol": "^NDX",
@@ -54,7 +55,8 @@ ASSETS = {
         "tv_scan_ticker": "NASDAQ:NDX",
         "flag": "💻",
         "desc": "Nasdaq 100 Index / 24H CFD",
-        "market": "cfd"
+        "market": "cfd",
+        "group": "equity"
     },
     "Russell 2000 (RUT)": {
         "symbol": "^RUT",
@@ -63,7 +65,8 @@ ASSETS = {
         "tv_scan_ticker": "TVC:RUT",
         "flag": "🚀",
         "desc": "Russell 2000 Index / CFD",
-        "market": "cfd"
+        "market": "cfd",
+        "group": "equity"
     },
     "Nikkei 225 (NI225)": {
         "symbol": "^N225",
@@ -72,7 +75,53 @@ ASSETS = {
         "tv_scan_ticker": "TVC:NI225",
         "flag": "🇯🇵",
         "desc": "Nikkei 225 Index / CFD",
-        "market": "cfd"
+        "market": "cfd",
+        "group": "equity"
+    },
+    # U.S. Treasury Benchmark Yield Curve (Lined Up in Order: 2Y -> 5Y -> 10Y -> 30Y)
+    "UST 2yr (US02Y)": {
+        "symbol": "^2YY",
+        "oanda": "USB02Y_USD",
+        "tv_ticker": "TVC:US02Y",
+        "tv_scan_ticker": "TVC:US02Y",
+        "flag": "🏛️",
+        "desc": "2-Year U.S. Treasury Note Yield / CFD",
+        "market": "cfd",
+        "group": "treasury",
+        "tenor": "2Y"
+    },
+    "UST 5yr (US05Y)": {
+        "symbol": "^FVX",
+        "oanda": "USB05Y_USD",
+        "tv_ticker": "TVC:US05Y",
+        "tv_scan_ticker": "TVC:US05Y",
+        "flag": "🏛️",
+        "desc": "5-Year U.S. Treasury Note Yield / CFD",
+        "market": "cfd",
+        "group": "treasury",
+        "tenor": "5Y"
+    },
+    "UST 10yr (TNX)": {
+        "symbol": "^TNX",
+        "oanda": "USB10Y_USD",
+        "tv_ticker": "TVC:US10Y",
+        "tv_scan_ticker": "TVC:US10Y",
+        "flag": "🏛️",
+        "desc": "10-Year U.S. Treasury Yield Index / CFD",
+        "market": "cfd",
+        "group": "treasury",
+        "tenor": "10Y"
+    },
+    "UST 30yr (TYX)": {
+        "symbol": "^TYX",
+        "oanda": "USB30Y_USD",
+        "tv_ticker": "TVC:US30Y",
+        "tv_scan_ticker": "TVC:US30Y",
+        "flag": "🏛️",
+        "desc": "30-Year U.S. Treasury Bond Yield / CFD",
+        "market": "cfd",
+        "group": "treasury",
+        "tenor": "30Y"
     },
     "USD/JPY (USDJPY)": {
         "symbol": "JPY=X",
@@ -81,16 +130,8 @@ ASSETS = {
         "tv_scan_ticker": "FX_IDC:USDJPY",
         "flag": "💴",
         "desc": "USD/JPY Foreign Exchange CFD",
-        "market": "cfd"
-    },
-    "10Y Treasury (TNX)": {
-        "symbol": "^TNX",
-        "oanda": "USB10Y_USD",
-        "tv_ticker": "TVC:US10Y",
-        "tv_scan_ticker": "TVC:US10Y",
-        "flag": "🏛️",
-        "desc": "10-Year U.S. Treasury Yield Index / CFD",
-        "market": "cfd"
+        "market": "cfd",
+        "group": "fx"
     },
     "WTI Crude (WTI)": {
         "symbol": "CL=F",
@@ -99,7 +140,8 @@ ASSETS = {
         "tv_scan_ticker": "FX:USOIL",
         "flag": "🛢️",
         "desc": "WTI Light Sweet Crude Oil CFD",
-        "market": "cfd"
+        "market": "cfd",
+        "group": "commodity"
     },
     "Brent Crude (BRENT)": {
         "symbol": "BZ=F",
@@ -108,7 +150,8 @@ ASSETS = {
         "tv_scan_ticker": "FX:UKOIL",
         "flag": "🌊",
         "desc": "Brent Crude Oil CFD",
-        "market": "cfd"
+        "market": "cfd",
+        "group": "commodity"
     }
 }
 
@@ -223,31 +266,43 @@ def fetch_cfd_candles(symbol: str, timeframe: str = "1m", oanda_inst: str = None
         except Exception as e:
             print(f"OANDA API fetch failed for {oanda_inst}: {e}")
 
-    try:
-        range_str = "1d" if timeframe == "1m" else ("5d" if timeframe == "5m" else "1mo")
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval={timeframe}&range={range_str}"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        resp = requests.get(url, headers=headers, timeout=3.5)
-        if resp.status_code == 200:
-            res_json = resp.json()
-            chart_res = res_json.get("chart", {}).get("result")
-            if chart_res and len(chart_res) > 0:
-                data = chart_res[0]
-                timestamps = data.get("timestamp", [])
-                quote = data.get("indicators", {}).get("quote", [{}])[0]
-                if timestamps and quote.get("close"):
-                    df = pd.DataFrame({
-                        "Timestamp": timestamps,
-                        "Open": quote.get("open", []),
-                        "High": quote.get("high", []),
-                        "Low": quote.get("low", []),
-                        "Close": quote.get("close", []),
-                        "Volume": quote.get("volume", [0] * len(timestamps)),
-                    }).dropna(subset=["Close"]).reset_index(drop=True)
-                    if len(df) >= 15:
-                        return df
-    except Exception as e:
-        print(f"Yahoo fallback failed for {symbol}: {e}")
+    symbols_to_try = [symbol]
+    if symbol == "^2YY":
+        symbols_to_try.extend(["ZT=F", "2YY=F"])
+    elif symbol == "^FVX":
+        symbols_to_try.extend(["ZF=F"])
+    elif symbol == "^TNX":
+        symbols_to_try.extend(["ZN=F"])
+    elif symbol == "^TYX":
+        symbols_to_try.extend(["ZB=F"])
+
+    range_str = "1d" if timeframe == "1m" else ("5d" if timeframe == "5m" else "1mo")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
+    for s in symbols_to_try:
+        try:
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{s}?interval={timeframe}&range={range_str}"
+            resp = requests.get(url, headers=headers, timeout=3.5)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                chart_res = res_json.get("chart", {}).get("result")
+                if chart_res and len(chart_res) > 0:
+                    data = chart_res[0]
+                    timestamps = data.get("timestamp", [])
+                    quote = data.get("indicators", {}).get("quote", [{}])[0]
+                    if timestamps and quote.get("close"):
+                        df = pd.DataFrame({
+                            "Timestamp": timestamps,
+                            "Open": quote.get("open", []),
+                            "High": quote.get("high", []),
+                            "Low": quote.get("low", []),
+                            "Close": quote.get("close", []),
+                            "Volume": quote.get("volume", [0] * len(timestamps)),
+                        }).dropna(subset=["Close"]).reset_index(drop=True)
+                        if len(df) >= 10:
+                            return df
+        except Exception as e:
+            continue
 
     # Fallback to high-fidelity synthetic candles from TradingView scan metrics
     if tv_metric and tv_metric.get("close"):
@@ -258,8 +313,13 @@ def fetch_cfd_candles(symbol: str, timeframe: str = "1m", oanda_inst: str = None
             atr=tv_metric.get("atr")
         )
 
-    # Generic emergency fallback
-    return generate_synthetic_candles(price=100.0, session_change=0.0)
+    # Generic emergency fallback with realistic base defaults
+    base_defaults = {
+        "^2YY": 4.28, "^FVX": 4.18, "^TNX": 4.45, "^TYX": 4.68,
+        "ZT=F": 103.5, "ZF=F": 107.2, "ZN=F": 110.1, "ZB=F": 116.8
+    }
+    fallback_price = base_defaults.get(symbol, 100.0)
+    return generate_synthetic_candles(price=fallback_price, session_change=0.0)
 
 def call_jev_api(state_str: str) -> dict:
     typesafe_key = os.getenv("TYPESAFE_API_KEY", "").strip() or TYPESAFE_API_KEY
@@ -420,13 +480,15 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
 
     # Multi-Horizon Trend Signals based on selected Model Variant (standalone vs rate_only vs macro_full)
     is_equity = name in ["S&P 500 (SPX)", "Nasdaq 100 (NDX)", "Russell 2000 (RUT)", "Nikkei 225 (NI225)"]
-    has_macro = macro_dfs and "10Y Treasury (TNX)" in macro_dfs and macro_dfs["10Y Treasury (TNX)"] is not None
+    tnx_key = "UST 10yr (TNX)" if (macro_dfs and "UST 10yr (TNX)" in macro_dfs) else ("10Y Treasury (TNX)" if (macro_dfs and "10Y Treasury (TNX)" in macro_dfs) else None)
+    has_macro = macro_dfs and tnx_key is not None and macro_dfs[tnx_key] is not None
+    tnx_df = macro_dfs[tnx_key] if has_macro else None
 
     if is_equity and model_variant == "rate_only" and has_macro:
-        mh_data = generate_rate_only_signals(df, macro_dfs["10Y Treasury (TNX)"], equity_name=name, all_dfs=macro_dfs, loop_feedback=loop_feedback)
+        mh_data = generate_rate_only_signals(df, tnx_df, equity_name=name, all_dfs=macro_dfs, loop_feedback=loop_feedback)
         mh_sigs = mh_data["signals"]
     elif is_equity and model_variant == "macro_full" and has_macro and "Brent Crude (BRENT)" in macro_dfs and "WTI Crude (WTI)" in macro_dfs:
-        mh_data = generate_macro_full_signals(df, macro_dfs["10Y Treasury (TNX)"], macro_dfs["Brent Crude (BRENT)"], macro_dfs["WTI Crude (WTI)"], equity_name=name, all_dfs=macro_dfs, loop_feedback=loop_feedback)
+        mh_data = generate_macro_full_signals(df, tnx_df, macro_dfs["Brent Crude (BRENT)"], macro_dfs["WTI Crude (WTI)"], equity_name=name, all_dfs=macro_dfs, loop_feedback=loop_feedback)
         mh_sigs = mh_data["signals"]
     elif name == "Brent Crude (BRENT)":
         wti_df = macro_dfs.get("WTI Crude (WTI)") if macro_dfs else None
@@ -467,7 +529,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
 
     last_df = df.iloc[-45:]
     candles = []
-    decimals = 3 if "^TNX" in ASSETS[name]["symbol"] else 2
+    is_ust = ASSETS.get(name, {}).get("group") == "treasury" or price < 15
+    decimals = 3 if is_ust else 2
     for _, row in last_df.iterrows():
         candles.append({
             "t": int(row["Timestamp"]),
@@ -638,12 +701,20 @@ def generate_insights(results):
             else:
                 insights.append({"type": "neutral", "text": f"🌏 🇯🇵 Nikkei Equity-Dominant Regime: Global Wall Street risk appetite ({w_eq:.0f}% weight) leading over FX carry dynamics. {decomp_summary}"})
 
-    if "10Y Treasury (TNX)" in results:
-        tnx = results["10Y Treasury (TNX)"]
+    tnx = results.get("UST 10yr (TNX)", results.get("10Y Treasury (TNX)"))
+    ust2 = results.get("UST 2yr (US02Y)", results.get("UST 2yr"))
+    if tnx:
         if tnx["ret_6"] > 0.15:
             insights.append({"type": "warn", "text": f"🏛️ Rising 10Y Yields Pressure: 10Y Treasury yield jumping ({tnx['ret_6']:+.2f}% over 6 bars), acting as a headwind for growth tech."})
         elif tnx["ret_6"] < -0.15:
             insights.append({"type": "bull", "text": f"🏛️ Yield Relief: 10Y Treasury yield cooling ({tnx['ret_6']:+.2f}%), providing valuation breathing room for Equities."})
+
+    if tnx and ust2:
+        spread_2s10 = tnx["price"] - ust2["price"]
+        if spread_2s10 < -0.01:
+            insights.append({"type": "warn", "text": f"🏛️ UST 2s10s Yield Curve Inversion ({spread_2s10:+.2f}% / {spread_2s10*100:+.0f} bps): 2Y yield exceeds 10Y benchmark, signaling tight monetary stance & recessionary flattening."})
+        elif spread_2s10 > 0.20:
+            insights.append({"type": "bull", "text": f"📈 UST 2s10s Normal Steepening ({spread_2s10:+.2f}% / {spread_2s10*100:+.0f} bps): Positive term premium healthy, supporting commercial bank duration and equity valuation."})
 
     if "WTI Crude (WTI)" in results and "Brent Crude (BRENT)" in results:
         wti = results["WTI Crude (WTI)"]
@@ -1150,8 +1221,12 @@ def get_radar(timeframe: str = "1m", model_variant: str = "macro_full", engine_m
         for future in concurrent.futures.as_completed(futures):
             name = futures[future]
             df = future.result()
-            if df is not None and len(df) >= 15:
+            if df is not None and len(df) >= 10:
                 raw_dfs[name] = df
+
+    # Map aliases for raw_dfs
+    if "UST 10yr (TNX)" in raw_dfs and "10Y Treasury (TNX)" not in raw_dfs:
+        raw_dfs["10Y Treasury (TNX)"] = raw_dfs["UST 10yr (TNX)"]
 
     # 1. First compute live confusion matrix with walk-forward autotuning across all raw_dfs
     confusion_matrix = compute_live_confusion_matrix(raw_dfs, engine_mode=engine_mode)
@@ -1173,6 +1248,10 @@ def get_radar(timeframe: str = "1m", model_variant: str = "macro_full", engine_m
             )
             if sig:
                 results[name] = sig
+
+    # Backward compatibility alias
+    if "UST 10yr (TNX)" in results and "10Y Treasury (TNX)" not in results:
+        results["10Y Treasury (TNX)"] = results["UST 10yr (TNX)"]
 
     insights = generate_insights(results)
     nikkei_decomp = results.get("Nikkei 225 (NI225)", {}).get("nikkei_fx_equity_dynamics", {}).get("decomposition") if "Nikkei 225 (NI225)" in results and results["Nikkei 225 (NI225)"].get("nikkei_fx_equity_dynamics") else None

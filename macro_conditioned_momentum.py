@@ -610,7 +610,7 @@ def format_macro_full_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, br
         f"{w_block}"
         f"{nikkei_block}"
         f"--- Cross-Asset Macro Inputs ---\n"
-        f"10Y Treasury Yield (TNX): ${tnx_feat['price']:.3f} | 5m Ret={tnx_feat['ret_5m']:+.2f}%, 10m Ret={tnx_feat['ret_10m']:+.2f}%, VWAP Z={tnx_feat['vwap_z']:+.2f}σ\n"
+        f"10Y Treasury Yield (TNX): {tnx_feat['price']:.3f}% | 5m Ret={tnx_feat['ret_5m']:+.2f}%, 10m Ret={tnx_feat['ret_10m']:+.2f}%, VWAP Z={tnx_feat['vwap_z']:+.2f}σ\n"
         f"Brent Crude Oil (BRENT): ${brent_feat['price']:.2f} | 5m Ret={brent_feat['ret_5m']:+.2f}%, 10m Ret={brent_feat['ret_10m']:+.2f}%, VWAP Z={brent_feat['vwap_z']:+.2f}σ\n"
         f"WTI Crude Oil (WTI): ${wti_feat['price']:.2f} | 5m Ret={wti_feat['ret_5m']:+.2f}%, 10m Ret={wti_feat['ret_10m']:+.2f}%, VWAP Z={wti_feat['vwap_z']:+.2f}σ\n"
         f"Macro Guidance: Rising yields (TNX) compress duration equity multiples. Surging crude oil (Brent/WTI) increases inflation drag. For Nikkei 225, USD/JPY FX weakening (rising) expands Japanese exporter margins, while Yen spikes trigger carry unwind liquidation; US equity sentiment sets the broader risk tone. In Mean-Reversion regimes, fade micro-bursts back to VWAP."
@@ -682,7 +682,7 @@ def format_rate_only_prompt(equity_name: str, eq_feat: dict, tnx_feat: dict, cs_
         f"{w_block}"
         f"{nikkei_block}"
         f"--- Rate Input (TNX Only) ---\n"
-        f"10Y Treasury Yield (TNX): ${tnx_feat['price']:.3f} | 5m Ret={tnx_feat['ret_5m']:+.2f}%, 10m Ret={tnx_feat['ret_10m']:+.2f}%, VWAP Z={tnx_feat['vwap_z']:+.2f}σ\n"
+        f"10Y Treasury Yield (TNX): {tnx_feat['price']:.3f}% | 5m Ret={tnx_feat['ret_5m']:+.2f}%, 10m Ret={tnx_feat['ret_10m']:+.2f}%, VWAP Z={tnx_feat['vwap_z']:+.2f}σ\n"
         f"Macro Guidance: Evaluate equity forward trend strictly against interest rate duration sensitivity (10Y yield direction and volatility). For Nikkei 225, USD/JPY FX weakening (rising) expands Japanese exporter margins, while Yen spikes trigger carry unwind liquidation; US equity sentiment sets the broader risk tone. In Mean-Reversion regimes, fade micro-bursts back to VWAP."
     )
 

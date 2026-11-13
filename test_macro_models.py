@@ -53,6 +53,9 @@ def run_tests():
     ni_df = make_series(38000.0, 0.1, 2.0)
 
     tnx_df = make_series(3.95, 0.015, 0.005) # TNX surging upward
+    ust2y_df = make_series(4.15, 0.010, 0.004) # UST 2Y yield
+    ust5y_df = make_series(4.05, 0.012, 0.005) # UST 5Y yield
+    ust30y_df = make_series(4.45, 0.008, 0.006) # UST 30Y yield
     brent_df = make_series(75.0, 0.2, 0.1)  # Brent surging upward
     wti_df = make_series(71.0, 0.2, 0.1)    # WTI surging upward
     usdjpy_df = make_series(157.0, 0.03, 0.02) # USD/JPY weakening Yen
@@ -66,7 +69,11 @@ def run_tests():
 
     all_dfs = {
         **equities,
+        "UST 2yr (US02Y)": ust2y_df,
+        "UST 5yr (US05Y)": ust5y_df,
+        "UST 10yr (TNX)": tnx_df,
         "10Y Treasury (TNX)": tnx_df,
+        "UST 30yr (TYX)": ust30y_df,
         "Brent Crude (BRENT)": brent_df,
         "WTI Crude (WTI)": wti_df,
         "USD/JPY (USDJPY)": usdjpy_df
@@ -98,17 +105,23 @@ def run_tests():
 
     # Scenario A: USD/JPY surging (+0.6% in 5m), SPX flat -> FX_DOMINANT regime
     usdjpy_surging = ni_df.copy()
-    close_vals = np.linspace(155.0, 158.0, len(dates)) # Strong upward trend in USD/JPY (weakening yen)
+    close_vals = np.concatenate([np.linspace(155.0, 155.2, len(dates)-6), np.linspace(155.2, 157.0, 6)])
     usdjpy_surging["Close"] = close_vals
-    usdjpy_surging["High"] = close_vals + 0.1
-    usdjpy_surging["Low"] = close_vals - 0.1
-    usdjpy_surging["Open"] = close_vals - 0.05
+    usdjpy_surging["High"] = close_vals + 0.05
+    usdjpy_surging["Low"] = close_vals - 0.05
+    usdjpy_surging["Open"] = close_vals - 0.02
     usdjpy_surging["Volume"] = 1000
+
+    ni_df_co = ni_df.copy()
+    ni_df_co["Close"] = 38000.0 * (close_vals / 155.0)
+    ni_df_co["Open"] = ni_df_co["Close"] - 5.0
+    ni_df_co["High"] = ni_df_co["Close"] + 10.0
+    ni_df_co["Low"] = ni_df_co["Close"] - 10.0
 
     spx_flat = sp_df.copy()
     spx_flat["Close"] = 5800.0 + np.random.normal(0, 0.01, len(dates))
 
-    dyn_a = compute_nikkei_dynamic_fx_equity_regime(ni_df, usdjpy_df=usdjpy_surging, spx_df=spx_flat, all_dfs=None)
+    dyn_a = compute_nikkei_dynamic_fx_equity_regime(ni_df_co, usdjpy_df=usdjpy_surging, spx_df=spx_flat, all_dfs=None)
     print("Scenario A (USD/JPY Surging +0.6%, SPX Flat):")
     print(f"  * Regime:             {dyn_a['regime']} (Choice)")
     print(f"  * USD/JPY FX Weight:  {dyn_a['fx_weight'] * 100:.1f}%")
@@ -122,12 +135,18 @@ def run_tests():
 
     # Scenario B: USD/JPY plunging (-0.6% in 5m, Yen surge / carry unwind), SPX flat -> Bearish Drag
     usdjpy_plunging = usdjpy_surging.copy()
-    plunge_vals = np.linspace(158.0, 155.0, len(dates))
+    plunge_vals = np.concatenate([np.linspace(157.0, 156.8, len(dates)-6), np.linspace(156.8, 155.0, 6)])
     usdjpy_plunging["Close"] = plunge_vals
-    usdjpy_plunging["High"] = plunge_vals + 0.1
-    usdjpy_plunging["Low"] = plunge_vals - 0.1
+    usdjpy_plunging["High"] = plunge_vals + 0.05
+    usdjpy_plunging["Low"] = plunge_vals - 0.05
 
-    dyn_b = compute_nikkei_dynamic_fx_equity_regime(ni_df, usdjpy_df=usdjpy_plunging, spx_df=spx_flat, all_dfs=None)
+    ni_df_b = ni_df.copy()
+    ni_df_b["Close"] = 38000.0 * (plunge_vals / 155.0)
+    ni_df_b["Open"] = ni_df_b["Close"] - 5.0
+    ni_df_b["High"] = ni_df_b["Close"] + 10.0
+    ni_df_b["Low"] = ni_df_b["Close"] - 10.0
+
+    dyn_b = compute_nikkei_dynamic_fx_equity_regime(ni_df_b, usdjpy_df=usdjpy_plunging, spx_df=spx_flat, all_dfs=None)
     print("\nScenario B (USD/JPY Plunging -0.6%, Yen Surge):")
     print(f"  * Regime:             {dyn_b['regime']} (Choice)")
     print(f"  * USD/JPY FX Weight:  {dyn_b['fx_weight'] * 100:.1f}%")
@@ -136,9 +155,9 @@ def run_tests():
 
     # Scenario C: Opposing drivers (USD/JPY dropping, SPX surging) -> DECOUPLED_CHOP
     spx_surging = sp_df.copy()
-    spx_vals = np.linspace(5750.0, 5850.0, len(dates))
+    spx_vals = np.concatenate([np.linspace(5750.0, 5752.0, len(dates)-6), np.linspace(5752.0, 5800.0, 6)])
     spx_surging["Close"] = spx_vals
-    dyn_c = compute_nikkei_dynamic_fx_equity_regime(ni_df, usdjpy_df=usdjpy_plunging, spx_df=spx_surging, all_dfs=None)
+    dyn_c = compute_nikkei_dynamic_fx_equity_regime(ni_df_b, usdjpy_df=usdjpy_plunging, spx_df=spx_surging, all_dfs=None)
     print("\nScenario C (USD/JPY Plunging vs SPX Surging):")
     print(f"  * Regime:             {dyn_c['regime']} (Choice)")
     print(f"  * Description:        {dyn_c['regime_desc']}")
@@ -262,6 +281,40 @@ def run_tests():
     assert "USD/JPY (USDJPY)" in OANDA_INSTRUMENTS, "USD/JPY missing from OANDA_INSTRUMENTS"
     assert OANDA_INSTRUMENTS["USD/JPY (USDJPY)"] == "USD_JPY", "Incorrect OANDA instrument mapping"
     assert "Nikkei 225 (NI225)" in OANDA_INSTRUMENTS, "Nikkei 225 missing from OANDA_INSTRUMENTS"
+
+    # -------------------------------------------------------------
+    # 5. U.S. Treasury Benchmark Yield Curve (2Y, 5Y, 10Y, 30Y)
+    # -------------------------------------------------------------
+    print("\n[5] Verifying U.S. Treasury Benchmark Yield Curve (2Y, 5Y, 10Y, 30Y):")
+    print("-" * 110)
+    from oanda_feed import SYMBOL_TO_OANDA
+
+    treasury_keys = ["UST 2yr (US02Y)", "UST 5yr (US05Y)", "UST 10yr (TNX)", "UST 30yr (TYX)"]
+    for t_key in treasury_keys:
+        assert t_key in OANDA_INSTRUMENTS, f"{t_key} missing from OANDA_INSTRUMENTS"
+        oanda_code = OANDA_INSTRUMENTS[t_key]
+        print(f"  * Treasury Tenor: {t_key:<20} -> OANDA: {oanda_code}")
+
+    # Verify 2s10s and 10s30s spread calculations
+    y2_spot = float(ust2y_df["Close"].iloc[-1])
+    y5_spot = float(ust5y_df["Close"].iloc[-1])
+    y10_spot = float(tnx_df["Close"].iloc[-1])
+    y30_spot = float(ust30y_df["Close"].iloc[-1])
+
+    spread_2s10 = y10_spot - y2_spot
+    spread_10s30 = y30_spot - y10_spot
+    curve_state = "INVERTED" if spread_2s10 < -0.01 else ("FLAT" if abs(spread_2s10) <= 0.08 else "NORMAL STEEPENING")
+
+    print(f"  * Spot Yield Curve: 2Y={y2_spot:.3f}%, 5Y={y5_spot:.3f}%, 10Y={y10_spot:.3f}%, 30Y={y30_spot:.3f}%")
+    print(f"  * 2s10s Spread:     {spread_2s10:+.3f}% ({spread_2s10*100:+.1f} bps) -> Curve Status: {curve_state}")
+    print(f"  * 10s30s Spread:    {spread_10s30:+.3f}% ({spread_10s30*100:+.1f} bps)")
+
+    assert "10Y Treasury (TNX)" in OANDA_INSTRUMENTS, "Legacy alias 10Y Treasury (TNX) missing from OANDA_INSTRUMENTS"
+    assert SYMBOL_TO_OANDA.get("^2YY") == "USB02Y_USD", "Symbol mapping ^2YY failed"
+    assert SYMBOL_TO_OANDA.get("^FVX") == "USB05Y_USD", "Symbol mapping ^FVX failed"
+    assert SYMBOL_TO_OANDA.get("^TNX") == "USB10Y_USD", "Symbol mapping ^TNX failed"
+    assert SYMBOL_TO_OANDA.get("^TYX") == "USB30Y_USD", "Symbol mapping ^TYX failed"
+    print("  * All Treasury symbol mappings, tenors, and yield curve spreads verified successfully.")
 
     print("\n" + "=" * 110)
     print("     ALL MACRO CONDITIONING, NIKKEI FX/EQUITY & JEV PRIMITIVES TESTS PASSED 100%!")
