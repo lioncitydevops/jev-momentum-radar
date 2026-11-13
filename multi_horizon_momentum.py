@@ -488,7 +488,7 @@ def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: flo
 
     ip_data = compute_indicative_prices(features, prob_1m, prob_10m, prob_30m, prob_1h)
 
-    return {
+    res = {
         "is_live_jev": False,
         "status": "simulation_mode",
         "alignment": alignment,
@@ -523,6 +523,19 @@ def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: flo
             **ip_data["h1h"]
         }
     }
+
+    try:
+        from bayesian_forecasting import compute_multi_horizon_bayesian_forecast
+        bayes_sim = compute_multi_horizon_bayesian_forecast(res, None, features, opt_configs=opt)
+        res["bayesian_forecasting"] = bayes_sim
+        res["forward_projections"] = {
+            **res["forward_projections"],
+            **bayes_sim["forward_projections"]
+        }
+    except Exception as _e_bsim:
+        pass
+
+    return res
 
 def compute_indicative_prices(features: dict, p_1m: float, p_10m: float, p_30m: float, p_1h: float) -> dict:
     """Computes quantitative indicative target price, price delta, and risk levels for all forward horizons."""
@@ -677,73 +690,57 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
         # Compute empirical prior for Bayesian calibration
         prior_res = simulate_calibrated_multi_horizon_prior(features, tv_rating_score, opt_configs=opt)
 
-        raw_act_1m = answers.get("signal_1m_action", {}).get("choice", "NEUTRAL")
-        conf_1m = answers.get("signal_1m_action", {}).get("confidence", 0.70)
-        raw_p_1m = answers.get("prob_up_1m", {}).get("noul", 0.50)
-        p_prior_1m = prior_res["forward_1m"]["prob_up"]
-        p_1m = float(np.clip(0.40 * raw_p_1m + 0.60 * p_prior_1m, 0.05, 0.95))
+        # Execute Principled Bayesian Mathematics combining Prior with Live Jev System One Evidence
+        from bayesian_forecasting import compute_multi_horizon_bayesian_forecast
+        bayes_res = compute_multi_horizon_bayesian_forecast(prior_res, answers, features, opt_configs=opt)
 
-        raw_act_10m = answers.get("signal_10m_action", {}).get("choice", "NEUTRAL")
-        conf_10m = answers.get("signal_10m_action", {}).get("confidence", 0.72)
-        raw_p_10m = answers.get("prob_up_10m", {}).get("noul", 0.50)
-        p_prior_10m = prior_res["forward_10m"]["prob_up"]
-        p_10m = float(np.clip(0.40 * raw_p_10m + 0.60 * p_prior_10m, 0.05, 0.95))
+        b_1m = bayes_res["forward_1m"]
+        b_10m = bayes_res["forward_10m"]
+        b_30m = bayes_res["forward_30m"]
+        b_1h = bayes_res["forward_1h"]
 
-        raw_act_30m = answers.get("signal_30m_action", {}).get("choice", "NEUTRAL")
-        conf_30m = answers.get("signal_30m_action", {}).get("confidence", 0.75)
-        raw_p_30m = answers.get("prob_up_30m", {}).get("noul", 0.50)
-        p_prior_30m = prior_res["forward_30m"]["prob_up"]
-        p_30m = float(np.clip(0.40 * raw_p_30m + 0.60 * p_prior_30m, 0.05, 0.95))
+        p_1m = b_1m["posterior_prob_up"]
+        p_10m = b_10m["posterior_prob_up"]
+        p_30m = b_30m["posterior_prob_up"]
+        p_1h = b_1h["posterior_prob_up"]
 
-        raw_act_1h = answers.get("signal_1h_action", {}).get("choice", "NEUTRAL")
-        conf_1h = answers.get("signal_1h_action", {}).get("confidence", 0.78)
-        raw_p_1h = answers.get("prob_up_1h", {}).get("noul", 0.50)
-        p_prior_1h = prior_res["forward_1h"]["prob_up"]
-        p_1h = float(np.clip(0.40 * raw_p_1h + 0.60 * p_prior_1h, 0.05, 0.95))
+        act_1m = b_1m["action"]
+        act_10m = b_10m["action"]
+        act_30m = b_30m["action"]
+        act_1h = b_1h["action"]
 
-        # Dynamic deadband classification
-        def get_calibrated_action(raw_act, p_val, h_key, default_d):
-            delta = opt.get(h_key, {}).get("delta", default_d)
-            if p_val >= 0.50 + delta * 2.0: return "STRONG_LONG"
-            elif p_val >= 0.50 + delta: return "LEAN_LONG"
-            elif p_val <= 0.50 - delta * 2.0: return "STRONG_SHORT"
-            elif p_val <= 0.50 - delta: return "LEAN_SHORT"
-            return raw_act if raw_act != "NEUTRAL" and abs(p_val - 0.50) >= delta * 0.7 else "NEUTRAL"
+        conf_1m = b_1m["jev_confidence"]
+        conf_10m = b_10m["jev_confidence"]
+        conf_30m = b_30m["jev_confidence"]
+        conf_1h = b_1h["jev_confidence"]
 
-        act_1m = get_calibrated_action(raw_act_1m, p_1m, "1m", 0.02)
-        act_10m = get_calibrated_action(raw_act_10m, p_10m, "10m", 0.03)
-        act_30m = get_calibrated_action(raw_act_30m, p_30m, "30m", 0.035)
-        act_1h = get_calibrated_action(raw_act_1h, p_1h, "1h", 0.04)
-
-        probs = [p_1m, p_10m, p_30m, p_1h]
-        avg_p = float(np.mean(probs))
-        bull_c = sum(1 for p in probs if p > 0.52)
-        bear_c = sum(1 for p in probs if p < 0.48)
-
-        if bull_c == 4:
-            alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Horizons Up)"
-        elif bear_c == 4:
-            alignment = "STRONG_BEARISH_ALIGNMENT (4/4 Horizons Down)"
-        elif bull_c >= 3:
-            alignment = "MODERATE_BULLISH_BIAS (3/4 Horizons Up)"
-        elif bear_c >= 3:
-            alignment = "MODERATE_BEARISH_BIAS (3/4 Horizons Down)"
-        else:
-            alignment = "DIVERGENT_CHOP / NEUTRAL"
+        alignment = bayes_res["alignment"]
+        avg_p = bayes_res["average_posterior_prob_up"]
 
         ip_data = compute_indicative_prices(features, float(p_1m), float(p_10m), float(p_30m), float(p_1h))
+
+        fwd_projections = {
+            **ip_data["forward_projections"],
+            **bayes_res["forward_projections"]
+        }
 
         return {
             "is_live_jev": True,
             "status": "live_jev_api",
             "alignment": alignment,
             "average_prob_up": round(avg_p, 4),
-            "forward_projections": ip_data["forward_projections"],
+            "forward_projections": fwd_projections,
+            "bayesian_forecasting": bayes_res,
             "forward_1m": {
                 "horizon": "1min forward (1 bar)",
                 "action": act_1m,
                 "prob_up": round(float(p_1m), 4),
                 "confidence": round(float(conf_1m), 4),
+                "bayes_factor": b_1m["bayes_factor"],
+                "evidence_badge": b_1m["evidence_badge"],
+                "evidence_color": b_1m["evidence_color"],
+                "ci_95": b_1m["beta_posterior"]["ci_95"],
+                "predictive_distribution": b_1m["predictive_distribution"],
                 **ip_data["h1m"]
             },
             "forward_10m": {
@@ -751,6 +748,11 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
                 "action": act_10m,
                 "prob_up": round(float(p_10m), 4),
                 "confidence": round(float(conf_10m), 4),
+                "bayes_factor": b_10m["bayes_factor"],
+                "evidence_badge": b_10m["evidence_badge"],
+                "evidence_color": b_10m["evidence_color"],
+                "ci_95": b_10m["beta_posterior"]["ci_95"],
+                "predictive_distribution": b_10m["predictive_distribution"],
                 **ip_data["h10m"]
             },
             "forward_30m": {
@@ -758,6 +760,11 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
                 "action": act_30m,
                 "prob_up": round(float(p_30m), 4),
                 "confidence": round(float(conf_30m), 4),
+                "bayes_factor": b_30m["bayes_factor"],
+                "evidence_badge": b_30m["evidence_badge"],
+                "evidence_color": b_30m["evidence_color"],
+                "ci_95": b_30m["beta_posterior"]["ci_95"],
+                "predictive_distribution": b_30m["predictive_distribution"],
                 **ip_data["h30m"]
             },
             "forward_1h": {
@@ -765,6 +772,11 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
                 "action": act_1h,
                 "prob_up": round(float(p_1h), 4),
                 "confidence": round(float(conf_1h), 4),
+                "bayes_factor": b_1h["bayes_factor"],
+                "evidence_badge": b_1h["evidence_badge"],
+                "evidence_color": b_1h["evidence_color"],
+                "ci_95": b_1h["beta_posterior"]["ci_95"],
+                "predictive_distribution": b_1h["predictive_distribution"],
                 **ip_data["h1h"]
             },
             "raw_response": data

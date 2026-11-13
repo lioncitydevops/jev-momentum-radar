@@ -1700,6 +1700,15 @@
           const stopLossLabel = 'Protective Stop Loss';
 
           const mh = sig.multi_horizon || {};
+          const s1 = mh.forward_1m || mh.forward_5m || {};
+          const s10 = mh.forward_10m || {};
+          const s30 = mh.forward_30m || mh.forward_15m || {};
+          const s1h = mh.forward_1h || {};
+
+          const bf10 = s10.bayes_factor || (sig.bayesian_forecasting && sig.bayesian_forecasting.horizons && sig.bayesian_forecasting.horizons["10m"] ? sig.bayesian_forecasting.horizons["10m"].bayes_factor : null);
+          const ev10 = s10.evidence_badge || (sig.bayesian_forecasting && sig.bayesian_forecasting.horizons && sig.bayesian_forecasting.horizons["10m"] ? sig.bayesian_forecasting.horizons["10m"].evidence_badge : '');
+          const ci10 = s10.ci_95 || (sig.bayesian_forecasting && sig.bayesian_forecasting.horizons && sig.bayesian_forecasting.horizons["10m"] && sig.bayesian_forecasting.horizons["10m"].beta_posterior ? sig.bayesian_forecasting.horizons["10m"].beta_posterior.ci_95 : null);
+
           const card = document.createElement('div');
           card.className = `radar-card ${sig.badge_class}`;
           card.title = `Click to view ${sig.tv_ticker} live on TradingView`;
@@ -1742,6 +1751,25 @@
           </div>
           <div class="prob-bar-container">
             <div class="prob-bar-fill" style="width: ${probPct}%; background: ${probColor};"></div>
+          </div>
+
+          <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 6px; padding: 6px 8px; margin-top: 6px; font-size: 11px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="color: #93c5fd; font-weight: 700;">🔬 Bayes Factor (10m):</span>
+              <span class="mono" style="font-weight: 800; color: #fff;">${bf10 !== null ? bf10.toFixed(2) + 'x' : '--'}</span>
+            </div>
+            ${ev10 ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 2px;">
+              <span style="color: var(--text-muted); font-size:10px;">Jeffreys Scale:</span>
+              <span style="font-size: 10.5px; font-weight: 700;">${ev10}</span>
+            </div>
+            ` : ''}
+            ${ci10 ? `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 2px; font-size: 10px; color: var(--text-muted);">
+              <span>95% Beta Credible Int:</span>
+              <span class="mono" style="color: #a5b4fc; font-weight: 700;">[${(ci10[0]*100).toFixed(1)}% &ndash; ${(ci10[1]*100).toFixed(1)}%]</span>
+            </div>
+            ` : ''}
           </div>
 
           <div class="card-metrics-row">
@@ -1940,13 +1968,20 @@
 
           // Render Multi-Horizon Table Row (1m, 10m, 30m, 1h)
           if (mhTbody) {
+            const _fmtCell = (sh, shInd) => {
+              const bf = sh.bayes_factor !== undefined && sh.bayes_factor !== null ? `BF:${sh.bayes_factor.toFixed(2)}` : '';
+              const ci = sh.ci_95 ? `[${(sh.ci_95[0]*100).toFixed(0)}-${(sh.ci_95[1]*100).toFixed(0)}%]` : '';
+              const bayesSub = (bf || ci) ? `<div style="font-size:10px; color:#93c5fd; font-family:'JetBrains Mono',monospace;">${bf} ${ci}</div>` : '';
+              return `<span style="color: ${sh.color || '#ffd166'}; font-weight:700;">${sh.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">(${prefix}${shInd.toFixed(decimals)}${suffix} | ${(sh.prob_up * 100).toFixed(1)}%)</span>${bayesSub}`;
+            };
+
             const mhtr = document.createElement('tr');
             mhtr.innerHTML = `
             <td><strong>${sig.flag} ${name}</strong></td>
-            <td><span style="color: ${s1.color || '#ffd166'}; font-weight:700;">${s1.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">(${prefix}${s1Ind.toFixed(decimals)}${suffix} | ${(s1.prob_up * 100).toFixed(1)}%)</span></td>
-            <td><span style="color: ${s10.color || '#ffd166'}; font-weight:700;">${s10.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">(${prefix}${s10Ind.toFixed(decimals)}${suffix} | ${(s10.prob_up * 100).toFixed(1)}%)</span></td>
-            <td><span style="color: ${s30.color || '#ffd166'}; font-weight:700;">${s30.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">(${prefix}${s30Ind.toFixed(decimals)}${suffix} | ${(s30.prob_up * 100).toFixed(1)}%)</span></td>
-            <td><span style="color: ${s1h.color || '#ffd166'}; font-weight:700;">${s1h.action || 'NEUTRAL'}</span> <span class="mono" style="font-size:11px; opacity:0.8;">(${prefix}${s1hInd.toFixed(decimals)}${suffix} | ${(s1h.prob_up * 100).toFixed(1)}%)</span></td>
+            <td>${_fmtCell(s1, s1Ind)}</td>
+            <td>${_fmtCell(s10, s10Ind)}</td>
+            <td>${_fmtCell(s30, s30Ind)}</td>
+            <td>${_fmtCell(s1h, s1hInd)}</td>
             <td><span style="font-weight:600; color: #60a5fa;">${mh.alignment || 'NEUTRAL'}</span></td>
             <td class="mono" style="font-weight:700;">${(mh.average_prob_up * 100).toFixed(1)}%</td>
           `;

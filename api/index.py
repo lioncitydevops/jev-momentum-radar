@@ -569,7 +569,12 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
             "indicative_delta_pct": dp_ind,
             "indicative_stop_loss": sl_ind,
             "indicative_take_profit": tp_ind,
-            "indicative_close_target": tp_ind
+            "indicative_close_target": tp_ind,
+            "bayes_factor": sig_h.get("bayes_factor"),
+            "evidence_badge": sig_h.get("evidence_badge"),
+            "ci_95": sig_h.get("ci_95"),
+            "credible_price_interval": sig_h.get("credible_price_interval"),
+            "epistemic_entropy_bits": sig_h.get("epistemic_entropy_bits")
         }
 
     fwd_proj = mh_sigs.get("forward_projections")
@@ -634,6 +639,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
         "maritime_supply_index": mh_sigs.get("maritime_supply_index"),
         "forward_projections": fwd_proj,
         "conviction_score": mh_sigs.get("conviction_score", 0.0),
+        "bayesian_forecasting": mh_sigs.get("bayesian_forecasting"),
         "nikkei_fx_equity_dynamics": mh_sigs.get("nikkei_fx_equity_dynamics"),
         "jev_primitives_guide": mh_sigs.get("jev_primitives_guide"),
         "shipping_telemetry": mh_data.get("telemetry"),

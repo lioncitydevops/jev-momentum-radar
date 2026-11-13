@@ -448,10 +448,130 @@ FastAPI Backend (api/index.py on Vercel)
   │
 TypeSafe Jev System One (https://api.typesafe.ai/v1/systemone)
   │
-  ├──> Generates Tactical Choice (BUY / SELL / HOLD) & Continuation Prob %
+  ├──> Generates Tactical Choice, Score, & Noul Primitives
+  │
+Bayesian Mathematical Forecasting Engine (bayesian_forecasting.py)
+  │
+  ├──> Log-Odds Information Update, Harold Jeffreys Bayes Factors (BF₁₀)
+  ├──> Conjugate Beta-Binomial Updating (α_post, β_post) & 95% Credible Intervals
+  ├──> Continuous Predictive Price Envelopes [P_lower, P_upper] & Epistemic Shannon Entropy
   │
 Web Radar Dashboard (https://jevshorttermmomentum.vercel.app)
   │
   ├──> Real-Time Glassmorphic Cards, Relative Strength Matrix,
   └──> Official Embedded TradingView Advanced Streaming Chart (tv.js)
 ```
+
+---
+
+## 8. Bayesian Mathematical Forecasting Engine with TypeSafe Jev System One
+
+### 8.1 Motivation & Foundations
+Prior quantitative forecasting architectures often relied on heuristic linear blends, e.g., $P_{\text{blend}} = \lambda P_{\text{prior}} + (1 - \lambda) P_{\text{model}}$. While computationally straightforward, linear interpolation violates fundamental Kolmogorov axioms of probability, distorts information curvature near probability boundaries ($0$ and $1$), and lacks formal epistemic uncertainty quantification.
+
+To achieve scientific rigor, the forecasting architecture is fully grounded in **Bayesian Mathematical Probability**, uniting:
+1. **Objective Quantitative Priors ($P_0$)**: Derived from empirical microstructure, the nanoHUB damped harmonic oscillator propagator, cross-sectional relative strength, and Treasury yield curve / maritime physical supply indices.
+2. **TypeSafe Jev System One Semantic Evidence ($E_{\text{Jev}}$)**: Governed by the official TypeSafe AI primitives:
+   - **`Choice`**: Mutually exclusive categorical positioning (`STRONG_BUY`, `BUY`, `NEUTRAL`, `SELL`, `STRONG_SELL`).
+   - **`Score`**: Continuous degree of momentum conviction and FX sensitivity ($-100$ to $+100$).
+   - **`Noul`**: Continuous probability of truth ($P \in [0, 1]$) indicating upward continuation over horizon $\tau$.
+
+---
+
+### 8.2 Bayes' Rule in Odds and Alan Turing's Weight of Evidence
+Let $H_1$ denote the hypothesis that price will close higher over horizon $\tau$ ($\Delta P_\tau > 0$), and $H_0$ denote the null hypothesis ($\Delta P_\tau \le 0$). 
+
+By Bayes' theorem, the posterior odds $O_1 = \frac{P(H_1 \mid E_{\text{Jev}})}{P(H_0 \mid E_{\text{Jev}})}$ relate to prior odds $O_0 = \frac{P_0}{1 - P_0}$ through the **Bayes Factor** ($\mathcal{BF}_{10}$):
+
+$$O_1 = O_0 \cdot \mathcal{BF}_{10}, \quad \text{where } \mathcal{BF}_{10} = \frac{P(E_{\text{Jev}} \mid H_1)}{P(E_{\text{Jev}} \mid H_0)}$$
+
+Taking natural logarithms maps Bayes' rule into additive log-odds, defining Alan Turing and I.J. Good's **Weight of Evidence** ($\Lambda$):
+
+$$\text{logit}(P_{\text{post}}) = \text{logit}(P_0) + \Lambda_{\text{Jev}}$$
+
+$$\text{where } \text{logit}(p) = \ln\left(\frac{p}{1 - p}\right), \quad \Lambda_{\text{Jev}} = \ln \mathcal{BF}_{10}$$
+
+#### TypeSafe Jev Evidence Weighting Function:
+The semantic evidence from Jev System One is calibrated via confidence concentration ($c_{\text{Jev}} \in [0.5, 1.0]$), categorical alignment ($a_{\text{Jev}}$), and directional conviction score ($S_{\text{conv}}$):
+
+$$\kappa(c_{\text{Jev}}, a_{\text{Jev}}, S_{\text{conv}}) = \left[1.0 + 1.8 \cdot (c_{\text{Jev}} - 0.50)\right] \cdot a_{\text{Jev}} \cdot \left[1.0 + 0.35 \cdot \frac{|S_{\text{conv}}|}{100}\right]$$
+
+$$\Lambda_{\text{Jev}} = \kappa \cdot \text{logit}(p_{\text{Jev}})$$
+
+$$\mathcal{BF}_{10} = \exp(\Lambda_{\text{Jev}})$$
+
+The exact Bayesian posterior probability is retrieved via the standard logistic sigmoid:
+
+$$P_{\text{post}} = \sigma\left(\text{logit}(P_0) + \Lambda_{\text{Jev}}\right) = \frac{1}{1 + \exp\left(-\left[\text{logit}(P_0) + \Lambda_{\text{Jev}}\right]\right)}$$
+
+---
+
+### 8.3 Sir Harold Jeffreys' Scientific Evidence Scale
+To prevent false-positive overtrading and establish standardized confidence grades, every Bayes Factor $\mathcal{BF}_{10}$ is formally classified against Sir Harold Jeffreys' scientific evidence scale (*Theory of Probability*, Oxford University Press):
+
+| Bayes Factor ($\mathcal{BF}_{10}$) | Log-Evidence ($\ln \mathcal{BF}$) | Harold Jeffreys Classification | Operational Action |
+|:---|:---|:---|:---|
+| $\mathcal{BF}_{10} \ge 100$ | $\Lambda \ge 4.60$ | **Decisive Bullish Evidence** 👑 | High-conviction long expansion; aggressive target |
+| $30 \le \mathcal{BF}_{10} < 100$ | $3.40 \le \Lambda < 4.60$ | **Very Strong Bullish Evidence** 🟢 | Strong directional trend follow |
+| $10 \le \mathcal{BF}_{10} < 30$ | $2.30 \le \Lambda < 3.40$ | **Strong Bullish Evidence** 🟢 | Confirmed directional trend |
+| $3.2 \le \mathcal{BF}_{10} < 10$ | $1.16 \le \Lambda < 2.30$ | **Substantial Bullish Evidence** 🔵 | Favorable risk/reward long |
+| $1.05 \le \mathcal{BF}_{10} < 3.2$ | $0.05 \le \Lambda < 1.16$ | **Anecdotal Bullish Bias** 🔹 | Weak edge; strict stop loss required |
+| $0.95 \le \mathcal{BF}_{10} < 1.05$ | $-0.05 \le \Lambda < +0.05$ | **Inconclusive / Equilibrium** ⚖️ | **HOLD CASH** (chop pruning) |
+| $0.32 < \mathcal{BF}_{10} \le 0.95$ | $-1.16 < \Lambda \le -0.05$ | **Anecdotal Bearish Bias** 🔸 | Weak downward drift |
+| $0.10 < \mathcal{BF}_{10} \le 0.32$ | $-2.30 < \Lambda \le -1.16$ | **Substantial Bearish Evidence** 🔴 | Favorable risk/reward short |
+| $0.033 < \mathcal{BF}_{10} \le 0.10$ | $-3.40 < \Lambda \le -2.30$ | **Strong Bearish Evidence** 🔴 | Confirmed downward liquidation |
+| $0.010 < \mathcal{BF}_{10} \le 0.033$ | $-4.60 < \Lambda \le -3.40$ | **Very Strong Bearish Evidence** 🔻 | Aggressive short trend |
+| $\mathcal{BF}_{10} \le 0.010$ | $\Lambda \le -4.60$ | **Decisive Bearish Evidence** 🔻 | Maximum downward pressure |
+
+---
+
+### 8.4 Conjugate Beta-Binomial Updating & 95% Credible Intervals
+To model the full epistemic probability distribution rather than a single point estimate, directional outcomes are modeled under the conjugate **Beta-Binomial distribution**:
+
+$$\text{Prior: } p \sim \text{Beta}(\alpha_0, \beta_0), \quad \text{where } \alpha_0 = n_0 P_0, \; \beta_0 = n_0 (1 - P_0)$$
+
+Here $n_0 = 10 \cdot c_{\text{prior}}$ represents prior pseudo-observation count. The semantic evidence from Jev updates the conjugate hyperparameters:
+
+$$\Delta \alpha = n_{\text{Jev}} \cdot p_{\text{Jev}}, \quad \Delta \beta = n_{\text{Jev}} \cdot (1 - p_{\text{Jev}}), \quad n_{\text{Jev}} = 10 \cdot \kappa(c_{\text{Jev}}, a_{\text{Jev}})$$
+
+$$\alpha_{\text{post}} = \alpha_0 + \Delta \alpha, \quad \beta_{\text{post}} = \beta_0 + \Delta \beta$$
+
+The posterior expectation and variance are given by:
+
+$$\mathbb{E}[p \mid E] = \frac{\alpha_{\text{post}}}{\alpha_{\text{post}} + \beta_{\text{post}}}, \quad \text{Var}(p \mid E) = \frac{\alpha_{\text{post}} \beta_{\text{post}}}{(\alpha_{\text{post}} + \beta_{\text{post}})^2 (\alpha_{\text{post}} + \beta_{\text{post}} + 1)}$$
+
+The **95% Bayesian Credible Interval** $[p_{\text{lower}}^{95\%}, p_{\text{upper}}^{95\%}]$ is calculated via the inverse regularized incomplete beta function $I_x^{-1}(\alpha_{\text{post}}, \beta_{\text{post}})$:
+
+$$P\left(p_{\text{lower}}^{95\%} \le p \le p_{\text{upper}}^{95\%} \mid E\right) = \int_{p_{\text{lower}}^{95\%}}^{p_{\text{upper}}^{95\%}} \frac{p^{\alpha-1} (1-p)^{\beta-1}}{B(\alpha, \beta)} dp = 0.95$$
+
+---
+
+### 8.5 Continuous Gaussian/Lognormal Predictive Price Distribution
+Expected price evolution over horizon $\tau$ is modeled in log-price space $y_\tau = \ln(P_\tau / P_0) \sim \mathcal{N}(\mu_{\text{post}}, \sigma_{\text{pred}}^2)$:
+
+1. **Prior Return Drift**: $\mu_0 = (P_0 - 0.50) \cdot \delta_{\text{scale}}$, with prior precision $\tau_0 = \frac{1}{\sigma_{\text{prior}}^2}$.
+2. **Jev Semantic Return Evidence**: $\hat{\mu}_{\text{Jev}} = (p_{\text{Jev}} - 0.50) \cdot \delta_{\text{scale}}$, with semantic precision $\tau_{\text{Jev}} = \kappa \cdot \tau_0$.
+3. **Posterior Mean Return**:
+   $$\mu_{\text{post}} = \frac{\tau_0 \mu_0 + \tau_{\text{Jev}} \hat{\mu}_{\text{Jev}}}{\tau_0 + \tau_{\text{Jev}}}$$
+4. **Predictive Variance** (incorporating both parameter uncertainty and realized Garman-Klass diffusion volatility $\sigma_{\text{GK}}^2 \tau$):
+   $$\sigma_{\text{pred}}^2 = \frac{1}{\tau_0 + \tau_{\text{Jev}}} + \sigma_{\text{GK}}^2 \cdot \tau$$
+
+The **Indicative Expected Forward Price** and **95% Credible Price Envelope** are:
+
+$$\hat{P}_\tau = P_0 \cdot \exp\left(\mu_{\text{post}} + \frac{1}{2}\sigma_{\text{pred}}^2\right)$$
+
+$$P_{\text{lower}}^{95\%} = P_0 \cdot \exp\left(\mu_{\text{post}} - 1.96 \cdot \sigma_{\text{pred}}\right), \quad P_{\text{upper}}^{95\%} = P_0 \cdot \exp\left(\mu_{\text{post}} + 1.96 \cdot \sigma_{\text{pred}}\right)$$
+
+Protective stops are pegged directly to the 95% Bayesian Value-at-Risk boundary ($\text{VaR}_{95\%}$), guaranteeing that stops adapt dynamically to volatility regimes and model confidence.
+
+---
+
+### 8.6 Information-Theoretic Epistemic Uncertainty Quantification
+To distinguish between confident predictions and regimes of high market entropy (indecision), the system computes **Shannon Epistemic Entropy** ($H(P)$ in bits):
+
+$$H(P_{\text{post}}) = - P_{\text{post}} \log_2(P_{\text{post}}) - (1 - P_{\text{post}}) \log_2(1 - P_{\text{post}})$$
+
+- When $P_{\text{post}} = 0.50$ (complete uncertainty/chop), $H = 1.000\text{ bit}$ (maximum entropy).
+- When $P_{\text{post}} \ge 0.85$ or $P_{\text{post}} \le 0.15$ (high certainty), $H \le 0.610\text{ bits}$.
+- High entropy triggers automatic position sizing dampening and deadband widening.
+

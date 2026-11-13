@@ -37,6 +37,7 @@ from multi_horizon_momentum import (
     compute_indicative_prices,
     _matrix_expm
 )
+from bayesian_forecasting import compute_multi_horizon_bayesian_forecast
 
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
 
@@ -569,6 +570,18 @@ def simulate_calibrated_maritime_brent_prior(
 
     ip_data = compute_indicative_prices(brent_feat, p_1m, p_10m, p_30m, p_1h)
 
+    raw_prior = {
+        "forward_1m": {"horizon": "1min forward (1 bar)", "action": act_1m, "prob_up": p_1m, "confidence": conf_1m, **ip_data["h1m"]},
+        "forward_10m": {"horizon": "10min forward (10 bars)", "action": act_10m, "prob_up": p_10m, "confidence": conf_10m, **ip_data["h10m"]},
+        "forward_30m": {"horizon": "30min forward (30 bars)", "action": act_30m, "prob_up": p_30m, "confidence": conf_30m, **ip_data["h30m"]},
+        "forward_1h": {"horizon": "1h forward (60 bars)", "action": act_1h, "prob_up": p_1h, "confidence": conf_1h, **ip_data["h1h"]},
+    }
+    bayes_res = compute_multi_horizon_bayesian_forecast(raw_prior, {}, brent_feat)
+    b_1m = bayes_res["horizons"]["1m"]
+    b_10m = bayes_res["horizons"]["10m"]
+    b_30m = bayes_res["horizons"]["30m"]
+    b_1h = bayes_res["horizons"]["1h"]
+
     return {
         "is_live_jev": False,
         "status": "calibrated_maritime_prior",
@@ -576,34 +589,55 @@ def simulate_calibrated_maritime_brent_prior(
         "alignment": alignment,
         "average_prob_up": round(avg_p, 4),
         "maritime_supply_index": mpsi,
-        "forward_projections": ip_data["forward_projections"],
+        "bayesian_forecasting": bayes_res,
+        "forward_projections": {**ip_data["forward_projections"], **bayes_res["forward_projections"]},
         "forward_1m": {
             "horizon": "1min forward (1 bar)",
             "action": act_1m,
             "prob_up": p_1m,
             "confidence": conf_1m,
-            **ip_data["h1m"]
+            **ip_data["h1m"],
+            "bayes_factor": b_1m["bayes_factor"],
+            "evidence_badge": b_1m["evidence_badge"],
+            "ci_95": b_1m["beta_posterior"]["ci_95"],
+            "credible_price_interval": b_1m["continuous_predictive"]["credible_price_interval_95"],
+            "epistemic_entropy_bits": b_1m["epistemic_entropy_bits"]
         },
         "forward_10m": {
             "horizon": "10min forward (10 bars)",
             "action": act_10m,
             "prob_up": p_10m,
             "confidence": conf_10m,
-            **ip_data["h10m"]
+            **ip_data["h10m"],
+            "bayes_factor": b_10m["bayes_factor"],
+            "evidence_badge": b_10m["evidence_badge"],
+            "ci_95": b_10m["beta_posterior"]["ci_95"],
+            "credible_price_interval": b_10m["continuous_predictive"]["credible_price_interval_95"],
+            "epistemic_entropy_bits": b_10m["epistemic_entropy_bits"]
         },
         "forward_30m": {
             "horizon": "30min forward (30 bars)",
             "action": act_30m,
             "prob_up": p_30m,
             "confidence": conf_30m,
-            **ip_data["h30m"]
+            **ip_data["h30m"],
+            "bayes_factor": b_30m["bayes_factor"],
+            "evidence_badge": b_30m["evidence_badge"],
+            "ci_95": b_30m["beta_posterior"]["ci_95"],
+            "credible_price_interval": b_30m["continuous_predictive"]["credible_price_interval_95"],
+            "epistemic_entropy_bits": b_30m["epistemic_entropy_bits"]
         },
         "forward_1h": {
             "horizon": "1h forward (60 bars)",
             "action": act_1h,
             "prob_up": p_1h,
             "confidence": conf_1h,
-            **ip_data["h1h"]
+            **ip_data["h1h"],
+            "bayes_factor": b_1h["bayes_factor"],
+            "evidence_badge": b_1h["evidence_badge"],
+            "ci_95": b_1h["beta_posterior"]["ci_95"],
+            "credible_price_interval": b_1h["continuous_predictive"]["credible_price_interval_95"],
+            "epistemic_entropy_bits": b_1h["epistemic_entropy_bits"]
         }
     }
 
@@ -727,21 +761,27 @@ def query_typesafe_jev_maritime_brent(
         conf_1h = answers.get("signal_1h_action", {}).get("confidence", 0.80)
         p_1h = answers.get("prob_up_1h", {}).get("noul", 0.50)
 
-        probs = [p_1m, p_10m, p_30m, p_1h]
-        avg_p = float(np.mean(probs))
-        bull_c = sum(1 for p in probs if p > 0.53)
-        bear_c = sum(1 for p in probs if p < 0.47)
+        fb_res = simulate_calibrated_maritime_brent_prior(brent_feat, telemetry, mpsi, wti_feat)
+        bayes_res = compute_multi_horizon_bayesian_forecast(fb_res, answers, brent_feat)
+        b_1m = bayes_res["horizons"]["1m"]
+        b_10m = bayes_res["horizons"]["10m"]
+        b_30m = bayes_res["horizons"]["30m"]
+        b_1h = bayes_res["horizons"]["1h"]
 
-        if bull_c == 4:
-            alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Horizons Up — Maritime Supply Pin)"
-        elif bear_c == 4:
-            alignment = "STRONG_BEARISH_ALIGNMENT (4/4 Horizons Down)"
-        elif bull_c >= 3:
-            alignment = "MODERATE_BULLISH_BIAS (3/4 Horizons Up)"
-        elif bear_c >= 3:
-            alignment = "MODERATE_BEARISH_BIAS (3/4 Horizons Down)"
-        else:
-            alignment = "DIVERGENT_CHOP / NEUTRAL"
+        p_1m = b_1m["prob_up"]
+        p_10m = b_10m["prob_up"]
+        p_30m = b_30m["prob_up"]
+        p_1h = b_1h["prob_up"]
+
+        act_1m = b_1m["action"]
+        act_10m = b_10m["action"]
+        act_30m = b_30m["action"]
+        act_1h = b_1h["action"]
+
+        conf_1m = b_1m["jev_confidence"]
+        conf_10m = b_10m["jev_confidence"]
+        conf_30m = b_30m["jev_confidence"]
+        conf_1h = b_1h["jev_confidence"]
 
         ip_data = compute_indicative_prices(brent_feat, float(p_1m), float(p_10m), float(p_30m), float(p_1h))
 
@@ -749,37 +789,58 @@ def query_typesafe_jev_maritime_brent(
             "is_live_jev": True,
             "status": "live_jev_api",
             "model_type": "MARITIME_TANKER_FORWARD_MODEL",
-            "alignment": alignment,
-            "average_prob_up": round(avg_p, 4),
+            "alignment": bayes_res["alignment"],
+            "average_prob_up": round(bayes_res["average_posterior_prob_up"], 4),
             "maritime_supply_index": mpsi,
-            "forward_projections": ip_data["forward_projections"],
+            "bayesian_forecasting": bayes_res,
+            "forward_projections": {**ip_data["forward_projections"], **bayes_res["forward_projections"]},
             "forward_1m": {
                 "horizon": "1min forward (1 bar)",
                 "action": act_1m,
                 "prob_up": round(float(p_1m), 4),
                 "confidence": round(float(conf_1m), 4),
-                **ip_data["h1m"]
+                **ip_data["h1m"],
+                "bayes_factor": b_1m["bayes_factor"],
+                "evidence_badge": b_1m["evidence_badge"],
+                "ci_95": b_1m["beta_posterior"]["ci_95"],
+                "credible_price_interval": b_1m["continuous_predictive"]["credible_price_interval_95"],
+                "epistemic_entropy_bits": b_1m["epistemic_entropy_bits"]
             },
             "forward_10m": {
                 "horizon": "10min forward (10 bars)",
                 "action": act_10m,
                 "prob_up": round(float(p_10m), 4),
                 "confidence": round(float(conf_10m), 4),
-                **ip_data["h10m"]
+                **ip_data["h10m"],
+                "bayes_factor": b_10m["bayes_factor"],
+                "evidence_badge": b_10m["evidence_badge"],
+                "ci_95": b_10m["beta_posterior"]["ci_95"],
+                "credible_price_interval": b_10m["continuous_predictive"]["credible_price_interval_95"],
+                "epistemic_entropy_bits": b_10m["epistemic_entropy_bits"]
             },
             "forward_30m": {
                 "horizon": "30min forward (30 bars)",
                 "action": act_30m,
                 "prob_up": round(float(p_30m), 4),
                 "confidence": round(float(conf_30m), 4),
-                **ip_data["h30m"]
+                **ip_data["h30m"],
+                "bayes_factor": b_30m["bayes_factor"],
+                "evidence_badge": b_30m["evidence_badge"],
+                "ci_95": b_30m["beta_posterior"]["ci_95"],
+                "credible_price_interval": b_30m["continuous_predictive"]["credible_price_interval_95"],
+                "epistemic_entropy_bits": b_30m["epistemic_entropy_bits"]
             },
             "forward_1h": {
                 "horizon": "1h forward (60 bars)",
                 "action": act_1h,
                 "prob_up": round(float(p_1h), 4),
                 "confidence": round(float(conf_1h), 4),
-                **ip_data["h1h"]
+                **ip_data["h1h"],
+                "bayes_factor": b_1h["bayes_factor"],
+                "evidence_badge": b_1h["evidence_badge"],
+                "ci_95": b_1h["beta_posterior"]["ci_95"],
+                "credible_price_interval": b_1h["continuous_predictive"]["credible_price_interval_95"],
+                "epistemic_entropy_bits": b_1h["epistemic_entropy_bits"]
             },
             "raw_response": data
         }

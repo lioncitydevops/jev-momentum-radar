@@ -614,7 +614,12 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "color": color_1m,
                 "indicative_price": sig_1m.get("indicative_price", round(close[-1], 2)),
                 "indicative_delta": sig_1m.get("indicative_delta", 0.0),
-                "indicative_delta_pct": sig_1m.get("indicative_delta_pct", 0.0)
+                "indicative_delta_pct": sig_1m.get("indicative_delta_pct", 0.0),
+                "bayes_factor": sig_1m.get("bayes_factor"),
+                "evidence_badge": sig_1m.get("evidence_badge"),
+                "ci_95": sig_1m.get("ci_95"),
+                "credible_price_interval": sig_1m.get("credible_price_interval"),
+                "epistemic_entropy_bits": sig_1m.get("epistemic_entropy_bits")
             },
             "forward_10m": {
                 "horizon": "10min forward (10 bars)",
@@ -626,7 +631,12 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "color": color_10m,
                 "indicative_price": sig_10m.get("indicative_price", round(close[-1], 2)),
                 "indicative_delta": sig_10m.get("indicative_delta", 0.0),
-                "indicative_delta_pct": sig_10m.get("indicative_delta_pct", 0.0)
+                "indicative_delta_pct": sig_10m.get("indicative_delta_pct", 0.0),
+                "bayes_factor": sig_10m.get("bayes_factor"),
+                "evidence_badge": sig_10m.get("evidence_badge"),
+                "ci_95": sig_10m.get("ci_95"),
+                "credible_price_interval": sig_10m.get("credible_price_interval"),
+                "epistemic_entropy_bits": sig_10m.get("epistemic_entropy_bits")
             },
             "forward_30m": {
                 "horizon": "30min forward (30 bars)",
@@ -638,7 +648,12 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "color": color_30m,
                 "indicative_price": sig_30m.get("indicative_price", round(close[-1], 2)),
                 "indicative_delta": sig_30m.get("indicative_delta", 0.0),
-                "indicative_delta_pct": sig_30m.get("indicative_delta_pct", 0.0)
+                "indicative_delta_pct": sig_30m.get("indicative_delta_pct", 0.0),
+                "bayes_factor": sig_30m.get("bayes_factor"),
+                "evidence_badge": sig_30m.get("evidence_badge"),
+                "ci_95": sig_30m.get("ci_95"),
+                "credible_price_interval": sig_30m.get("credible_price_interval"),
+                "epistemic_entropy_bits": sig_30m.get("epistemic_entropy_bits")
             },
             "forward_1h": {
                 "horizon": "1h forward (60 bars)",
@@ -650,7 +665,12 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
                 "color": color_1h,
                 "indicative_price": sig_1h.get("indicative_price", round(close[-1], 2)),
                 "indicative_delta": sig_1h.get("indicative_delta", 0.0),
-                "indicative_delta_pct": sig_1h.get("indicative_delta_pct", 0.0)
+                "indicative_delta_pct": sig_1h.get("indicative_delta_pct", 0.0),
+                "bayes_factor": sig_1h.get("bayes_factor"),
+                "evidence_badge": sig_1h.get("evidence_badge"),
+                "ci_95": sig_1h.get("ci_95"),
+                "credible_price_interval": sig_1h.get("credible_price_interval"),
+                "epistemic_entropy_bits": sig_1h.get("epistemic_entropy_bits")
             },
             # Backward-compatibility aliases
             "forward_5m": {
@@ -677,6 +697,7 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", feed_source="OANDA",
         "mpsi": mh_sigs.get("maritime_supply_index"),
         "forward_projections": fwd_proj,
         "conviction_score": mh_sigs.get("conviction_score", 0.0),
+        "bayesian_forecasting": mh_sigs.get("bayesian_forecasting"),
         "nikkei_fx_equity_dynamics": mh_sigs.get("nikkei_fx_equity_dynamics"),
         "jev_primitives_guide": mh_sigs.get("jev_primitives_guide"),
         "shipping_telemetry": mh_data.get("telemetry"),
@@ -791,6 +812,26 @@ def render_cfd_card(name, sig, meta):
     ind_sl = sig.get('indicative_stop_loss', sig['price'] * 0.997)
     ind_sl_str = f"{prefix}{ind_sl:,.{decimals}f}{suffix}"
     
+    mh = sig.get("multi_horizon", {})
+    s10 = mh.get("forward_10m", {})
+    bf_10m = s10.get("bayes_factor")
+    ev_10m = s10.get("evidence_badge")
+    ci_10m = s10.get("ci_95")
+    
+    bayes_html = ""
+    if bf_10m is not None:
+        badge_txt = f"{ev_10m}" if ev_10m else f"BF: {bf_10m:.2f}x"
+        ci_txt = f"<br><span style='color:#a5b4fc;'>Beta 95% CI: [{ci_10m[0]*100:.1f}% – {ci_10m[1]*100:.1f}%]</span>" if ci_10m else ""
+        bayes_html = f"""
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 6px; padding: 5px 7px; margin: 4px 0; font-size: 11px;">
+            <div style="color: #93c5fd; font-weight: 700; display:flex; justify-content:space-between;">
+                <span>🔬 Bayes Factor (10m):</span>
+                <span style="color:#fff; font-family:monospace; font-weight:800;">{bf_10m:.2f}x</span>
+            </div>
+            <div style="color: #cbd5e1; font-size: 10px; margin-top: 2px;">{badge_txt}{ci_txt}</div>
+        </div>
+        """
+    
     st.markdown(f"""
     <div class="index-card {sig['badge_class']}">
         <div style="font-size: 13px; opacity: 0.8;">{meta['flag']} {name} ({meta['symbol']})</div>
@@ -803,9 +844,10 @@ def render_cfd_card(name, sig, meta):
             <div style="font-size: 11px; font-weight: 700; color: #38bdf8;">{close_label}: {ind_price_str}</div>
             <div style="font-size: 11px; font-weight: 700; color: #f87171; margin-top: 2px;">🛡️ Protective Stop: {ind_sl_str}</div>
         </div>
+        {bayes_html}
         <div style="font-size: 13px; font-weight: 600;">Continuation Prob: {sig['prob_up']*100:.1f}%</div>
         <div style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Confidence: {sig['confidence']*100:.0f}% | VWAP: {sig['vwap_z']:+.1f}σ</div>
-        <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">⚡ {engine_tag}</div>
+        <div style="font-size: 10px; opacity: 0.6; margin-top: 4px;">⚡ {engine_tag} (Bayesian Jev)</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -994,17 +1036,61 @@ for name, sig in results.items():
     p1h_tp = f"{prefix}{s1h.get('indicative_take_profit', s1h.get('indicative_price', p0)):,.{dec}f}{suffix}"
     p1h_sl = f"{prefix}{s1h.get('indicative_stop_loss', p0 * 0.997):,.{dec}f}{suffix}"
 
+    bf1 = s1.get('bayes_factor')
+    bf10 = s10.get('bayes_factor')
+    bf30 = s30.get('bayes_factor')
+    bf1h = s1h.get('bayes_factor')
+    ci10 = s10.get('ci_95')
+    ci10_str = f" [CI: {ci10[0]*100:.0f}-{ci10[1]*100:.0f}%]" if ci10 else ""
+
     mh_matrix_data.append({
         "Instrument": f"{meta.get('flag', '')} {name}",
-        "1m Forward Signal": f"{s1.get('action', 'NEUTRAL')} (TP: {p1_tp} | SL: {p1_sl})",
-        "10m Forward Signal": f"{s10.get('action', 'NEUTRAL')} (TP: {p10_tp} | SL: {p10_sl})",
-        "30m Forward Signal": f"{s30.get('action', 'NEUTRAL')} (TP: {p30_tp} | SL: {p30_sl})",
-        "1h Forward Signal": f"{s1h.get('action', 'NEUTRAL')} (TP: {p1h_tp} | SL: {p1h_sl})",
+        "1m Forward Signal": f"{s1.get('action', 'NEUTRAL')} (TP: {p1_tp} | SL: {p1_sl})" + (f" [BF:{bf1:.2f}]" if bf1 is not None else ""),
+        "10m Forward Signal": f"{s10.get('action', 'NEUTRAL')} (TP: {p10_tp} | SL: {p10_sl})" + (f" [BF:{bf10:.2f}{ci10_str}]" if bf10 is not None else ""),
+        "30m Forward Signal": f"{s30.get('action', 'NEUTRAL')} (TP: {p30_tp} | SL: {p30_sl})" + (f" [BF:{bf30:.2f}]" if bf30 is not None else ""),
+        "1h Forward Signal": f"{s1h.get('action', 'NEUTRAL')} (TP: {p1h_tp} | SL: {p1h_sl})" + (f" [BF:{bf1h:.2f}]" if bf1h is not None else ""),
         "Horizon Alignment": mh.get("alignment", "NEUTRAL").split(" ")[0],
         "Mean Prob P(Up)": f"{mh.get('average_prob_up', 0.50)*100:.1f}%"
     })
 mh_matrix_df = pd.DataFrame(mh_matrix_data)
 st.dataframe(mh_matrix_df, use_container_width=True, hide_index=True)
+
+# ---------------------------------------------------------
+# 🔬 Bayesian Forecasting Diagnostics (Jeffreys Evidence & Beta Distributions)
+# ---------------------------------------------------------
+with st.expander("🔬 Bayesian Forecasting Diagnostics (Harold Jeffreys Evidence Scale & Beta Conjugate Updates)", expanded=False):
+    st.markdown("""
+    **Bayesian Mathematical Forecasting Engine**:
+    - **Log-Odds Update**: $\\text{logit}(P_{\\text{post}}) = \\text{logit}(P_0) + \\Lambda_{\\text{Jev}}$, where $\\Lambda = \\ln \\mathcal{BF}_{10}$ is Alan Turing's Weight of Evidence.
+    - **Harold Jeffreys Evidence Scale**: $\\mathcal{BF} \\ge 10$ (Decisive Bullish), $3.2 \\le \\mathcal{BF} < 10$ (Substantial Bullish), $1.05 \\le \\mathcal{BF} < 3.2$ (Anecdotal Bullish), $\\mathcal{BF} \\le 0.32$ (Substantial Bearish), $\\mathcal{BF} \\le 0.10$ (Decisive Bearish).
+    - **Conjugate Beta Parameters**: $\\alpha_{\\text{post}} = \\alpha_0 + n_{\\text{Jev}} \\cdot p_{\\text{Jev}}$, $\\beta_{\\text{post}} = \\beta_0 + n_{\\text{Jev}} \\cdot (1 - p_{\\text{Jev}})$.
+    - **95% Credible Interval**: Exact $I_{p}(\\alpha, \\beta)$ inverse regularized incomplete beta bounds.
+    """)
+    bayes_table = []
+    for name, sig in results.items():
+        mh = sig.get("multi_horizon", {})
+        s10 = mh.get("forward_10m", {})
+        bf10 = s10.get("bayes_factor")
+        ev10 = s10.get("evidence_badge", "Inconclusive")
+        ci10 = s10.get("ci_95")
+        ent10 = s10.get("epistemic_entropy_bits")
+        cpi10 = s10.get("credible_price_interval", {})
+        meta = ASSETS.get(name, {})
+        is_yield = meta.get("group") == "US Treasury Curve" or sig["price"] < 15
+        dec = 3 if is_yield else 2
+        prefix = "" if (is_yield and sig["price"] < 15) else "$"
+        suffix = "%" if (is_yield and sig["price"] < 15) else ""
+        
+        bayes_table.append({
+            "Instrument": f"{meta.get('flag', '')} {name}",
+            "10m Bayes Factor (BF₁₀)": f"{bf10:.2f}x" if bf10 is not None else "--",
+            "Jeffreys Scientific Evidence": ev10,
+            "Beta 95% Credible Interval": f"[{ci10[0]*100:.1f}% — {ci10[1]*100:.1f}%]" if ci10 else "--",
+            "95% Predictive Price Bounds": f"[{prefix}{cpi10.get('price_lower_95', sig['price']):,.{dec}f}{suffix} — {prefix}{cpi10.get('price_upper_95', sig['price']):,.{dec}f}{suffix}]" if cpi10 else "--",
+            "Epistemic Entropy": f"{ent10:.3f} bits" if ent10 is not None else "--"
+        })
+    if bayes_table:
+        st.dataframe(pd.DataFrame(bayes_table), use_container_width=True, hide_index=True)
 
 # Cross-Market Intelligence (10-Minute Horizon)
 if "S&P 500 (SPX)" in results and "Nasdaq 100 (NDX)" in results and "Russell 2000 (RUT)" in results and "Nikkei 225 (NI225)" in results:

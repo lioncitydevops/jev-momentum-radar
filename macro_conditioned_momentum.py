@@ -760,7 +760,7 @@ def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, b
         f10m_extra["fx_sensitivity_score"] = nikkei_dyn["fx_sensitivity_score"]
         f10m_extra["prob_fx_transmission"] = nikkei_dyn["prob_fx_transmission"]
 
-    return {
+    res = {
         "model_type": "MODEL_A_MACRO_FULL",
         "is_live_jev": False,
         "status": "simulation_mode",
@@ -780,6 +780,19 @@ def simulate_macro_full_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, b
         "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m), "prob_up": round(prob_30m, 4), "confidence": 0.78, **ip_data["h30m"]},
         "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h), "prob_up": round(prob_1h, 4), "confidence": 0.80, **ip_data["h1h"]}
     }
+
+    try:
+        from bayesian_forecasting import compute_multi_horizon_bayesian_forecast
+        bayes_sim = compute_multi_horizon_bayesian_forecast(res, None, eq_feat or {})
+        res["bayesian_forecasting"] = bayes_sim
+        res["forward_projections"] = {
+            **res["forward_projections"],
+            **bayes_sim["forward_projections"]
+        }
+    except Exception as _e_bsim:
+        pass
+
+    return res
 
 def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, nikkei_dyn: dict = None) -> dict:
     """
@@ -848,7 +861,7 @@ def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, ni
         f10m_extra["fx_sensitivity_score"] = nikkei_dyn["fx_sensitivity_score"]
         f10m_extra["prob_fx_transmission"] = nikkei_dyn["prob_fx_transmission"]
 
-    return {
+    res = {
         "model_type": "MODEL_B_RATE_ONLY",
         "is_live_jev": False,
         "status": "simulation_mode",
@@ -868,6 +881,19 @@ def simulate_rate_only_prior(equity_name: str, eq_feat: dict, tnx_feat: dict, ni
         "forward_30m": {"horizon": "30min forward", "action": get_act(prob_30m), "prob_up": round(prob_30m, 4), "confidence": 0.78, **ip_data["h30m"]},
         "forward_1h": {"horizon": "1h forward", "action": get_act(prob_1h), "prob_up": round(prob_1h, 4), "confidence": 0.80, **ip_data["h1h"]}
     }
+
+    try:
+        from bayesian_forecasting import compute_multi_horizon_bayesian_forecast
+        bayes_sim = compute_multi_horizon_bayesian_forecast(res, None, eq_feat or {})
+        res["bayesian_forecasting"] = bayes_sim
+        res["forward_projections"] = {
+            **res["forward_projections"],
+            **bayes_sim["forward_projections"]
+        }
+    except Exception as _e_bsim:
+        pass
+
+    return res
 
 def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func, eq_feat: dict = None, is_nikkei: bool = False, nikkei_dyn: dict = None) -> dict:
     """Queries TypeSafe Jev System One API with macro-conditioned state representation and typed primitives."""
@@ -1006,25 +1032,29 @@ def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func, 
         # Compute empirical macro fallback prior for Bayesian calibration
         fb_res = fallback_func()
 
-        raw_act_1m = answers.get("signal_1m_action", {}).get("choice", "NEUTRAL")
-        conf_1m = answers.get("signal_1m_action", {}).get("confidence", 0.70)
-        raw_p_1m = answers.get("prob_up_1m", {}).get("noul", 0.50)
-        p_1m = float(np.clip(0.40 * float(raw_p_1m) + 0.60 * float(fb_res["forward_1m"]["prob_up"]), 0.05, 0.95))
+        # Execute Principled Bayesian Forecast combining Macro Prior with Live Jev System One Evidence
+        from bayesian_forecasting import compute_multi_horizon_bayesian_forecast
+        bayes_res = compute_multi_horizon_bayesian_forecast(fb_res, answers, eq_feat or {})
 
-        raw_act_10m = answers.get("signal_10m_action", {}).get("choice", "NEUTRAL")
-        conf_10m = answers.get("signal_10m_action", {}).get("confidence", 0.72)
-        raw_p_10m = answers.get("prob_up_10m", {}).get("noul", 0.50)
-        p_10m = float(np.clip(0.40 * float(raw_p_10m) + 0.60 * float(fb_res["forward_10m"]["prob_up"]), 0.05, 0.95))
+        b_1m = bayes_res["forward_1m"]
+        b_10m = bayes_res["forward_10m"]
+        b_30m = bayes_res["forward_30m"]
+        b_1h = bayes_res["forward_1h"]
 
-        raw_act_30m = answers.get("signal_30m_action", {}).get("choice", "NEUTRAL")
-        conf_30m = answers.get("signal_30m_action", {}).get("confidence", 0.75)
-        raw_p_30m = answers.get("prob_up_30m", {}).get("noul", 0.50)
-        p_30m = float(np.clip(0.40 * float(raw_p_30m) + 0.60 * float(fb_res["forward_30m"]["prob_up"]), 0.05, 0.95))
+        p_1m = b_1m["posterior_prob_up"]
+        p_10m = b_10m["posterior_prob_up"]
+        p_30m = b_30m["posterior_prob_up"]
+        p_1h = b_1h["posterior_prob_up"]
 
-        raw_act_1h = answers.get("signal_1h_action", {}).get("choice", "NEUTRAL")
-        conf_1h = answers.get("signal_1h_action", {}).get("confidence", 0.78)
-        raw_p_1h = answers.get("prob_up_1h", {}).get("noul", 0.50)
-        p_1h = float(np.clip(0.40 * float(raw_p_1h) + 0.60 * float(fb_res["forward_1h"]["prob_up"]), 0.05, 0.95))
+        act_1m = b_1m["action"]
+        act_10m = b_10m["action"]
+        act_30m = b_30m["action"]
+        act_1h = b_1h["action"]
+
+        conf_1m = b_1m["jev_confidence"]
+        conf_10m = b_10m["jev_confidence"]
+        conf_30m = b_30m["jev_confidence"]
+        conf_1h = b_1h["jev_confidence"]
 
         raw_conv = answers.get("momentum_conviction_score", {}).get("score")
         if raw_conv is not None:
@@ -1034,32 +1064,20 @@ def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func, 
         else:
             conviction_score = fb_res.get("conviction_score", 0.0)
 
-        def cal_act(raw, p):
-            if p >= 0.56: return "STRONG_LONG"
-            elif p >= 0.52: return "LEAN_LONG"
-            elif p <= 0.44: return "STRONG_SHORT"
-            elif p <= 0.48: return "LEAN_SHORT"
-            return raw if raw != "NEUTRAL" else "NEUTRAL"
-
-        act_1m = cal_act(raw_act_1m, p_1m)
-        act_10m = cal_act(raw_act_10m, p_10m)
-        act_30m = cal_act(raw_act_30m, p_30m)
-        act_1h = cal_act(raw_act_1h, p_1h)
-
-        probs = [p_1m, p_10m, p_30m, p_1h]
-        avg_p = float(np.mean(probs))
-        bull_c = sum(1 for p in probs if p > 0.52)
-        bear_c = sum(1 for p in probs if p < 0.48)
-        alignment = "STRONG_BULLISH_ALIGNMENT (4/4 Up)" if bull_c == 4 else ("STRONG_BEARISH_ALIGNMENT (4/4 Down)" if bear_c == 4 else ("MODERATE_BULLISH_BIAS (3/4 Up)" if bull_c >= 3 else ("MODERATE_BEARISH_BIAS (3/4 Down)" if bear_c >= 3 else "DIVERGENT_CHOP / NEUTRAL")))
+        alignment = bayes_res["alignment"]
+        avg_p = bayes_res["average_posterior_prob_up"]
 
         ip_extra = {}
         if eq_feat:
             ip_data = compute_indicative_prices(eq_feat, float(p_1m), float(p_10m), float(p_30m), float(p_1h))
-            ip_extra["forward_projections"] = ip_data["forward_projections"]
-            h1m_ext = ip_data["h1m"]
-            h10m_ext = ip_data["h10m"]
-            h30m_ext = ip_data["h30m"]
-            h1h_ext = ip_data["h1h"]
+            ip_extra["forward_projections"] = {
+                **ip_data["forward_projections"],
+                **bayes_res["forward_projections"]
+            }
+            h1m_ext = {**ip_data["h1m"], "bayes_factor": b_1m["bayes_factor"], "evidence_badge": b_1m["evidence_badge"], "ci_95": b_1m["beta_posterior"]["ci_95"]}
+            h10m_ext = {**ip_data["h10m"], "bayes_factor": b_10m["bayes_factor"], "evidence_badge": b_10m["evidence_badge"], "ci_95": b_10m["beta_posterior"]["ci_95"]}
+            h30m_ext = {**ip_data["h30m"], "bayes_factor": b_30m["bayes_factor"], "evidence_badge": b_30m["evidence_badge"], "ci_95": b_30m["beta_posterior"]["ci_95"]}
+            h1h_ext = {**ip_data["h1h"], "bayes_factor": b_1h["bayes_factor"], "evidence_badge": b_1h["evidence_badge"], "ci_95": b_1h["beta_posterior"]["ci_95"]}
         else:
             h1m_ext = h10m_ext = h30m_ext = h1h_ext = {}
 
@@ -1086,6 +1104,7 @@ def query_typesafe_jev_macro(state_prompt: str, model_type: str, fallback_func, 
             "conviction_score": conviction_score,
             "nikkei_fx_equity_dynamics": nikkei_res,
             "jev_primitives_guide": JEV_PRIMITIVES_GUIDE,
+            "bayesian_forecasting": bayes_res,
             **ip_extra,
             "forward_1m": {"horizon": "1min forward", "action": act_1m, "prob_up": round(float(p_1m), 4), "confidence": round(float(conf_1m), 4), **h1m_ext},
             "forward_10m": {"horizon": "10min forward", "action": act_10m, "prob_up": round(float(p_10m), 4), "confidence": round(float(conf_10m), 4), **h10m_ext, **f10m_extra},
