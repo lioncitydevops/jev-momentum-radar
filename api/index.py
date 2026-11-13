@@ -574,7 +574,8 @@ def analyze_asset(df, name="S&P 500 (SPX)", timeframe="1m", tv_metric=None, mode
             "evidence_badge": sig_h.get("evidence_badge"),
             "ci_95": sig_h.get("ci_95"),
             "credible_price_interval": sig_h.get("credible_price_interval"),
-            "epistemic_entropy_bits": sig_h.get("epistemic_entropy_bits")
+            "epistemic_entropy_bits": sig_h.get("epistemic_entropy_bits"),
+            "uncertainty_decomposition": sig_h.get("uncertainty_decomposition")
         }
 
     fwd_proj = mh_sigs.get("forward_projections")

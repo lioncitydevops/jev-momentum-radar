@@ -532,6 +532,18 @@ def simulate_calibrated_multi_horizon_prior(features: dict, tv_rating_score: flo
             **res["forward_projections"],
             **bayes_sim["forward_projections"]
         }
+        for hk in ["1m", "10m", "30m", "1h"]:
+            fhk = f"forward_{hk}"
+            if fhk in res and hk in bayes_sim["horizons"]:
+                b_h = bayes_sim["horizons"][hk]
+                res[fhk]["bayes_factor"] = b_h["bayes_factor"]
+                res[fhk]["evidence_badge"] = b_h["evidence_badge"]
+                res[fhk]["evidence_color"] = b_h["evidence_color"]
+                res[fhk]["ci_95"] = b_h["beta_posterior"]["ci_95"]
+                res[fhk]["epistemic_entropy_bits"] = b_h["epistemic_entropy_bits"]
+                res[fhk]["predictive_distribution"] = b_h["predictive_distribution"]
+                res[fhk]["credible_price_interval"] = b_h["predictive_distribution"].get("credible_price_interval_95")
+                res[fhk]["uncertainty_decomposition"] = b_h.get("uncertainty_decomposition")
     except Exception as _e_bsim:
         pass
 
@@ -740,7 +752,10 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
                 "evidence_badge": b_1m["evidence_badge"],
                 "evidence_color": b_1m["evidence_color"],
                 "ci_95": b_1m["beta_posterior"]["ci_95"],
+                "epistemic_entropy_bits": b_1m.get("epistemic_entropy_bits"),
                 "predictive_distribution": b_1m["predictive_distribution"],
+                "credible_price_interval": b_1m["predictive_distribution"].get("credible_price_interval_95"),
+                "uncertainty_decomposition": b_1m.get("uncertainty_decomposition"),
                 **ip_data["h1m"]
             },
             "forward_10m": {
@@ -752,7 +767,10 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
                 "evidence_badge": b_10m["evidence_badge"],
                 "evidence_color": b_10m["evidence_color"],
                 "ci_95": b_10m["beta_posterior"]["ci_95"],
+                "epistemic_entropy_bits": b_10m.get("epistemic_entropy_bits"),
                 "predictive_distribution": b_10m["predictive_distribution"],
+                "credible_price_interval": b_10m["predictive_distribution"].get("credible_price_interval_95"),
+                "uncertainty_decomposition": b_10m.get("uncertainty_decomposition"),
                 **ip_data["h10m"]
             },
             "forward_30m": {
@@ -764,7 +782,10 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
                 "evidence_badge": b_30m["evidence_badge"],
                 "evidence_color": b_30m["evidence_color"],
                 "ci_95": b_30m["beta_posterior"]["ci_95"],
+                "epistemic_entropy_bits": b_30m.get("epistemic_entropy_bits"),
                 "predictive_distribution": b_30m["predictive_distribution"],
+                "credible_price_interval": b_30m["predictive_distribution"].get("credible_price_interval_95"),
+                "uncertainty_decomposition": b_30m.get("uncertainty_decomposition"),
                 **ip_data["h30m"]
             },
             "forward_1h": {
@@ -776,7 +797,10 @@ def query_typesafe_jev_multi_horizon(state_prompt: str, features: dict, tv_ratin
                 "evidence_badge": b_1h["evidence_badge"],
                 "evidence_color": b_1h["evidence_color"],
                 "ci_95": b_1h["beta_posterior"]["ci_95"],
+                "epistemic_entropy_bits": b_1h.get("epistemic_entropy_bits"),
                 "predictive_distribution": b_1h["predictive_distribution"],
+                "credible_price_interval": b_1h["predictive_distribution"].get("credible_price_interval_95"),
+                "uncertainty_decomposition": b_1h.get("uncertainty_decomposition"),
                 **ip_data["h1h"]
             },
             "raw_response": data
