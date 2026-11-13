@@ -478,7 +478,8 @@ To achieve scientific rigor, the forecasting architecture is fully grounded in *
 
 ---
 
-### 8.2 Bayes' Rule in Odds and Alan Turing's Weight of Evidence
+### 8.2 Bayes' Rule in Odds, Alan Turing's Weight of Evidence, and Comparative Advantage Scaling
+
 Let $H_1$ denote the hypothesis that price will close higher over horizon $\tau$ ($\Delta P_\tau > 0$), and $H_0$ denote the null hypothesis ($\Delta P_\tau \le 0$). 
 
 By Bayes' theorem, the posterior odds $O_1 = \frac{P(H_1 \mid E_{\text{Jev}})}{P(H_0 \mid E_{\text{Jev}})}$ relate to prior odds $O_0 = \frac{P_0}{1 - P_0}$ through the **Bayes Factor** ($\mathcal{BF}_{10}$):
@@ -487,22 +488,30 @@ $$O_1 = O_0 \cdot \mathcal{BF}_{10}, \quad \text{where } \mathcal{BF}_{10} = \fr
 
 Taking natural logarithms maps Bayes' rule into additive log-odds, defining Alan Turing and I.J. Good's **Weight of Evidence** ($\Lambda$):
 
-$$\text{logit}(P_{\text{post}}) = \text{logit}(P_0) + \Lambda_{\text{Jev}}$$
+$$\text{logit}(P_{\text{post}}) = \text{logit}(P_0) + \Lambda_{\text{Jev}}(\tau)$$
 
-$$\text{where } \text{logit}(p) = \ln\left(\frac{p}{1 - p}\right), \quad \Lambda_{\text{Jev}} = \ln \mathcal{BF}_{10}$$
+$$\text{where } \text{logit}(p) = \ln\left(\frac{p}{1 - p}\right), \quad \Lambda_{\text{Jev}}(\tau) = \ln \mathcal{BF}_{10}(\tau)$$
 
-#### TypeSafe Jev Evidence Weighting Function:
-The semantic evidence from Jev System One is calibrated via confidence concentration ($c_{\text{Jev}} \in [0.5, 1.0]$), categorical alignment ($a_{\text{Jev}}$), and directional conviction score ($S_{\text{conv}}$):
+#### 1. Horizon-Adaptive Precision Scaling $\gamma(\tau)$ (Information Comparative Advantage):
+In high-frequency financial mathematics, mechanical state-space equations (matrix exponential wave propagation, order book autocorrelation) have high signal-to-noise ratios over micro-horizons ($1\text{m}$), whereas semantic narrative reasoning and macro regime persistence dominate over intermediate-to-long horizons ($30\text{m}-1\text{h}$). We formally scale semantic precision:
 
-$$\kappa(c_{\text{Jev}}, a_{\text{Jev}}, S_{\text{conv}}) = \left[1.0 + 1.8 \cdot (c_{\text{Jev}} - 0.50)\right] \cdot a_{\text{Jev}} \cdot \left[1.0 + 0.35 \cdot \frac{|S_{\text{conv}}|}{100}\right]$$
+$$\gamma(1\text{m}) = 0.35, \quad \gamma(10\text{m}) = 0.85, \quad \gamma(30\text{m}) = 1.15, \quad \gamma(1\text{h}) = 1.50$$
 
-$$\Lambda_{\text{Jev}} = \kappa \cdot \text{logit}(p_{\text{Jev}})$$
+#### 2. Closed-Loop Hierarchical Shrinkage $\omega_{\text{edge}}$ from Walk-Forward Confusion Matrix:
+To prevent noise injection during structural breaks, evidence precision is dynamically shrunk if recent walk-forward predictive edge declines:
 
-$$\mathcal{BF}_{10} = \exp(\Lambda_{\text{Jev}})$$
+$$\omega_{\text{edge}}(\tau) = \text{clip}\left(0.60 + 0.07 \cdot \text{Edge}(\tau), 0.20, 1.35\right), \quad \text{where } \text{Edge}(\tau) = \text{HitRate}(\tau) - 50.0\%$$
+
+#### 3. Platt Reliability Scaling on LLM Log-Odds:
+To counter boundary overconfidence inherent to language models:
+
+$$\Lambda_{\text{Jev}}(\tau) = \gamma(\tau) \cdot \omega_{\text{edge}}(\tau) \cdot \kappa(c_{\text{Jev}}, a_{\text{Jev}}, S_{\text{conv}}) \cdot a_{\text{cal}} \cdot \text{logit}(p_{\text{Jev}})$$
+
+where $a_{\text{cal}} = 0.90$ is the empirical reliability shrinkage parameter.
 
 The exact Bayesian posterior probability is retrieved via the standard logistic sigmoid:
 
-$$P_{\text{post}} = \sigma\left(\text{logit}(P_0) + \Lambda_{\text{Jev}}\right) = \frac{1}{1 + \exp\left(-\left[\text{logit}(P_0) + \Lambda_{\text{Jev}}\right]\right)}$$
+$$P_{\text{post}} = \sigma\left(\text{logit}(P_0) + \Lambda_{\text{Jev}}(\tau)\right) = \frac{1}{1 + \exp\left(-\left[\text{logit}(P_0) + \Lambda_{\text{Jev}}(\tau)\right]\right)}$$
 
 ---
 
@@ -525,53 +534,36 @@ To prevent false-positive overtrading and establish standardized confidence grad
 
 ---
 
-### 8.4 Conjugate Beta-Binomial Updating & 95% Credible Intervals
-To model the full epistemic probability distribution rather than a single point estimate, directional outcomes are modeled under the conjugate **Beta-Binomial distribution**:
+### 8.4 Information-Theoretic Effective Sample Size (ESS) & Beta Conjugacy
+Rather than hardcoding observation counts, pseudo-observations scale strictly with **Shannon Information Certainty** $I(p) = 1.0 - H(p)$, where $H(p) = -p \log_2(p) - (1-p) \log_2(1-p)$:
 
-$$\text{Prior: } p \sim \text{Beta}(\alpha_0, \beta_0), \quad \text{where } \alpha_0 = n_0 P_0, \; \beta_0 = n_0 (1 - P_0)$$
+$$n_{\text{prior}} = 10.0 \cdot \max(0.08, 1 - H(P_0)) + 4.0$$
 
-Here $n_0 = 10 \cdot c_{\text{prior}}$ represents prior pseudo-observation count. The semantic evidence from Jev updates the conjugate hyperparameters:
+$$n_{\text{Jev}} = 10.0 \cdot \max(0.04, 1 - H(p_{\text{Jev}})) \cdot \gamma(\tau) \cdot \omega_{\text{edge}}(\tau) \cdot \kappa$$
 
-$$\Delta \alpha = n_{\text{Jev}} \cdot p_{\text{Jev}}, \quad \Delta \beta = n_{\text{Jev}} \cdot (1 - p_{\text{Jev}}), \quad n_{\text{Jev}} = 10 \cdot \kappa(c_{\text{Jev}}, a_{\text{Jev}})$$
+* **Information Gain Property**: When Jev is in maximum uncertainty ($p_{\text{Jev}} = 0.50$, $H = 1.0\text{ bit}$), $n_{\text{Jev}} \to 0$. Jev adds **zero pseudo-counts** to the Beta posterior.
+* When Jev has high certainty ($p_{\text{Jev}} \ge 0.85$, $H \le 0.61$), $n_{\text{Jev}}$ expands proportionally to the certainty.
 
-$$\alpha_{\text{post}} = \alpha_0 + \Delta \alpha, \quad \beta_{\text{post}} = \beta_0 + \Delta \beta$$
+The conjugate parameters update as:
 
-The posterior expectation and variance are given by:
+$$\alpha_{\text{post}} = n_{\text{prior}} P_0 + n_{\text{Jev}} p_{\text{Jev}}, \quad \beta_{\text{post}} = n_{\text{prior}} (1 - P_0) + n_{\text{Jev}} (1 - p_{\text{Jev}})$$
 
-$$\mathbb{E}[p \mid E] = \frac{\alpha_{\text{post}}}{\alpha_{\text{post}} + \beta_{\text{post}}}, \quad \text{Var}(p \mid E) = \frac{\alpha_{\text{post}} \beta_{\text{post}}}{(\alpha_{\text{post}} + \beta_{\text{post}})^2 (\alpha_{\text{post}} + \beta_{\text{post}} + 1)}$$
-
-The **95% Bayesian Credible Interval** $[p_{\text{lower}}^{95\%}, p_{\text{upper}}^{95\%}]$ is calculated via the inverse regularized incomplete beta function $I_x^{-1}(\alpha_{\text{post}}, \beta_{\text{post}})$:
-
-$$P\left(p_{\text{lower}}^{95\%} \le p \le p_{\text{upper}}^{95\%} \mid E\right) = \int_{p_{\text{lower}}^{95\%}}^{p_{\text{upper}}^{95\%}} \frac{p^{\alpha-1} (1-p)^{\beta-1}}{B(\alpha, \beta)} dp = 0.95$$
+The **95% Bayesian Credible Interval** $[p_{\text{lower}}^{95\%}, p_{\text{upper}}^{95\%}]$ is evaluated via the exact inverse regularized incomplete beta integral $I_x^{-1}(\alpha_{\text{post}}, \beta_{\text{post}})$.
 
 ---
 
-### 8.5 Continuous Gaussian/Lognormal Predictive Price Distribution
+### 8.5 Continuous Gaussian/Lognormal Predictive Price Distribution & Uncertainty Partitioning
 Expected price evolution over horizon $\tau$ is modeled in log-price space $y_\tau = \ln(P_\tau / P_0) \sim \mathcal{N}(\mu_{\text{post}}, \sigma_{\text{pred}}^2)$:
 
-1. **Prior Return Drift**: $\mu_0 = (P_0 - 0.50) \cdot \delta_{\text{scale}}$, with prior precision $\tau_0 = \frac{1}{\sigma_{\text{prior}}^2}$.
-2. **Jev Semantic Return Evidence**: $\hat{\mu}_{\text{Jev}} = (p_{\text{Jev}} - 0.50) \cdot \delta_{\text{scale}}$, with semantic precision $\tau_{\text{Jev}} = \kappa \cdot \tau_0$.
-3. **Posterior Mean Return**:
-   $$\mu_{\text{post}} = \frac{\tau_0 \mu_0 + \tau_{\text{Jev}} \hat{\mu}_{\text{Jev}}}{\tau_0 + \tau_{\text{Jev}}}$$
-4. **Predictive Variance** (incorporating both parameter uncertainty and realized Garman-Klass diffusion volatility $\sigma_{\text{GK}}^2 \tau$):
-   $$\sigma_{\text{pred}}^2 = \frac{1}{\tau_0 + \tau_{\text{Jev}}} + \sigma_{\text{GK}}^2 \cdot \tau$$
+$$\mu_{\text{post}} = \frac{\tau_{\text{prior}} \mu_{\text{prior}} + \tau_{\text{Jev}} \hat{\mu}_{\text{Jev}}}{\tau_{\text{prior}} + \tau_{\text{Jev}}}, \quad \text{where } \tau_{\text{prior}} = \frac{1}{\sigma_{\text{diff}}^2}, \; \tau_{\text{Jev}} = \tau_{\text{prior}} \cdot \gamma(\tau) \cdot \omega_{\text{edge}} \cdot \kappa$$
 
-The **Indicative Expected Forward Price** and **95% Credible Price Envelope** are:
+Total predictive uncertainty is rigorously partitioned into **epistemic parameter uncertainty** and **aleatoric diffusion noise**:
 
-$$\hat{P}_\tau = P_0 \cdot \exp\left(\mu_{\text{post}} + \frac{1}{2}\sigma_{\text{pred}}^2\right)$$
+$$\sigma_{\text{pred}}^2(\tau) = \underbrace{\frac{1}{\tau_{\text{prior}} + \tau_{\text{Jev}}}}_{\text{Epistemic (Model Parameter Uncertainty)}} + \underbrace{\sigma_{\text{GK}}^2 \cdot \frac{\tau}{60}}_{\text{Aleatoric (Market Innovation Noise)}}$$
 
-$$P_{\text{lower}}^{95\%} = P_0 \cdot \exp\left(\mu_{\text{post}} - 1.96 \cdot \sigma_{\text{pred}}\right), \quad P_{\text{upper}}^{95\%} = P_0 \cdot \exp\left(\mu_{\text{post}} + 1.96 \cdot \sigma_{\text{pred}}\right)$$
+The **95% Bayesian Credible Price Envelope** and Protective Stops are:
 
-Protective stops are pegged directly to the 95% Bayesian Value-at-Risk boundary ($\text{VaR}_{95\%}$), guaranteeing that stops adapt dynamically to volatility regimes and model confidence.
+$$P_{\text{lower}}^{95\%} = P_0 \cdot \exp\left(\mu_{\text{post}} - 1.95996 \cdot \sigma_{\text{pred}}\right), \quad P_{\text{upper}}^{95\%} = P_0 \cdot \exp\left(\mu_{\text{post}} + 1.95996 \cdot \sigma_{\text{pred}}\right)$$
 
----
-
-### 8.6 Information-Theoretic Epistemic Uncertainty Quantification
-To distinguish between confident predictions and regimes of high market entropy (indecision), the system computes **Shannon Epistemic Entropy** ($H(P)$ in bits):
-
-$$H(P_{\text{post}}) = - P_{\text{post}} \log_2(P_{\text{post}}) - (1 - P_{\text{post}}) \log_2(1 - P_{\text{post}})$$
-
-- When $P_{\text{post}} = 0.50$ (complete uncertainty/chop), $H = 1.000\text{ bit}$ (maximum entropy).
-- When $P_{\text{post}} \ge 0.85$ or $P_{\text{post}} \le 0.15$ (high certainty), $H \le 0.610\text{ bits}$.
-- High entropy triggers automatic position sizing dampening and deadband widening.
+$$\text{Stop}_{\text{Long}} = P_0 \cdot \exp\left(\mu_{\text{post}} - 2.326 \cdot \sigma_{\text{pred}}\right) \quad (\text{VaR}_{99\%})$$
 

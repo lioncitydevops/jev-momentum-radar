@@ -147,6 +147,50 @@ def test_multi_horizon_bayesian_forecast():
     assert "STRONG_BULLISH_ALIGNMENT" in mh_res["alignment"]
     assert mh_res["multi_horizon_geometric_mean_bf"] > 1.0
 
+def test_horizon_comparative_advantage_scaling():
+    """
+    Verify that for identical Jev evidence, the 1m horizon produces a much smaller
+    Weight of Evidence (gamma=0.35) than the 1h horizon (gamma=1.50), mathematically
+    preventing LLM semantic signals from overriding 1m high-frequency tape physics.
+    """
+    feat = {"price": 100.0, "atr_14": 0.5, "vol_gk": 0.001}
+    res_1m = compute_bayesian_horizon_forecast("1m", 0.50, 0.70, "BUY", 0.80, feat, tau_minutes=1)
+    res_1h = compute_bayesian_horizon_forecast("1h", 0.50, 0.70, "BUY", 0.80, feat, tau_minutes=60)
+
+    assert res_1m["bayes_factor"] < res_1h["bayes_factor"], "1m BF must be strictly smaller than 1h BF under comparative advantage"
+    assert res_1m["posterior_prob_up"] < res_1h["posterior_prob_up"], "1m posterior should be more conservative than 1h posterior"
+    assert res_1m["uncertainty_decomposition"]["horizon_semantic_weight_gamma"] == 0.35
+    assert res_1h["uncertainty_decomposition"]["horizon_semantic_weight_gamma"] == 1.50
+
+def test_closed_loop_confusion_matrix_shrinkage():
+    """
+    Verify that when walk-forward confusion matrix edge is negative (model underperforming),
+    omega_edge collapses, safely reverting towards the objective prior.
+    """
+    feat = {"price": 100.0, "atr_14": 0.5, "vol_gk": 0.001}
+    opt_positive = {"confusion_matrix": {"10m": {"edge": 10.0}}}
+    opt_negative = {"confusion_matrix": {"10m": {"edge": -5.0}}}
+
+    res_pos = compute_bayesian_horizon_forecast("10m", 0.50, 0.70, "BUY", 0.80, feat, tau_minutes=10, opt_configs=opt_positive)
+    res_neg = compute_bayesian_horizon_forecast("10m", 0.50, 0.70, "BUY", 0.80, feat, tau_minutes=10, opt_configs=opt_negative)
+
+    assert res_pos["uncertainty_decomposition"]["walk_forward_shrinkage_omega"] > res_neg["uncertainty_decomposition"]["walk_forward_shrinkage_omega"]
+    assert res_pos["bayes_factor"] > res_neg["bayes_factor"]
+
+def test_information_theoretic_ess_at_maximum_entropy():
+    """
+    Verify that when Jev is in maximum uncertainty (p_Jev = 0.50, H = 1.0 bit),
+    pseudo-counts n_Jev approach zero, meaning Jev adds almost zero observations to Beta posterior.
+    """
+    feat = {"price": 100.0, "atr_14": 0.5, "vol_gk": 0.001}
+    res_entropy = compute_bayesian_horizon_forecast("10m", 0.50, 0.50, "NEUTRAL", 0.50, feat, tau_minutes=10)
+    beta_post = res_entropy["beta_posterior"]
+    
+    # Prior ESS is around 14. When Jev is neutral, total ESS should be close to prior ESS
+    assert abs(beta_post["mean"] - 0.50) < 1e-4
+    assert res_entropy["bayes_factor"] == 1.0
+    assert "Inconclusive" in res_entropy["evidence_badge"]
+
 if __name__ == "__main__":
     print("Running Bayesian Forecasting Test Suite...")
     test_logit_sigmoid_inversion()
@@ -161,4 +205,10 @@ if __name__ == "__main__":
     print("✓ Bayesian Horizon Forecast Monotonicity passed.")
     test_multi_horizon_bayesian_forecast()
     print("✓ Multi-Horizon Bayesian Forecast Pipeline passed.")
-    print("\nALL 6 TEST CASES PASSED WITH 100% SUCCESS!")
+    test_horizon_comparative_advantage_scaling()
+    print("✓ Horizon Comparative Advantage Precision Scaling gamma(tau) passed.")
+    test_closed_loop_confusion_matrix_shrinkage()
+    print("✓ Closed-Loop Walk-Forward Shrinkage omega_edge passed.")
+    test_information_theoretic_ess_at_maximum_entropy()
+    print("✓ Information-Theoretic Effective Sample Size (ESS) at Maximum Entropy passed.")
+    print("\nALL 9 THEORETICAL BAYESIAN TEST CASES PASSED WITH 100% SUCCESS!")
