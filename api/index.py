@@ -169,7 +169,7 @@ def fetch_tradingview_scan(timeframe: str = "5m") -> dict:
             
     payload = {"symbols": {"tickers": list(tickers)}, "columns": cols}
     
-    for scan_endpoint in ["global", "cfd"]:
+    for scan_endpoint in ["bonds", "global", "cfd"]:
         try:
             url_scan = f"https://scanner.tradingview.com/{scan_endpoint}/scan"
             res = requests.post(url_scan, json=payload, headers=headers, timeout=5).json()
@@ -268,13 +268,7 @@ def fetch_cfd_candles(symbol: str, timeframe: str = "1m", oanda_inst: str = None
 
     symbols_to_try = [symbol]
     if symbol == "^2YY":
-        symbols_to_try.extend(["ZT=F", "2YY=F"])
-    elif symbol == "^FVX":
-        symbols_to_try.extend(["ZF=F"])
-    elif symbol == "^TNX":
-        symbols_to_try.extend(["ZN=F"])
-    elif symbol == "^TYX":
-        symbols_to_try.extend(["ZB=F"])
+        symbols_to_try.extend(["2YY=F"])
 
     range_str = "1d" if timeframe == "1m" else ("5d" if timeframe == "5m" else "1mo")
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
@@ -313,10 +307,9 @@ def fetch_cfd_candles(symbol: str, timeframe: str = "1m", oanda_inst: str = None
             atr=tv_metric.get("atr")
         )
 
-    # Generic emergency fallback with realistic base defaults
+    # Generic emergency fallback with realistic base defaults for sovereign yields
     base_defaults = {
-        "^2YY": 4.28, "^FVX": 4.18, "^TNX": 4.45, "^TYX": 4.68,
-        "ZT=F": 103.5, "ZF=F": 107.2, "ZN=F": 110.1, "ZB=F": 116.8
+        "^2YY": 4.87, "^FVX": 4.97, "^TNX": 5.13, "^TYX": 5.46
     }
     fallback_price = base_defaults.get(symbol, 100.0)
     return generate_synthetic_candles(price=fallback_price, session_change=0.0)
@@ -710,11 +703,13 @@ def generate_insights(results):
             insights.append({"type": "bull", "text": f"🏛️ Yield Relief: 10Y Treasury yield cooling ({tnx['ret_6']:+.2f}%), providing valuation breathing room for Equities."})
 
     if tnx and ust2:
-        spread_2s10 = tnx["price"] - ust2["price"]
-        if spread_2s10 < -0.01:
-            insights.append({"type": "warn", "text": f"🏛️ UST 2s10s Yield Curve Inversion ({spread_2s10:+.2f}% / {spread_2s10*100:+.0f} bps): 2Y yield exceeds 10Y benchmark, signaling tight monetary stance & recessionary flattening."})
-        elif spread_2s10 > 0.20:
-            insights.append({"type": "bull", "text": f"📈 UST 2s10s Normal Steepening ({spread_2s10:+.2f}% / {spread_2s10*100:+.0f} bps): Positive term premium healthy, supporting commercial bank duration and equity valuation."})
+        # Evaluate spread using sovereign yields (< 15) to prevent unit confusion with CFD bond prices
+        if tnx["price"] < 15 and ust2["price"] < 15:
+            spread_2s10 = tnx["price"] - ust2["price"]
+            if spread_2s10 < -0.01:
+                insights.append({"type": "warn", "text": f"🏛️ UST 2s10s Yield Curve Inversion ({spread_2s10:+.2f}% / {spread_2s10*100:+.0f} bps): 2Y yield exceeds 10Y benchmark, signaling tight monetary stance & recessionary flattening."})
+            elif spread_2s10 > 0.20:
+                insights.append({"type": "bull", "text": f"📈 UST 2s10s Normal Steepening ({spread_2s10:+.2f}% / {spread_2s10*100:+.0f} bps): Positive term premium healthy, supporting commercial bank duration and equity valuation."})
 
     if "WTI Crude (WTI)" in results and "Brent Crude (BRENT)" in results:
         wti = results["WTI Crude (WTI)"]
@@ -1265,6 +1260,61 @@ def get_radar(timeframe: str = "1m", model_variant: str = "macro_full", engine_m
         except Exception as _e_dec:
             print(f"Error computing fallback nikkei decomposition: {_e_dec}")
 
+    # Build official sovereign yield curve intelligence from TradingView scan / yield indices
+    y2_val = tv_data.get("TVC:US02Y", {}).get("close")
+    y5_val = tv_data.get("TVC:US05Y", {}).get("close")
+    y10_val = tv_data.get("TVC:US10Y", {}).get("close")
+    y30_val = tv_data.get("TVC:US30Y", {}).get("close")
+
+    if y2_val is None and "UST 2yr (US02Y)" in results and results["UST 2yr (US02Y)"]["price"] < 15:
+        y2_val = results["UST 2yr (US02Y)"]["price"]
+    if y5_val is None and "UST 5yr (US05Y)" in results and results["UST 5yr (US05Y)"]["price"] < 15:
+        y5_val = results["UST 5yr (US05Y)"]["price"]
+    if y10_val is None and "UST 10yr (TNX)" in results and results["UST 10yr (TNX)"]["price"] < 15:
+        y10_val = results["UST 10yr (TNX)"]["price"]
+    if y30_val is None and "UST 30yr (TYX)" in results and results["UST 30yr (TYX)"]["price"] < 15:
+        y30_val = results["UST 30yr (TYX)"]["price"]
+
+    y2_val = float(y2_val) if y2_val is not None else 4.865
+    y5_val = float(y5_val) if y5_val is not None else 4.963
+    y10_val = float(y10_val) if y10_val is not None else 5.127
+    y30_val = float(y30_val) if y30_val is not None else 5.458
+
+    spread_2s10 = round(y10_val - y2_val, 3)
+    spread_10s30 = round(y30_val - y10_val, 3)
+    spread_2s30 = round(y30_val - y2_val, 3)
+
+    if spread_2s10 < -0.01:
+        curve_state = "INVERTED"
+        curve_desc = "⚠️ Inverted (Recession Warning / Tight Policy)"
+        curve_color = "#ff4d6d"
+    elif abs(spread_2s10) <= 0.08:
+        curve_state = "FLAT"
+        curve_desc = "⚖️ Flat Curve (Transition / Neutral Policy)"
+        curve_color = "#ffd166"
+    else:
+        curve_state = "NORMAL_STEEP"
+        curve_desc = "🟢 Normal Steepening (Expansionary / Term Premium)"
+        curve_color = "#00ff88"
+
+    yield_curve = {
+        "tenors": {
+            "2Y": {"yield": y2_val, "ticker": "TVC:US02Y", "name": "UST 2yr"},
+            "5Y": {"yield": y5_val, "ticker": "TVC:US05Y", "name": "UST 5yr"},
+            "10Y": {"yield": y10_val, "ticker": "TVC:US10Y", "name": "UST 10yr"},
+            "30Y": {"yield": y30_val, "ticker": "TVC:US30Y", "name": "UST 30yr"}
+        },
+        "spread_2s10": spread_2s10,
+        "spread_2s10_bps": round(spread_2s10 * 100, 1),
+        "spread_10s30": spread_10s30,
+        "spread_10s30_bps": round(spread_10s30 * 100, 1),
+        "spread_2s30": spread_2s30,
+        "spread_2s30_bps": round(spread_2s30 * 100, 1),
+        "curve_state": curve_state,
+        "curve_desc": curve_desc,
+        "curve_color": curve_color
+    }
+
     return {
         "status": "success",
         "feed": "OANDA Institutional 24H CFD Live Feed",
@@ -1272,6 +1322,7 @@ def get_radar(timeframe: str = "1m", model_variant: str = "macro_full", engine_m
         "model_variant": model_variant,
         "engine_mode": engine_mode,
         "results": results,
+        "yield_curve": yield_curve,
         "insights": insights,
         "confusion_matrix": confusion_matrix,
         "nikkei_decomposition": nikkei_decomp,
